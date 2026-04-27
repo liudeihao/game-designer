@@ -419,6 +419,57 @@ func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, m)
 }
 
+// deleteAsset soft-deletes a private asset owned by the current user (visibility → deleted).
+// Public assets cannot be removed this way.
+func (s *Server) deleteAsset(w http.ResponseWriter, r *http.Request) {
+	uid, _ := userID(r.Context())
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeErr(w, 400, "bad id", "bad_request")
+		return
+	}
+	ctx := r.Context()
+	var author uuid.UUID
+	var vis string
+	err = s.pool.QueryRow(ctx, `SELECT author_id, visibility::text FROM assets WHERE id = $1`, id).Scan(&author, &vis)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeErr(w, 404, "not found", "not_found")
+		} else {
+			writeErr(w, 500, err.Error(), "internal")
+		}
+		return
+	}
+	if author != uid {
+		writeErr(w, 403, "forbidden", "forbidden")
+		return
+	}
+	if vis == "public" {
+		writeErr(w, 400, "已公开的素材不能从私库删除（全站探索页仍保留）", "bad_request")
+		return
+	}
+	if vis == "deleted" {
+		w.WriteHeader(204)
+		return
+	}
+	if vis != "private" {
+		writeErr(w, 400, "cannot delete", "bad_request")
+		return
+	}
+	ct, err := s.pool.Exec(ctx, `
+		UPDATE assets SET visibility = 'deleted', deleted_at = now(), updated_at = now() WHERE id = $1 AND author_id = $2 AND visibility = 'private'
+	`, id, uid)
+	if err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
+	if ct.RowsAffected() == 0 {
+		writeErr(w, 404, "not found", "not_found")
+		return
+	}
+	w.WriteHeader(204)
+}
+
 func (s *Server) publishAsset(w http.ResponseWriter, r *http.Request) {
 	uid, _ := userID(r.Context())
 	id, _ := uuid.Parse(chi.URLParam(r, "id"))

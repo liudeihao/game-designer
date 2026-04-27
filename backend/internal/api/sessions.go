@@ -509,6 +509,111 @@ func (s *Server) patchSessionDraft(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// exportSessionDraftToLibrary creates a private library asset from the staged row and removes that draft (single transaction).
+func (s *Server) exportSessionDraftToLibrary(w http.ResponseWriter, r *http.Request) {
+	uid, _ := userID(r.Context())
+	sid, err := uuid.Parse(chi.URLParam(r, "sessionId"))
+	if err != nil {
+		writeErr(w, 400, "bad id", "bad_request")
+		return
+	}
+	tempID := chi.URLParam(r, "tempId")
+	if tempID == "" {
+		writeErr(w, 400, "bad temp id", "bad_request")
+		return
+	}
+	ctx := r.Context()
+	if err := s.assertChatSessionOwner(ctx, sid, uid); err != nil {
+		if errors.Is(err, errSessionNotFound) {
+			writeErr(w, 404, "not found", "not_found")
+		} else {
+			writeErr(w, 500, err.Error(), "internal")
+		}
+		return
+	}
+	tgt, err := s.resolveDraftTarget(ctx, sid)
+	if err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
+	var name, desc string
+	if tgt.useGroup {
+		err = s.pool.QueryRow(ctx, `
+			SELECT name, description FROM draft_assets WHERE group_id = $1 AND temp_id = $2
+		`, tgt.groupID, tempID).Scan(&name, &desc)
+	} else {
+		err = s.pool.QueryRow(ctx, `
+			SELECT name, description FROM draft_assets
+			WHERE session_id = $1 AND group_id IS NULL AND temp_id = $2
+		`, sid, tempID).Scan(&name, &desc)
+	}
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeErr(w, 404, "not found", "not_found")
+		} else {
+			writeErr(w, 500, err.Error(), "internal")
+		}
+		return
+	}
+	name = strings.TrimSpace(name)
+	desc = strings.TrimSpace(desc)
+	if name == "" || desc == "" {
+		writeErr(w, 400, "draft name and description required", "bad_request")
+		return
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	var assetID uuid.UUID
+	err = tx.QueryRow(ctx, `
+		INSERT INTO assets (author_id, name, description, annotation, visibility, forked_from_id, fork_count, cover_image_id, deleted_at, updated_at)
+		VALUES ($1, $2, $3, null, 'private', null, 0, null, null, now())
+		RETURNING id
+	`, uid, name, desc).Scan(&assetID)
+	if err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
+	var rowCount int64
+	if tgt.useGroup {
+		ct, e := tx.Exec(ctx, `DELETE FROM draft_assets WHERE group_id = $1 AND temp_id = $2`, tgt.groupID, tempID)
+		err = e
+		if err == nil {
+			rowCount = ct.RowsAffected()
+		}
+	} else {
+		ct, e := tx.Exec(ctx, `DELETE FROM draft_assets WHERE session_id = $1 AND group_id IS NULL AND temp_id = $2`, sid, tempID)
+		err = e
+		if err == nil {
+			rowCount = ct.RowsAffected()
+		}
+	}
+	if err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
+	if rowCount == 0 {
+		writeErr(w, 500, "draft not removed", "internal")
+		return
+	}
+	if err := tx.Commit(ctx); err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
+	s.touchSessionActivity(ctx, sid)
+	m, err := s.getAssetByID(ctx, assetID)
+	if err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
+	writeJSON(w, 201, m)
+}
+
 func (s *Server) deleteSessionDraft(w http.ResponseWriter, r *http.Request) {
 	uid, _ := userID(r.Context())
 	sid, err := uuid.Parse(chi.URLParam(r, "sessionId"))

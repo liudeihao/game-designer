@@ -1,12 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { listSessionStagingGroups, postSession } from "@/lib/api";
 import { ThemeSelect } from "@/components/ui/ThemeSelect";
-export default function NewSessionPage() {
+
+function NewSessionPageInner() {
   const r = useRouter();
+  const searchParams = useSearchParams();
   const [t, setT] = useState("");
   const [groupId, setGroupId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -14,6 +16,11 @@ export default function NewSessionPage() {
     queryKey: ["session-staging-groups"],
     queryFn: listSessionStagingGroups,
   });
+
+  useEffect(() => {
+    const g = searchParams.get("group");
+    if (g && groups.some((x) => x.id === g)) setGroupId(g);
+  }, [searchParams, groups]);
 
   return (
     <div className="gd-scrollbar flex h-full min-h-0 flex-col overflow-y-auto px-4 py-6 sm:px-6">
@@ -64,5 +71,19 @@ export default function NewSessionPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function NewSessionPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-full min-h-0 items-center justify-center px-4 py-6">
+          <p className="text-ui-mono text-sm text-text-muted">加载…</p>
+        </div>
+      }
+    >
+      <NewSessionPageInner />
+    </Suspense>
   );
 }

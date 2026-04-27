@@ -229,6 +229,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
         groupId={group || null}
         libraryVisibility={libraryVisibility}
         gridSize={prefs.libraryCardSize}
+        ownerLibraryBulkDelete
       />
     </div>
   );

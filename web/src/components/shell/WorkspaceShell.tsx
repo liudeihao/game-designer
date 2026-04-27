@@ -92,7 +92,18 @@ export function WorkspaceShell({
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="gd-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+          <div
+            className={cn(
+              "gd-scrollbar flex min-h-0 min-w-0 flex-1 flex-col",
+              // Session detail / group workspace fill the viewport; scroll only inside panels.
+              // List, new, and archive routes stay scrollable at the shell.
+              pathname.startsWith("/library/sessions/") &&
+                !pathname.startsWith("/library/sessions/new") &&
+                !pathname.startsWith("/library/sessions/archive")
+                ? "overflow-hidden"
+                : "overflow-y-auto"
+            )}
+          >
             {children}
           </div>
         </motion.main>

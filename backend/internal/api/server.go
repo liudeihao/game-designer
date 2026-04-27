@@ -66,6 +66,7 @@ func (s *Server) Router() http.Handler {
 			r.With(s.requireUser).Post("/{id}/images", s.postImage)
 			r.Get("/{id}", s.getAsset)
 			r.With(s.requireUser).Patch("/{id}", s.patchAsset)
+			r.With(s.requireUser).Delete("/{id}", s.deleteAsset)
 		})
 
 		r.Route("/sessions", func(r chi.Router) {
@@ -76,6 +77,7 @@ func (s *Server) Router() http.Handler {
 			r.With(s.requireUser).Delete("/{sessionId}", s.deleteChatSession)
 			r.With(s.requireUser).Post("/{sessionId}/chat", s.postChat)
 			r.With(s.requireUser).Post("/{sessionId}/drafts", s.postSessionDraft)
+			r.With(s.requireUser).Post("/{sessionId}/drafts/{tempId}/export-to-library", s.exportSessionDraftToLibrary)
 			r.With(s.requireUser).Patch("/{sessionId}/drafts/{tempId}", s.patchSessionDraft)
 			r.With(s.requireUser).Delete("/{sessionId}/drafts/{tempId}", s.deleteSessionDraft)
 		})

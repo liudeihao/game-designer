@@ -209,6 +209,23 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [assets]
+      summary: Soft-delete a private asset (owner only); public assets rejected
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "204":
+          description: Asset marked deleted (ghost); removed from library lists
+        "400":
+          description: Public or invalid state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBody" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /assets/{id}/publish:
     post:
@@ -545,6 +562,26 @@ paths:
         - $ref: "#/components/parameters/DraftTempId"
       responses:
         "204": { description: Removed }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /sessions/{sessionId}/drafts/{tempId}/export-to-library:
+    post:
+      tags: [sessions]
+      summary: Export one staged draft to private library and remove it from staging (atomic)
+      description: |
+        Uses draft name/description from the staging row. For shared group staging, `sessionId` must be any chat session in that group (same as PATCH/DELETE draft).
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/DraftTempId"
+      responses:
+        "201":
+          description: Created private asset; draft row deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
 

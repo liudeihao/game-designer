@@ -123,6 +123,24 @@ export async function patchAsset(
   return r.json() as Promise<Asset>;
 }
 
+/** Soft-delete private asset (removed from library lists). Public assets return 400. */
+export async function deleteAsset(id: string) {
+  const r = await fetch(`/api/assets/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!r.ok) {
+    let msg = "";
+    try {
+      const j = (await r.json()) as { error?: string };
+      msg = (j.error || "").trim();
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg || `删除失败（${r.status}）`);
+  }
+}
+
 export async function publishAsset(id: string) {
   const r = await fetch(`/api/assets/${id}/publish`, { method: "POST", credentials: "include" });
   if (!r.ok) throw new Error("publish");
@@ -256,6 +274,15 @@ export async function patchSession(id: string, body: { title?: string; stagingGr
   return r.json() as Promise<SessionDetail>;
 }
 
+export async function deleteSession(id: string) {
+  const r = await fetch(`/api/sessions/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (r.status === 404) throw new Error("not found");
+  if (!r.ok) throw new Error("delete session");
+}
+
 export async function postChatStream(sessionId: string, message: string) {
   return fetch(`/api/sessions/${sessionId}/chat`, {
     method: "POST",
@@ -339,13 +366,34 @@ export async function patchProject(id: string, body: { name?: string; canvasDocu
   return r.json() as Promise<ProjectDetail>;
 }
 
-export async function exportDraftsToLibrary(drafts: DraftAsset[]) {
-  for (const d of drafts) {
-    await exportDraftToLibrary(d);
+/** Creates a library asset from the staging row and deletes that draft (server transaction). */
+export async function exportSessionDraftToLibrary(sessionId: string, tempId: string): Promise<Asset> {
+  const r = await fetch(
+    `/api/sessions/${encodeURIComponent(sessionId)}/drafts/${encodeURIComponent(tempId)}/export-to-library`,
+    { method: "POST", credentials: "include" }
+  );
+  if (!r.ok) {
+    let detail = "";
+    try {
+      const j = (await r.json()) as { message?: string; error?: string };
+      detail = (j.error || j.message || "").trim();
+    } catch {
+      detail = (await r.text()).trim();
+    }
+    throw new Error(detail || `导出失败（${r.status}）`);
   }
+  return r.json() as Promise<Asset>;
 }
 
-export async function exportDraftToLibrary(d: DraftAsset) {
-  if (!d.name?.trim() || !d.description?.trim()) return;
-  await createAsset({ name: d.name.trim(), description: d.description.trim() });
+export async function exportDraftToLibrary(d: DraftAsset, sessionIdForStagingApi: string): Promise<Asset> {
+  return exportSessionDraftToLibrary(sessionIdForStagingApi, d.tempId);
+}
+
+export async function exportDraftsToLibrary(
+  drafts: DraftAsset[],
+  sessionIdForEach: (d: DraftAsset) => string
+) {
+  for (const d of drafts) {
+    await exportDraftToLibrary(d, sessionIdForEach(d));
+  }
 }

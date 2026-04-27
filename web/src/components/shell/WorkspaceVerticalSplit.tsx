@@ -18,6 +18,8 @@ type Props = {
   storageKey: string;
   /** Initial height % for the top panel (e.g. message list) */
   topDefaultSize: number;
+  /** Initial height % for the bottom panel (composer); defaults to remainder of topDefaultSize */
+  bottomDefaultSize?: number;
   topMinSize?: number;
   bottomMinSize?: number;
   className?: string;
@@ -33,6 +35,7 @@ type Props = {
 export function WorkspaceVerticalSplit({
   storageKey,
   topDefaultSize,
+  bottomDefaultSize,
   topMinSize = 18,
   bottomMinSize = 10,
   className,
@@ -41,6 +44,7 @@ export function WorkspaceVerticalSplit({
   top,
   bottom,
 }: Props) {
+  const bottomDefault = bottomDefaultSize ?? Math.max(0, 100 - topDefaultSize);
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: storageKey,
     panelIds: ["top", "bottom"],
@@ -54,6 +58,7 @@ export function WorkspaceVerticalSplit({
       className={cn("min-h-0 min-w-0 overflow-hidden", className)}
       defaultLayout={defaultLayout}
       onLayoutChanged={onLayoutChanged}
+      resizeTargetMinimumSize={{ fine: 6, coarse: 28 }}
     >
       <Panel
         id="top"
@@ -65,12 +70,13 @@ export function WorkspaceVerticalSplit({
       </Panel>
       <Separator
         className={cn(
-          "h-px w-full shrink-0 bg-border/80 outline-none transition-colors",
-          "hover:bg-accent/40 focus-visible:bg-accent/50"
+          "relative z-20 min-h-2 max-h-2 w-full shrink-0 cursor-row-resize outline-none transition-colors",
+          "bg-border/80 hover:bg-accent/40 focus-visible:bg-accent/50"
         )}
       />
       <Panel
         id="bottom"
+        defaultSize={`${bottomDefault}%`}
         minSize={`${bottomMinSize}%`}
         className={cn("min-h-0 min-w-0 overflow-hidden", bottomClassName)}
       >

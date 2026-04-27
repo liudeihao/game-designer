@@ -14,12 +14,12 @@ export function SessionsLayoutClient({
   initialSessionList?: SessionSummary[];
 }) {
   const main = (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
   );
   return (
-    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-divider px-3 py-2 text-ui-mono text-[12px] lg:hidden">
-        <Link href="/library/sessions" className="text-text-muted hover:text-accent">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center justify-end gap-2 border-b border-divider px-3 py-2 text-ui-mono text-[12px] lg:hidden">
+        <Link href="/library/sessions" className="mr-auto text-text-muted hover:text-accent">
           ← 会话
         </Link>
         <Link href="/library/sessions/new" className="text-accent">
@@ -27,13 +27,13 @@ export function SessionsLayoutClient({
         </Link>
       </div>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:hidden">{main}</div>
-      <div className="hidden min-h-0 min-w-0 flex-1 lg:flex">
+      <div className="hidden min-h-0 min-w-0 flex-1 lg:flex lg:h-full">
         <WorkspaceHorizontalSplit
           storageKey="layout:sessions-list-sidebar"
           leftDefaultSize={17.5}
           leftMinSize={14}
           rightMinSize={40}
-          className="flex min-h-0 min-w-0 flex-1"
+          className="h-full min-h-0 min-w-0 flex-1"
           left={<SessionListSidebar initialSessionList={initialSessionList} />}
           right={main}
         />

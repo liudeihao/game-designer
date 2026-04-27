@@ -54,25 +54,31 @@ export function WorkspaceHorizontalSplit({
     <Group
       id={storageKey}
       orientation="horizontal"
-      className={cn("min-h-0 min-w-0 overflow-hidden", className)}
+      className={cn("flex h-full min-h-0 min-w-0 overflow-hidden", className)}
       defaultLayout={defaultLayout}
       onLayoutChanged={onLayoutChanged}
+      resizeTargetMinimumSize={{ fine: 6, coarse: 28 }}
     >
       <Panel
         id="left"
         defaultSize={`${leftDefaultSize}%`}
         minSize={`${leftMinSize}%`}
-        className={cn("min-h-0 min-w-0", leftClassName)}
+        className={cn("min-h-0 min-w-0 overflow-hidden", leftClassName)}
       >
         {left}
       </Panel>
       <Separator
         className={cn(
-          "w-px shrink-0 bg-border/80 outline-none transition-colors",
-          "hover:bg-accent/40 focus-visible:bg-accent/50"
+          // Wider hit target than 1px so drag is discoverable; library also expands rects to min size.
+          "relative z-20 min-w-2 max-w-2 shrink-0 cursor-col-resize self-stretch outline-none transition-colors",
+          "bg-divider hover:bg-accent/45 focus-visible:bg-accent/55"
         )}
       />
-      <Panel id="right" minSize={`${rightMinSize}%`} className={cn("min-h-0 min-w-0", rightClassName)}>
+      <Panel
+        id="right"
+        minSize={`${rightMinSize}%`}
+        className={cn("min-h-0 min-w-0 overflow-hidden", rightClassName)}
+      >
         {right}
       </Panel>
     </Group>

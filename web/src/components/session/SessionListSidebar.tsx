@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronDown, ChevronRight, Pencil, Plus, Trash2, X } from "lucide-react";
@@ -10,6 +10,7 @@ import {
   listSessions,
   listSessionStagingGroups,
   createSessionStagingGroup,
+  deleteSession,
   deleteSessionStagingGroup,
   patchSession,
   patchSessionStagingGroup,
@@ -24,6 +25,7 @@ type InlineRename =
 
 export function SessionListSidebar({ initialSessionList = [] }: { initialSessionList?: SessionSummary[] }) {
   const pathname = usePathname();
+  const router = useRouter();
   const qc = useQueryClient();
   const { data: sessionRows = initialSessionList } = useQuery({
     queryKey: ["sessions"],
@@ -35,20 +37,36 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
     queryFn: listSessionStagingGroups,
   });
 
-  const [newName, setNewName] = useState("");
-  const [newMode, setNewMode] = useState<StagingGroupDraft>("independent");
-  const [createBusy, setCreateBusy] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [sessionToDelete, setSessionToDelete] = useState<{
+    id: string;
+    title: string;
+    draftCount: number;
+  } | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [inlineRename, setInlineRename] = useState<InlineRename | null>(null);
   const [renameBusy, setRenameBusy] = useState(false);
+  const [newGroupMenuOpen, setNewGroupMenuOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [newGroupMode, setNewGroupMode] = useState<StagingGroupDraft>("independent");
+  const [createGroupBusy, setCreateGroupBusy] = useState(false);
 
-  const isIndex = pathname === "/library/sessions" || pathname === "/library/sessions/";
   const isNew = pathname === "/library/sessions/new";
   const isArchive = pathname.startsWith("/library/sessions/archive");
-  const seg = pathname.replace(/\/$/, "").split("/").pop() ?? "";
+  const norm = pathname.replace(/\/$/, "");
+  const groupPageMatch = /^\/library\/sessions\/groups\/([^/]+)$/.exec(norm);
+  const activeGroupPageId = groupPageMatch?.[1] ?? null;
+  const isGroupPage = activeGroupPageId !== null;
+  const seg = norm.split("/").pop() ?? "";
   const activeSessionId =
-    !isIndex && !isNew && !isArchive && seg && seg !== "sessions" ? seg : null;
+    !isNew &&
+    !isArchive &&
+    !isGroupPage &&
+    seg &&
+    seg !== "sessions" &&
+    seg !== "groups"
+      ? seg
+      : null;
 
   const ungrouped = sessionRows.filter((s) => !s.stagingGroup?.id);
   const inGroup = (gid: string) => sessionRows.filter((s) => s.stagingGroup?.id === gid);
@@ -61,6 +79,13 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
       setExpandedGroups((prev) => (prev[gid] ? prev : { ...prev, [gid]: true }));
     }
   }, [activeSessionId, sessionRows]);
+
+  useEffect(() => {
+    if (!activeGroupPageId) return;
+    setExpandedGroups((prev) =>
+      prev[activeGroupPageId] ? prev : { ...prev, [activeGroupPageId]: true }
+    );
+  }, [activeGroupPageId]);
 
   const toggleGroupExpanded = (gid: string) => {
     setExpandedGroups((prev) => ({ ...prev, [gid]: !prev[gid] }));
@@ -118,6 +143,13 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
   const iconBtn =
     "flex h-7 w-7 shrink-0 items-center justify-center rounded text-text-muted hover:bg-white/5 hover:text-text-primary disabled:opacity-40";
 
+  /** Show row actions when this row is current route target, on hover, or when focus is inside (keyboard). */
+  const rowActionsClass = (active: boolean) =>
+    cn(
+      "flex shrink-0 items-center gap-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100",
+      active && "opacity-100"
+    );
+
   const renderSessionRow = (s: SessionSummary, compact: boolean) => {
     const sessionEdit =
       inlineRename?.kind === "session" && inlineRename.id === s.id ? inlineRename : null;
@@ -126,7 +158,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
       <li key={s.id}>
         <div
           className={cn(
-            "flex min-w-0 items-center gap-0.5 rounded",
+            "group flex min-w-0 items-center gap-0.5 rounded",
             compact ? "py-0.5 pl-0.5 pr-0" : "px-1 py-0.5"
           )}
         >
@@ -182,18 +214,36 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              className={iconBtn}
-              title="重命名"
-              aria-label={`重命名「${s.title}」`}
-              onClick={(e) => {
-                e.preventDefault();
-                setInlineRename({ kind: "session", id: s.id, value: s.title });
-              }}
-            >
-              <Pencil className="h-3 w-3 opacity-80" aria-hidden />
-            </button>
+            <span className={rowActionsClass(activeSessionId === s.id)}>
+              <button
+                type="button"
+                className={iconBtn}
+                title="重命名"
+                aria-label={`重命名「${s.title}」`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setInlineRename({ kind: "session", id: s.id, value: s.title });
+                }}
+              >
+                <Pencil className="h-3 w-3 opacity-80" aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={cn(iconBtn, "hover:text-error-dim")}
+                title="删除会话"
+                aria-label={`删除会话「${s.title}」`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setSessionToDelete({
+                    id: s.id,
+                    title: s.title,
+                    draftCount: s.draftAssetCount,
+                  });
+                }}
+              >
+                <Trash2 className="h-3 w-3" aria-hidden />
+              </button>
+            </span>
           )}
         </div>
       </li>
@@ -205,11 +255,12 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
     const groupEdit =
       inlineRename?.kind === "group" && inlineRename.id === g.id ? inlineRename : null;
     const editing = !!groupEdit;
+    const groupPageSelected = activeGroupPageId === g.id;
     return (
       <li key={g.id}>
         <div
           className={cn(
-            "flex items-center gap-0.5 rounded px-1 py-1",
+            "group flex items-center gap-0.5 rounded px-1 py-1",
             groupRowActive && "bg-accent/[0.07]"
           )}
         >
@@ -241,15 +292,17 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
                 onKeyDown={(e) => onRenameKeyDown(e, "group")}
               />
             ) : (
-              <>
-                <p className="truncate text-[12px] font-medium text-text-primary/95" title={g.name}>
-                  {g.name}
-                </p>
+              <Link
+                href={`/library/sessions/groups/${encodeURIComponent(g.id)}`}
+                className="block min-w-0 rounded px-0.5 py-0.5 hover:bg-white/[0.04]"
+                title="分组设置与组内会话"
+              >
+                <p className="truncate text-[12px] font-medium text-text-primary/95">{g.name}</p>
                 <p className="text-[9px] text-text-muted/85">
                   {g.draftStaging === "shared" ? "共享暂存" : "各会话独立暂存"} · {sessions.length}{" "}
                   个会话
                 </p>
-              </>
+              </Link>
             )}
           </div>
           {editing ? (
@@ -276,7 +329,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
               </button>
             </>
           ) : (
-            <>
+            <span className={rowActionsClass(groupPageSelected)}>
               <button
                 type="button"
                 className={iconBtn}
@@ -298,7 +351,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
               >
                 <Trash2 className="h-3 w-3" />
               </button>
-            </>
+            </span>
           )}
         </div>
         {open && (
@@ -331,19 +384,37 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
           void qc.invalidateQueries({ queryKey: ["sessions"] });
         }}
       />
-      <p className="text-ui-mono text-[11px] uppercase tracking-wider text-text-muted">会话</p>
-      <ul className="mt-1 space-y-0.5 text-ui-mono text-[13px] text-text-primary">
-        <li>
-          <Link
-            href="/library/sessions"
-            className={cn(
-              "block rounded px-2 py-1.5",
-              isIndex ? "bg-accent/10 text-accent" : "text-text-muted hover:text-text-primary"
-            )}
-          >
-            全部
-          </Link>
-        </li>
+      <ConfirmDialog
+        open={!!sessionToDelete}
+        onOpenChange={(o) => !o && setSessionToDelete(null)}
+        title="删除此会话？"
+        description={
+          sessionToDelete
+            ? `「${sessionToDelete.title}」及其聊天记录将被永久删除。尚未导出到「我的库」、且归属本会话的暂存（当前列表显示 ${sessionToDelete.draftCount} 条）会一并删除；已入库素材不受影响。组内「共享暂存」的整池不会因删除单条会话而清空。此操作不可撤销。`
+            : ""
+        }
+        confirmLabel="删除"
+        tone="danger"
+        pendingLabel="删除中…"
+        onConfirm={async () => {
+          if (!sessionToDelete) return;
+          const sid = sessionToDelete.id;
+          await deleteSession(sid);
+          setSessionToDelete(null);
+          void qc.invalidateQueries({ queryKey: ["sessions"] });
+          void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
+          void qc.invalidateQueries({ queryKey: ["session-staging-group-drafts"] });
+          void qc.removeQueries({ queryKey: ["session", sid] });
+          if (activeSessionId === sid) {
+            router.push("/library/sessions");
+          }
+        }}
+      />
+      <p className="text-ui-mono text-[10px] uppercase tracking-wider text-text-muted">会话</p>
+      <p className="text-ui-mono mt-0.5 text-[9px] leading-snug text-text-muted/75">
+        未加入分组的会话列于此
+      </p>
+      <ul className="gd-scrollbar mt-1 max-h-[min(42vh,22rem)] space-y-0.5 overflow-y-auto text-ui-mono text-[13px] text-text-primary">
         <li>
           <Link
             href="/library/sessions/new"
@@ -356,110 +427,109 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
             新会话
           </Link>
         </li>
+        {ungrouped.map((s) => renderSessionRow(s, false))}
+        {ungrouped.length === 0 && (
+          <li className="px-2 py-1.5 text-[11px] text-text-muted/75">（暂无未分组会话）</li>
+        )}
       </ul>
 
-      <p className="text-ui-mono mt-4 text-[10px] uppercase tracking-wider text-text-muted">分组</p>
+      <div className="mt-4 flex items-center justify-between gap-1 pr-0.5">
+        <p className="text-ui-mono text-[10px] uppercase tracking-wider text-text-muted">分组</p>
+        <DropdownMenu.Root modal={false} open={newGroupMenuOpen} onOpenChange={setNewGroupMenuOpen}>
+          <DropdownMenu.Trigger asChild>
+            <button
+              type="button"
+              className={cn(iconBtn, "h-6 w-6")}
+              title="新建分组"
+              aria-label="新建分组"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              className="text-ui-mono z-[90] w-[min(calc(100vw-2rem),17rem)] rounded-md border border-border bg-bg-base p-2 shadow-lg"
+              sideOffset={6}
+              align="end"
+            >
+              <p className="px-0.5 text-[10px] text-text-muted">名称与暂存模式</p>
+              <input
+                className="mt-1 w-full rounded border border-border/60 bg-surface/40 px-2 py-1 text-[11px] text-text-primary outline-none focus:border-accent"
+                placeholder="分组名称"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+              />
+              <div
+                className="mt-2 flex rounded border border-border/60 bg-surface/30 p-0.5"
+                role="radiogroup"
+                aria-label="新建分组的暂存模式"
+              >
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={newGroupMode === "independent"}
+                  className={cn(
+                    "text-ui-mono flex-1 rounded px-1.5 py-1 text-left text-[10px] outline-none transition-colors",
+                    newGroupMode === "independent"
+                      ? "bg-accent/15 text-accent"
+                      : "text-text-muted hover:text-text-primary"
+                  )}
+                  onClick={() => setNewGroupMode("independent")}
+                >
+                  各会话独立暂存
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={newGroupMode === "shared"}
+                  className={cn(
+                    "text-ui-mono flex-1 rounded px-1.5 py-1 text-left text-[10px] outline-none transition-colors",
+                    newGroupMode === "shared"
+                      ? "bg-accent/15 text-accent"
+                      : "text-text-muted hover:text-text-primary"
+                  )}
+                  onClick={() => setNewGroupMode("shared")}
+                >
+                  组内共享暂存
+                </button>
+              </div>
+              <button
+                type="button"
+                className="text-ui-mono mt-2 w-full rounded bg-accent/10 py-1 text-[11px] text-accent disabled:opacity-40"
+                disabled={createGroupBusy || !newGroupName.trim()}
+                onClick={async () => {
+                  setCreateGroupBusy(true);
+                  try {
+                    await createSessionStagingGroup(newGroupName.trim(), newGroupMode);
+                    setNewGroupName("");
+                    setNewGroupMode("independent");
+                    setNewGroupMenuOpen(false);
+                    void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
+                  } catch {
+                    // ignore
+                  } finally {
+                    setCreateGroupBusy(false);
+                  }
+                }}
+              >
+                {createGroupBusy ? "创建中…" : "创建"}
+              </button>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      </div>
       <ul className="mt-1 space-y-0.5 text-ui-mono text-[12px] text-text-primary">
         {groupRows.map((g) => {
           const sessions = inGroup(g.id);
           const groupRowActive =
-            !!activeSessionId && sessions.some((s) => s.id === activeSessionId);
+            activeGroupPageId === g.id ||
+            (!!activeSessionId && sessions.some((s) => s.id === activeSessionId));
           return renderGroupRow(g, sessions, groupRowActive);
         })}
         {groupRows.length === 0 && (
-          <li className="px-1 py-1 text-[10px] text-text-muted/80">暂无分组，可在下方创建。</li>
+          <li className="px-1 py-1 text-[10px] text-text-muted/80">暂无分组，点击右侧 + 创建。</li>
         )}
       </ul>
-
-      <DropdownMenu.Root modal={false}>
-        <DropdownMenu.Trigger asChild>
-          <button
-            type="button"
-            className="text-ui-mono mt-2 flex w-full items-center justify-between gap-2 rounded border border-border/60 bg-surface/30 px-2 py-1.5 text-left text-[11px] text-text-muted hover:border-accent/25 hover:text-text-primary"
-          >
-            管理分组
-            <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
-          </button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Content
-            className="text-ui-mono z-[80] w-[min(calc(100vw-2rem),17rem)] rounded-md border border-border bg-bg-base p-2 shadow-lg"
-            sideOffset={6}
-            align="start"
-          >
-            <p className="px-0.5 text-[10px] text-text-muted">新建分组</p>
-            <input
-              className="mt-1 w-full rounded border border-border/60 bg-surface/40 px-2 py-1 text-[11px] text-text-primary outline-none focus:border-accent"
-              placeholder="名称"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-            />
-            <div
-              className="mt-2 flex rounded border border-border/60 bg-surface/30 p-0.5"
-              role="radiogroup"
-              aria-label="新建分组的暂存模式"
-            >
-              <button
-                type="button"
-                role="radio"
-                aria-checked={newMode === "independent"}
-                className={cn(
-                  "text-ui-mono flex-1 rounded px-1.5 py-1 text-left text-[10px] outline-none transition-colors",
-                  newMode === "independent"
-                    ? "bg-accent/15 text-accent"
-                    : "text-text-muted hover:text-text-primary"
-                )}
-                onClick={() => setNewMode("independent")}
-              >
-                各会话独立暂存
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={newMode === "shared"}
-                className={cn(
-                  "text-ui-mono flex-1 rounded px-1.5 py-1 text-left text-[10px] outline-none transition-colors",
-                  newMode === "shared"
-                    ? "bg-accent/15 text-accent"
-                    : "text-text-muted hover:text-text-primary"
-                )}
-                onClick={() => setNewMode("shared")}
-              >
-                组内共享暂存
-              </button>
-            </div>
-            <button
-              type="button"
-              className="text-ui-mono mt-2 w-full rounded bg-accent/10 py-1 text-[11px] text-accent disabled:opacity-40"
-              disabled={createBusy || !newName.trim()}
-              onClick={async () => {
-                setCreateBusy(true);
-                try {
-                  await createSessionStagingGroup(newName.trim(), newMode);
-                  setNewName("");
-                  setNewMode("independent");
-                  void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
-                } catch {
-                  // ignore
-                } finally {
-                  setCreateBusy(false);
-                }
-              }}
-            >
-              {createBusy ? "创建中…" : "创建"}
-            </button>
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-
-      {ungrouped.length > 0 && (
-        <>
-          <p className="text-ui-mono mt-4 text-[10px] uppercase tracking-wider text-text-muted">未分组</p>
-          <ul className="gd-scrollbar mt-1 max-h-40 space-y-0.5 overflow-y-auto text-ui-mono text-[13px]">
-            {ungrouped.map((s) => renderSessionRow(s, false))}
-          </ul>
-        </>
-      )}
 
     </aside>
   );

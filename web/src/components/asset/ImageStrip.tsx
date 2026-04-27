@@ -17,7 +17,8 @@ export function ImageStrip({
   canGenerate,
 }: {
   assetId: string;
-  images: AssetImage[];
+  /** May be null/undefined from API when no images; treat as none. */
+  images: AssetImage[] | null | undefined;
   coverImageId: string | null;
   onRefresh: () => void;
   onSetCover: (imageId: string | null) => Promise<void>;
@@ -28,12 +29,13 @@ export function ImageStrip({
   const [extra, setExtra] = useState("");
   const [busy, setBusy] = useState(false);
   const [lightbox, setLightbox] = useState<AssetImage | null>(null);
+  const list = images ?? [];
 
   return (
     <div className="space-y-3">
-      <h2 className="text-ui-mono text-[11px] uppercase tracking-wider text-text-muted">图像</h2>
+      <h2 className="text-ui-mono text-[11px] uppercase tracking-wider text-text-muted">图像（可选）</h2>
       <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
-        {images.map((im) => (
+        {list.map((im) => (
           <button
             key={im.id}
             type="button"
@@ -142,7 +144,7 @@ export function ImageStrip({
           </div>
         </button>
       )}
-      {images.length === 0 && (
+      {list.length === 0 && (
         <div className="flex h-40 items-center justify-center rounded-md border border-border/50 bg-surface/50">
           <div className="h-24 w-24 overflow-hidden rounded">
             <ProceduralPlaceholder seed={assetId} />

@@ -118,6 +118,10 @@ func (s *Server) loadAssetImages(ctx context.Context, assetID uuid.UUID) ([]any,
 			"createdAt": created.Format(time.RFC3339), "generationStatus": gen,
 		})
 	}
+	// nil slice would JSON-encode as null; clients expect an array (images are optional, not absent).
+	if out == nil {
+		out = []any{}
+	}
 	return out, nil
 }
 

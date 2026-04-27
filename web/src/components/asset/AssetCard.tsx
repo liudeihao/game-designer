@@ -41,9 +41,10 @@ export function AssetCard({
   }
 
   const full = asset;
+  const imgs = full.images ?? [];
   const cover = full.coverImageId
-    ? full.images.find((i) => i.id === full.coverImageId) ?? full.images[0]
-    : full.images[0];
+    ? imgs.find((i) => i.id === full.coverImageId) ?? imgs[0]
+    : imgs[0];
   const coverUrl = cover
     ? cover.url.includes("?")
         ? cover.url

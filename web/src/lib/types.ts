@@ -22,7 +22,8 @@ export type AssetFull = {
   visibility: "private" | "public";
   forkedFromId: string | null;
   forkCount: number;
-  images: AssetImage[];
+  /** API may send null for empty; treat as []. */
+  images: AssetImage[] | null;
   coverImageId: string | null;
   deletedAt: null;
 };

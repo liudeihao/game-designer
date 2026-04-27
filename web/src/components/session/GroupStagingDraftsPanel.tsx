@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   deleteSessionDraft,
@@ -58,6 +59,7 @@ export function GroupStagingDraftsPanel({ groupId, group, members, layout }: Pro
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [exportPrompt, setExportPrompt] = useState<ExportPrompt>(null);
+  const [oneExportAssetId, setOneExportAssetId] = useState<string | null>(null);
 
   const allDraftsSelected =
     draftAssets.length > 0 && selectedIds.length === draftAssets.length;
@@ -106,30 +108,43 @@ export function GroupStagingDraftsPanel({ groupId, group, members, layout }: Pro
     void qc.invalidateQueries({ queryKey: ["session"] });
   }, [invalidateAfterDraftMutation, qc]);
 
+  const oneExportDone = exportPrompt?.kind === "one" && oneExportAssetId !== null;
+
   const exportDialogTitle =
-    exportPrompt?.kind === "one"
-      ? "导出到「我的库」？"
-      : exportPrompt?.kind === "all"
-        ? "导出全部暂存？"
-        : exportPrompt?.kind === "batch"
-          ? "导出所选暂存？"
-          : "";
+    oneExportDone
+      ? "已导出到「我的库」"
+      : exportPrompt?.kind === "one"
+        ? "导出到「我的库」？"
+        : exportPrompt?.kind === "all"
+          ? "导出全部暂存？"
+          : exportPrompt?.kind === "batch"
+            ? "导出所选暂存？"
+            : "";
   const exportDialogDescription =
-    exportPrompt?.kind === "one"
-      ? `将「${exportPrompt.draft.name}」保存为「我的库」中的私有素材，并从暂存中移除该条。此操作不可撤销。`
-      : exportPrompt?.kind === "all"
-        ? `将当前列表中共 ${draftAssets.length} 条暂存逐条导入「我的库」，每条成功后会从暂存中移除。此操作不可撤销。`
-        : exportPrompt?.kind === "batch"
-          ? `将已选的 ${selectedIds.length} 条暂存导入「我的库」，每条成功后会从暂存中移除。此操作不可撤销。`
-          : "";
+    oneExportDone
+      ? `「${exportPrompt.draft.name}」已保存为私有素材，可从下方链接在新标签页打开详情。`
+      : exportPrompt?.kind === "one"
+        ? `将「${exportPrompt.draft.name}」保存为「我的库」中的私有素材，并从暂存中移除该条。此操作不可撤销。`
+        : exportPrompt?.kind === "all"
+          ? `将当前列表中共 ${draftAssets.length} 条暂存逐条导入「我的库」，每条成功后会从暂存中移除。此操作不可撤销。`
+          : exportPrompt?.kind === "batch"
+            ? `将已选的 ${selectedIds.length} 条暂存导入「我的库」，每条成功后会从暂存中移除。此操作不可撤销。`
+            : "";
 
   return (
     <>
       <ConfirmDialog
         open={exportPrompt !== null}
-        onOpenChange={(o) => !o && setExportPrompt(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            setExportPrompt(null);
+            setOneExportAssetId(null);
+          }
+        }}
         title={exportDialogTitle}
         description={exportDialogDescription}
+        footer={oneExportDone ? "close-only" : "default"}
+        closeOnSuccess={exportPrompt?.kind === "one" && !oneExportDone}
         confirmLabel="确认导出"
         pendingLabel="导出中…"
         onConfirm={async () => {
@@ -138,7 +153,8 @@ export function GroupStagingDraftsPanel({ groupId, group, members, layout }: Pro
             if (exportPrompt.kind === "one") {
               const sid = apiSessionForDraft(exportPrompt.draft);
               if (!sid) throw new Error("无法解析会话，请重试。");
-              await exportDraftToLibrary(exportPrompt.draft, sid);
+              const asset = await exportDraftToLibrary(exportPrompt.draft, sid);
+              setOneExportAssetId(asset.id);
             } else if (exportPrompt.kind === "all") {
               await exportDraftsToLibrary(draftAssets, (d) => apiSessionForDraft(d));
             } else {
@@ -152,7 +168,18 @@ export function GroupStagingDraftsPanel({ groupId, group, members, layout }: Pro
             throw e;
           }
         }}
-      />
+      >
+        {oneExportDone && oneExportAssetId ? (
+          <Link
+            href={`/library/assets/${oneExportAssetId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex text-accent underline-offset-2 hover:underline"
+          >
+            打开素材详情页（新标签页）
+          </Link>
+        ) : null}
+      </ConfirmDialog>
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
@@ -205,7 +232,10 @@ export function GroupStagingDraftsPanel({ groupId, group, members, layout }: Pro
               type="button"
               className="text-ui-mono text-[11px] text-accent hover:underline"
               disabled={draftAssets.length === 0}
-              onClick={() => setExportPrompt({ kind: "all" })}
+              onClick={() => {
+                setOneExportAssetId(null);
+                setExportPrompt({ kind: "all" });
+              }}
             >
               全部导出
             </button>
@@ -239,7 +269,10 @@ export function GroupStagingDraftsPanel({ groupId, group, members, layout }: Pro
               type="button"
               className="rounded bg-accent/20 px-2 py-0.5 text-accent disabled:cursor-not-allowed disabled:opacity-40"
               disabled={selectedIds.length === 0}
-              onClick={() => setExportPrompt({ kind: "batch" })}
+              onClick={() => {
+                setOneExportAssetId(null);
+                setExportPrompt({ kind: "batch" });
+              }}
             >
               导出所选到「我的库」
             </button>
@@ -420,7 +453,10 @@ export function GroupStagingDraftsPanel({ groupId, group, members, layout }: Pro
                             <button
                               type="button"
                               className="text-ui-mono text-[10px] text-accent hover:underline"
-                              onClick={() => setExportPrompt({ kind: "one", draft: d })}
+                              onClick={() => {
+                                setOneExportAssetId(null);
+                                setExportPrompt({ kind: "one", draft: d });
+                              }}
                             >
                               导出到库
                             </button>

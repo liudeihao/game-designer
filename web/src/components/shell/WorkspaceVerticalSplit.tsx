@@ -45,7 +45,7 @@ export function WorkspaceVerticalSplit({
   bottom,
 }: Props) {
   const bottomDefault = bottomDefaultSize ?? Math.max(0, 100 - topDefaultSize);
-  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+  const { defaultLayout, onLayoutChange, onLayoutChanged } = useDefaultLayout({
     id: storageKey,
     panelIds: ["top", "bottom"],
     storage: typeof window !== "undefined" ? window.localStorage : ssrStorage,
@@ -55,10 +55,11 @@ export function WorkspaceVerticalSplit({
     <Group
       id={storageKey}
       orientation="vertical"
-      className={cn("min-h-0 min-w-0 overflow-hidden", className)}
+      className={cn("h-full min-h-0 min-w-0 overflow-hidden", className)}
       defaultLayout={defaultLayout}
+      onLayoutChange={onLayoutChange}
       onLayoutChanged={onLayoutChanged}
-      resizeTargetMinimumSize={{ fine: 6, coarse: 28 }}
+      resizeTargetMinimumSize={{ fine: 8, coarse: 32 }}
     >
       <Panel
         id="top"
@@ -69,9 +70,14 @@ export function WorkspaceVerticalSplit({
         {top}
       </Panel>
       <Separator
+        aria-label="拖动调整上下区域高度"
+        title="拖动调整聊天记录区与输入区比例"
         className={cn(
-          "relative z-20 min-h-2 max-h-2 w-full shrink-0 cursor-row-resize outline-none transition-colors",
-          "bg-border/80 hover:bg-accent/40 focus-visible:bg-accent/50"
+          // Tall-enough hit band; thin line drawn with ::before (library owns flex-shrink on Separator).
+          "relative z-20 box-border w-full cursor-row-resize py-2 outline-none",
+          "bg-transparent before:pointer-events-none",
+          "before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:-translate-y-1/2 before:bg-divider before:content-['']",
+          "hover:before:bg-accent/45 focus-visible:before:bg-accent/55"
         )}
       />
       <Panel

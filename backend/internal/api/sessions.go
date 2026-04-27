@@ -395,14 +395,15 @@ func (s *Server) postSessionDraft(w http.ResponseWriter, r *http.Request) {
 	}
 	tempID := "user-" + uuid.NewString()
 	if tgt.useGroup {
+		// Partial unique index draft_assets_group_temp_uniq uses WHERE group_id IS NOT NULL; ON CONFLICT must repeat that predicate for inference.
 		_, err = s.pool.Exec(ctx, `
 			INSERT INTO draft_assets (group_id, temp_id, name, description, done) VALUES ($1, $2, $3, $4, true)
-			ON CONFLICT (group_id, temp_id) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, done = true`,
+			ON CONFLICT (group_id, temp_id) WHERE group_id IS NOT NULL DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, done = true`,
 			tgt.groupID, tempID, name, desc)
 	} else {
 		_, err = s.pool.Exec(ctx, `
 			INSERT INTO draft_assets (session_id, temp_id, name, description, done) VALUES ($1, $2, $3, $4, true)
-			ON CONFLICT (session_id, temp_id) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, done = true`,
+			ON CONFLICT (session_id, temp_id) WHERE session_id IS NOT NULL DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, done = true`,
 			sid, tempID, name, desc)
 	}
 	if err != nil {

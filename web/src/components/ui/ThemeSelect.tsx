@@ -48,7 +48,8 @@ export function ThemeSelect({
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          className="text-ui-mono z-[80] min-w-[var(--radix-dropdown-menu-trigger-width)] max-w-[min(100vw-2rem,24rem)] rounded-md border border-border bg-bg-base p-1 shadow-lg"
+          // Must sit above nested parents (e.g. session gear menu uses z-[100]); portaled content shares root stacking.
+          className="text-ui-mono z-[200] min-w-[var(--radix-dropdown-menu-trigger-width)] max-w-[min(100vw-2rem,24rem)] rounded-md border border-border bg-bg-base p-1 shadow-lg"
           sideOffset={4}
           align="start"
         >

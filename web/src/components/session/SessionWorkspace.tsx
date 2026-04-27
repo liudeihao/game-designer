@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   getSession,
@@ -61,6 +62,8 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [exportPrompt, setExportPrompt] = useState<ExportPrompt>(null);
+  /** After single-draft export succeeds, show detail link before closing. */
+  const [oneExportAssetId, setOneExportAssetId] = useState<string | null>(null);
 
   const onEvent = useCallback((ev: StreamEvent) => {
     if (ev.type === "text") {
@@ -247,7 +250,8 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
     const editor = (
       <div
         className={cn(
-          "gd-editor-panel relative flex min-h-0 min-w-0 flex-col overflow-hidden border-divider",
+          // h-full: keep vertical split (messages | composer) height so bottom panel never collapses to 0
+          "gd-editor-panel relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden border-divider",
           !forSplit && "border-r"
         )}
       >
@@ -358,7 +362,10 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                   type="button"
                   className="text-ui-mono text-[11px] text-accent hover:underline"
                   disabled={draftAssets.length === 0}
-                  onClick={() => setExportPrompt({ kind: "all" })}
+                  onClick={() => {
+                    setOneExportAssetId(null);
+                    setExportPrompt({ kind: "all" });
+                  }}
                 >
                   全部导出
                 </button>
@@ -386,7 +393,10 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                   type="button"
                   className="rounded bg-accent/20 px-2 py-0.5 text-accent disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={selectedIds.length === 0}
-                  onClick={() => setExportPrompt({ kind: "batch" })}
+                  onClick={() => {
+                    setOneExportAssetId(null);
+                    setExportPrompt({ kind: "batch" });
+                  }}
                 >
                   导出所选到「我的库」
                 </button>
@@ -547,7 +557,10 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                           <button
                             type="button"
                             className="text-ui-mono text-[10px] text-accent hover:underline"
-                            onClick={() => setExportPrompt({ kind: "one", draft: d })}
+                            onClick={() => {
+                              setOneExportAssetId(null);
+                              setExportPrompt({ kind: "one", draft: d });
+                            }}
                           >
                             导出到库
                           </button>
@@ -589,25 +602,30 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
     return { editor, drafts };
   }
 
-  const stacked = makeSessionColumns(false, session);
   const split = makeSessionColumns(true, session);
 
+  const oneExportDone = exportPrompt?.kind === "one" && oneExportAssetId !== null;
+
   const exportDialogTitle =
-    exportPrompt?.kind === "one"
-      ? "导出到「我的库」？"
-      : exportPrompt?.kind === "all"
-        ? "导出全部暂存？"
-        : exportPrompt?.kind === "batch"
-          ? "导出所选暂存？"
-          : "";
+    oneExportDone
+      ? "已导出到「我的库」"
+      : exportPrompt?.kind === "one"
+        ? "导出到「我的库」？"
+        : exportPrompt?.kind === "all"
+          ? "导出全部暂存？"
+          : exportPrompt?.kind === "batch"
+            ? "导出所选暂存？"
+            : "";
   const exportDialogDescription =
-    exportPrompt?.kind === "one"
-      ? `将「${exportPrompt.draft.name}」保存为「我的库」中的私有素材，并从暂存中移除该条。此操作不可撤销。`
-      : exportPrompt?.kind === "all"
-        ? `将当前列表中共 ${draftAssets.length} 条暂存逐条导入「我的库」，每条成功后会从暂存中移除。此操作不可撤销。`
-        : exportPrompt?.kind === "batch"
-          ? `将已选的 ${selectedIds.length} 条暂存导入「我的库」，每条成功后会从暂存中移除。此操作不可撤销。`
-          : "";
+    oneExportDone
+      ? `「${exportPrompt.draft.name}」已保存为私有素材，可从下方链接在新标签页打开详情。`
+      : exportPrompt?.kind === "one"
+        ? `将「${exportPrompt.draft.name}」保存为「我的库」中的私有素材，并从暂存中移除该条。此操作不可撤销。`
+        : exportPrompt?.kind === "all"
+          ? `将当前列表中共 ${draftAssets.length} 条暂存逐条导入「我的库」，每条成功后会从暂存中移除。此操作不可撤销。`
+          : exportPrompt?.kind === "batch"
+            ? `将已选的 ${selectedIds.length} 条暂存导入「我的库」，每条成功后会从暂存中移除。此操作不可撤销。`
+            : "";
 
   const invalidateAfterExport = () => {
     void refetch();
@@ -625,19 +643,27 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
       <ConfirmDialog
         open={exportPrompt !== null}
-        onOpenChange={(o) => !o && setExportPrompt(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            setExportPrompt(null);
+            setOneExportAssetId(null);
+          }
+        }}
         title={exportDialogTitle}
         description={exportDialogDescription}
+        footer={oneExportDone ? "close-only" : "default"}
+        closeOnSuccess={exportPrompt?.kind === "one" && !oneExportDone}
         confirmLabel="确认导出"
         pendingLabel="导出中…"
         onConfirm={async () => {
           if (!exportPrompt) return;
           try {
             if (exportPrompt.kind === "one") {
-              await exportDraftToLibrary(
+              const asset = await exportDraftToLibrary(
                 exportPrompt.draft,
                 draftOwnerSessionId(exportPrompt.draft.tempId)
               );
+              setOneExportAssetId(asset.id);
             } else if (exportPrompt.kind === "all") {
               await exportDraftsToLibrary(draftAssets, (d) => draftOwnerSessionId(d.tempId));
             } else {
@@ -651,7 +677,18 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
             throw e;
           }
         }}
-      />
+      >
+        {oneExportDone && oneExportAssetId ? (
+          <Link
+            href={`/library/assets/${oneExportAssetId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex text-accent underline-offset-2 hover:underline"
+          >
+            打开素材详情页（新标签页）
+          </Link>
+        ) : null}
+      </ConfirmDialog>
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
@@ -682,9 +719,17 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
           }
         }}
       />
-      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 grid-rows-[minmax(0,3fr)_minmax(0,2fr)] overflow-hidden md:hidden">
-        <div className="min-h-0 overflow-hidden">{stacked.editor}</div>
-        <div className="min-h-0 overflow-hidden">{stacked.drafts}</div>
+      <div className="min-h-0 min-w-0 flex-1 overflow-hidden md:hidden">
+        <WorkspaceVerticalSplit
+          storageKey="layout:session-chat-drafts-stack"
+          topDefaultSize={60}
+          bottomDefaultSize={40}
+          topMinSize={22}
+          bottomMinSize={18}
+          className="h-full min-h-0 min-w-0"
+          top={split.editor}
+          bottom={split.drafts}
+        />
       </div>
       <div className="hidden h-full min-h-0 min-w-0 flex-1 md:flex">
         <WorkspaceHorizontalSplit

@@ -44,11 +44,12 @@ export function WorkspaceHorizontalSplit({
   left,
   right,
 }: Props) {
-  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+  const { defaultLayout, onLayoutChange, onLayoutChanged } = useDefaultLayout({
     id: storageKey,
     panelIds: ["left", "right"],
     storage: typeof window !== "undefined" ? window.localStorage : ssrStorage,
   });
+  const rightDefault = Math.max(0, 100 - leftDefaultSize);
 
   return (
     <Group
@@ -56,6 +57,7 @@ export function WorkspaceHorizontalSplit({
       orientation="horizontal"
       className={cn("flex h-full min-h-0 min-w-0 overflow-hidden", className)}
       defaultLayout={defaultLayout}
+      onLayoutChange={onLayoutChange}
       onLayoutChanged={onLayoutChanged}
       resizeTargetMinimumSize={{ fine: 6, coarse: 28 }}
     >
@@ -69,13 +71,14 @@ export function WorkspaceHorizontalSplit({
       </Panel>
       <Separator
         className={cn(
-          // Wider hit target than 1px so drag is discoverable; library also expands rects to min size.
-          "relative z-20 min-w-2 max-w-2 shrink-0 cursor-col-resize self-stretch outline-none transition-colors",
+          // Do not set flex-shrink here; the library owns flex-shrink on Separator (see package docs).
+          "relative z-20 w-px cursor-col-resize self-stretch outline-none transition-colors",
           "bg-divider hover:bg-accent/45 focus-visible:bg-accent/55"
         )}
       />
       <Panel
         id="right"
+        defaultSize={`${rightDefault}%`}
         minSize={`${rightMinSize}%`}
         className={cn("min-h-0 min-w-0 overflow-hidden", rightClassName)}
       >

@@ -1,0 +1,101 @@
+# ==========================================
+# General / OS
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# IDEs (Cursor, VS Code, JetBrains)
+# ==========================================
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+.history/
+
+# ==========================================
+# Backend: Go + Eino
+# ==========================================
+# Binaries and overridable components
+bin/
+main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Eino / Go related temp files
+vendor/
+go.work
+go.work.sum
+
+# ==========================================
+# Frontend: Next.js / Node
+# ==========================================
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Production
+dist/
+
+# Misc
+.vercel
+.turbo
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==========================================
+# Databases & Infrastructure
+# ==========================================
+# PostgreSQL local data (if running via docker-compose/local volume)
+pgdata/
+postgres-data/
+
+# Docker
+.docker/
+
+# ==========================================
+# Environment Variables & Secrets (CRITICAL)
+# ==========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Sync files
+.terraform/
+.serverless/
+
+# ==========================================
+# Project Specific (Furria / AI Agent)
+# ==========================================
+# Generated assets or temporary AI outputs
+temp/
+tmp/
+raw_assets/

@@ -45,6 +45,10 @@ func (s *Server) Router() http.Handler {
 		r.Get("/me", s.handleMe)
 		r.With(s.requireUser).Patch("/me", s.patchMe)
 
+		r.With(s.requireUser).Get("/asset-groups", s.listAssetGroups)
+		r.With(s.requireUser).Post("/asset-groups", s.createAssetGroup)
+		r.With(s.requireUser).Delete("/asset-groups/{id}", s.deleteAssetGroup)
+
 		r.Route("/assets", func(r chi.Router) {
 			r.Get("/", s.listAssets)
 			r.With(s.requireUser).Post("/", s.createAsset)

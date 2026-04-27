@@ -31,6 +31,18 @@
   --font-display: var(--font-bebas);
 }
 
+html {
+  font-size: 16px;
+}
+
+/* Display preference: body text scale (set by UiPreferencesProvider) */
+html[data-gd-font="sm"] {
+  font-size: 14px;
+}
+html[data-gd-font="lg"] {
+  font-size: 18px;
+}
+
 body {
   background-color: var(--bg-base);
   color: var(--text-primary);

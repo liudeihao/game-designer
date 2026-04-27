@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Box, Compass, LayoutGrid, MessageSquare, User, type LucideIcon } from "lucide-react";
+import { Box, Compass, LayoutGrid, MessageSquare, Settings, User, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { DevLoginButton } from "@/components/dev/DevLoginButton";
@@ -70,6 +70,13 @@ export function WorkspaceShell({
         <header className="flex h-10 shrink-0 items-center justify-end gap-3 border-b border-border/60 px-4 text-ui-mono text-xs text-text-muted">
           {me ? (
             <>
+              <Link
+                href="/library/preferences"
+                className="text-text-muted hover:text-text-primary"
+                title="显示与字体"
+              >
+                <Settings className="h-3.5 w-3.5" />
+              </Link>
               <span className="text-text-primary/90">{me.displayName ?? me.username}</span>
               <LogoutButton />
             </>

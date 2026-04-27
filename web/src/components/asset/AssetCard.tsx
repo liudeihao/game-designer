@@ -9,17 +9,27 @@ import { cn } from "@/lib/utils";
 import { ProceduralPlaceholder } from "./ProceduralPlaceholder";
 
 type Variant = "grid" | "compact";
+export type GridCardSize = "sm" | "md" | "lg";
 
 const coverW = 400;
+
+const gridHeights: Record<GridCardSize, string> = {
+  sm: "h-32",
+  md: "h-48",
+  lg: "h-64",
+};
 
 export function AssetCard({
   asset,
   variant = "grid",
+  gridSize = "md",
   className,
   href,
 }: {
   asset: Asset;
   variant?: Variant;
+  /** Image area height in grid view only. */
+  gridSize?: GridCardSize;
   className?: string;
   href: string;
 }) {
@@ -83,7 +93,7 @@ export function AssetCard({
         className
       )}
     >
-      <div className="relative aspect-[4/3] w-full">
+      <div className={cn("relative w-full overflow-hidden rounded-t-md", gridHeights[gridSize])}>
         {coverUrl ? (
           <Image
             src={coverUrl}
@@ -102,8 +112,26 @@ export function AssetCard({
         />
       </div>
       <div className="p-3">
-        <h3 className="font-display line-clamp-1 text-lg text-text-primary leading-tight">{full.name}</h3>
-        <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-text-muted">{full.description}</p>
+        <h3
+          className={cn(
+            "font-display line-clamp-1 text-text-primary leading-tight",
+            gridSize === "sm" && "text-base",
+            gridSize === "md" && "text-lg",
+            gridSize === "lg" && "text-xl"
+          )}
+        >
+          {full.name}
+        </h3>
+        <p
+          className={cn(
+            "mt-1 line-clamp-2 leading-relaxed text-text-muted",
+            gridSize === "sm" && "text-[11px]",
+            gridSize === "md" && "text-[12px]",
+            gridSize === "lg" && "text-sm"
+          )}
+        >
+          {full.description}
+        </p>
       </div>
       {isAssetFull(full) && full.forkCount > 0 && (
         <div className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-bg-base/80 opacity-0 transition-opacity group-hover:opacity-100">

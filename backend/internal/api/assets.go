@@ -23,6 +23,7 @@ type assetRowData struct {
 	forkedFrom       sql.NullString
 	forkCount        int
 	coverID          sql.NullString
+	groupID          sql.NullString
 	deletedAt        sql.NullTime
 	createdAt, upAt  time.Time
 }
@@ -31,7 +32,7 @@ func (s *Server) scanAssetIter(ctx context.Context, rows pgx.Rows) (map[string]a
 	var a assetRowData
 	if err := rows.Scan(
 		&a.id, &a.authorID, &a.name, &a.desc, &a.ann, &a.vis, &a.forkedFrom, &a.forkCount,
-		&a.coverID, &a.deletedAt, &a.createdAt, &a.upAt,
+		&a.coverID, &a.groupID, &a.deletedAt, &a.createdAt, &a.upAt,
 	); err != nil {
 		return nil, err
 	}
@@ -42,7 +43,7 @@ func (s *Server) scanAssetOne(ctx context.Context, row pgx.Row) (map[string]any,
 	var a assetRowData
 	if err := row.Scan(
 		&a.id, &a.authorID, &a.name, &a.desc, &a.ann, &a.vis, &a.forkedFrom, &a.forkCount,
-		&a.coverID, &a.deletedAt, &a.createdAt, &a.upAt,
+		&a.coverID, &a.groupID, &a.deletedAt, &a.createdAt, &a.upAt,
 	); err != nil {
 		return nil, err
 	}
@@ -69,11 +70,15 @@ func (s *Server) assetDataToMap(ctx context.Context, a assetRowData) (map[string
 	if a.coverID.Valid {
 		cov = a.coverID.String
 	}
+	gp := any(nil)
+	if a.groupID.Valid {
+		gp = a.groupID.String
+	}
 	return map[string]any{
 		"id": a.id.String(), "name": a.name, "description": a.desc, "annotation": annV,
 		"authorId": a.authorID.String(), "createdAt": a.createdAt.Format(time.RFC3339),
 		"updatedAt": a.upAt.Format(time.RFC3339), "visibility": a.vis, "forkedFromId": forkV,
-		"forkCount": a.forkCount, "images": imgs, "coverImageId": cov, "deletedAt": nil,
+		"forkCount": a.forkCount, "images": imgs, "coverImageId": cov, "groupId": gp, "deletedAt": nil,
 	}, nil
 }
 
@@ -155,23 +160,37 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 		}
 		uid = u
 	}
-	qSQL := `
+	sel := `
 		SELECT a.id, a.author_id, a.name, a.description, a.annotation, a.visibility, a.forked_from_id::text, a.fork_count,
-			a.cover_image_id::text, a.deleted_at, a.created_at, a.updated_at
+			a.cover_image_id::text, a.group_id::text, a.deleted_at, a.created_at, a.updated_at
 		FROM assets a
 		WHERE `
 	var rows pgx.Rows
 	var err error
 	if scope == "public" {
-		qSQL += `a.visibility = 'public'
+		qSQL := sel + `a.visibility = 'public'
 			AND ($1::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $1::uuid))
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $2`
 		rows, err = s.pool.Query(ctx, qSQL, cursor, limit+1)
 	} else {
-		qSQL += `a.author_id = $1::uuid AND a.visibility != 'deleted'
+		gf := r.URL.Query().Get("groupId")
+		var qSQL string
+		if gf == "ungrouped" {
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted' AND a.group_id IS NULL
 			AND ($2::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $2::uuid))
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $3`
-		rows, err = s.pool.Query(ctx, qSQL, uid, cursor, limit+1)
+			rows, err = s.pool.Query(ctx, qSQL, uid, cursor, limit+1)
+		} else if gu, perr := uuid.Parse(gf); perr == nil && gf != "" {
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted' AND a.group_id = $2::uuid
+			AND ($3::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $3::uuid))
+			ORDER BY a.created_at DESC, a.id DESC LIMIT $4`
+			rows, err = s.pool.Query(ctx, qSQL, uid, gu, cursor, limit+1)
+		} else {
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'
+			AND ($2::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $2::uuid))
+			ORDER BY a.created_at DESC, a.id DESC LIMIT $3`
+			rows, err = s.pool.Query(ctx, qSQL, uid, cursor, limit+1)
+		}
 	}
 	if err != nil {
 		writeErr(w, 500, err.Error(), "internal")
@@ -209,7 +228,7 @@ func (s *Server) getAsset(w http.ResponseWriter, r *http.Request) {
 	}
 	row := s.pool.QueryRow(ctx, `
 		SELECT a.id, a.author_id, a.name, a.description, a.annotation, a.visibility, a.forked_from_id::text, a.fork_count,
-			a.cover_image_id::text, a.deleted_at, a.created_at, a.updated_at
+			a.cover_image_id::text, a.group_id::text, a.deleted_at, a.created_at, a.updated_at
 		FROM assets a WHERE a.id = $1
 	`, id)
 	m, err := s.scanAssetOne(ctx, row)
@@ -242,7 +261,7 @@ func (s *Server) getAsset(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getAssetByID(ctx context.Context, id uuid.UUID) (map[string]any, error) {
 	row := s.pool.QueryRow(ctx, `
 		SELECT a.id, a.author_id, a.name, a.description, a.annotation, a.visibility, a.forked_from_id::text, a.fork_count,
-			a.cover_image_id::text, a.deleted_at, a.created_at, a.updated_at
+			a.cover_image_id::text, a.group_id::text, a.deleted_at, a.created_at, a.updated_at
 		FROM assets a WHERE a.id = $1
 	`, id)
 	return s.scanAssetOne(ctx, row)
@@ -297,6 +316,7 @@ type assetPatch struct {
 	Description  *string `json:"description"`
 	Annotation   *string `json:"annotation"`
 	CoverImageID *string `json:"coverImageId"`
+	GroupID      *string `json:"groupId"`
 }
 
 func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
@@ -325,7 +345,7 @@ func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if vis == "public" {
-		if p.Name != nil || p.Description != nil || p.Annotation != nil || p.CoverImageID != nil {
+		if p.Name != nil || p.Description != nil || p.Annotation != nil || p.CoverImageID != nil || p.GroupID != nil {
 			writeErr(w, 403, "public asset is immutable", "forbidden")
 			return
 		}
@@ -350,6 +370,19 @@ func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
 			_, _ = s.pool.Exec(ctx, `UPDATE assets SET cover_image_id = null, updated_at = now() WHERE id = $1`, id)
 		} else if cid, perr := uuid.Parse(*p.CoverImageID); perr == nil {
 			_, _ = s.pool.Exec(ctx, `UPDATE assets SET cover_image_id = $1, updated_at = now() WHERE id = $2`, cid, id)
+		}
+	}
+	if p.GroupID != nil {
+		if *p.GroupID == "" {
+			_, _ = s.pool.Exec(ctx, `UPDATE assets SET group_id = null, updated_at = now() WHERE id = $1`, id)
+		} else if gid, perr := uuid.Parse(*p.GroupID); perr == nil {
+			var n int
+			err := s.pool.QueryRow(ctx, `SELECT count(*)::int FROM asset_groups WHERE id = $1 AND user_id = $2`, gid, uid).Scan(&n)
+			if err != nil || n == 0 {
+				writeErr(w, 400, "invalid group", "bad_request")
+				return
+			}
+			_, _ = s.pool.Exec(ctx, `UPDATE assets SET group_id = $1, updated_at = now() WHERE id = $2`, gid, id)
 		}
 	}
 	m, err := s.getAssetByID(ctx, id)

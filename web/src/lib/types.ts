@@ -25,6 +25,8 @@ export type AssetFull = {
   /** API may send null for empty; treat as []. */
   images: AssetImage[] | null;
   coverImageId: string | null;
+  /** Private library folder; null = ungrouped. */
+  groupId?: string | null;
   deletedAt: null;
 };
 
@@ -42,6 +44,15 @@ export type Me = {
   username: string;
   displayName: string | null;
 };
+
+export type AssetGroup = {
+  id: string;
+  name: string;
+  position: number;
+  createdAt?: string;
+};
+
+export type AssetGroupList = { items: AssetGroup[] };
 
 export type UserPublic = {
   id: string;

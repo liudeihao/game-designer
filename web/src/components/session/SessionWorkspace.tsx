@@ -178,6 +178,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                       forkCount: 0,
                       images: [],
                       coverImageId: null,
+                      groupId: null,
                       deletedAt: null,
                     }}
                   />

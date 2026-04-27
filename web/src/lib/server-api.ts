@@ -34,6 +34,14 @@ export async function getExploreAssets(): Promise<PaginatedAssets> {
   return r.json();
 }
 
+export async function getMyLibraryAssetsInitial(groupId?: string | null): Promise<PaginatedAssets> {
+  let path = "/api/assets?scope=private&limit=24";
+  if (groupId) path += `&groupId=${encodeURIComponent(groupId)}`;
+  const r = await serverFetch(path);
+  if (!r.ok) throw new Error("library");
+  return r.json();
+}
+
 export async function getAssetServer(id: string): Promise<Asset | null> {
   const r = await serverFetch(`/api/assets/${id}`);
   if (r.status === 404) return null;

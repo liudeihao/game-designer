@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Pencil } from "lucide-react";
 import type { Asset } from "@/lib/types";
 import { isAssetFull } from "@/lib/guards";
-import { patchAsset, publishAsset, forkAsset, getAsset, getMe } from "@/lib/api";
+import { patchAsset, publishAsset, forkAsset, getAsset, getMe, listAssetGroups } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ImageStrip } from "./ImageStrip";
@@ -18,6 +18,11 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
     queryKey: ["me"],
     queryFn: getMe,
     staleTime: 60_000,
+  });
+  const { data: groupList } = useQuery({
+    queryKey: ["asset-groups"],
+    queryFn: listAssetGroups,
+    enabled: me != null,
   });
   const { data: asset = initial, refetch } = useQuery({
     queryKey: ["asset", id],
@@ -197,6 +202,31 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           )}
         </div>
         <ForkBadge asset={full} />
+        {canEdit && groupList && (
+          <div className="text-ui-mono text-[12px]">
+            <label htmlFor="asset-group" className="text-[10px] text-text-muted">
+              分组
+            </label>
+            <select
+              id="asset-group"
+              className="mt-1 block w-full max-w-xs rounded border border-border/60 bg-surface/60 px-2 py-1.5 text-sm"
+              value={full.groupId ?? ""}
+              onChange={async (e) => {
+                const v = e.target.value;
+                await patchAsset(id, { groupId: v === "" ? null : v });
+                void refetch();
+                void qc.invalidateQueries({ queryKey: ["assets", "private"] });
+              }}
+            >
+              <option value="">未分组</option>
+              {groupList.items.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {showPrivateActions && (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
             <div className="flex gap-2">

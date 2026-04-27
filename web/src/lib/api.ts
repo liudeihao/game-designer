@@ -56,12 +56,14 @@ export async function logoutAccount() {
 export async function getAssets(
   scope: "public" | "private",
   cursor?: string | null,
-  limit = 24
+  limit = 24,
+  groupId?: string | null
 ) {
   const u = new URL("/api/assets", window.location.origin);
   u.searchParams.set("scope", scope);
   u.searchParams.set("limit", String(limit));
   if (cursor) u.searchParams.set("cursor", cursor);
+  if (groupId) u.searchParams.set("groupId", groupId);
   const r = await fetch(u, { credentials: "include" });
   if (!r.ok) throw new Error("assets");
   return r.json() as Promise<PaginatedAssets>;
@@ -74,9 +76,37 @@ export async function getAsset(id: string) {
   return r.json() as Promise<Asset>;
 }
 
+export async function listAssetGroups() {
+  const r = await fetch("/api/asset-groups", { credentials: "include" });
+  if (!r.ok) throw new Error("asset-groups");
+  return r.json() as Promise<import("./types").AssetGroupList>;
+}
+
+export async function createAssetGroup(name: string) {
+  const r = await fetch("/api/asset-groups", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!r.ok) throw new Error("create group");
+  return r.json() as Promise<import("./types").AssetGroup>;
+}
+
+export async function deleteAssetGroup(id: string) {
+  const r = await fetch(`/api/asset-groups/${id}`, { method: "DELETE", credentials: "include" });
+  if (!r.ok) throw new Error("delete group");
+}
+
 export async function patchAsset(
   id: string,
-  body: { name?: string; description?: string; annotation?: string | null; coverImageId?: string | null }
+  body: {
+    name?: string;
+    description?: string;
+    annotation?: string | null;
+    coverImageId?: string | null;
+    groupId?: string | null;
+  }
 ) {
   const r = await fetch(`/api/assets/${id}`, {
     method: "PATCH",

@@ -59,7 +59,9 @@ export async function getAssets(
   limit = 24,
   groupId?: string | null,
   /** My library: filter by material visibility */
-  visibility?: "private" | "public" | null
+  visibility?: "private" | "public" | null,
+  /** My library / explore: only assets with zero rows in asset_images */
+  imageNo?: boolean
 ) {
   const u = new URL("/api/assets", window.location.origin);
   u.searchParams.set("scope", scope);
@@ -67,6 +69,7 @@ export async function getAssets(
   if (cursor) u.searchParams.set("cursor", cursor);
   if (groupId) u.searchParams.set("groupId", groupId);
   if (visibility) u.searchParams.set("visibility", visibility);
+  if (imageNo) u.searchParams.set("img", "no");
   const r = await fetch(u, { credentials: "include" });
   if (!r.ok) throw new Error("assets");
   return r.json() as Promise<PaginatedAssets>;

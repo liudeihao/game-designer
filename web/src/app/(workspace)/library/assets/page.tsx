@@ -2,7 +2,7 @@ import { MyLibraryView } from "@/components/library/MyLibraryView";
 import { BackendUnavailable } from "@/components/system/BackendUnavailable";
 import { getMyLibraryAssetsInitial } from "@/lib/server-api";
 
-type Props = { searchParams: Promise<{ group?: string; vis?: string }> };
+type Props = { searchParams: Promise<{ group?: string; vis?: string; img?: string }> };
 
 export default async function MyAssetsPage(props: Props) {
   const sp = await props.searchParams;
@@ -11,7 +11,8 @@ export default async function MyAssetsPage(props: Props) {
   /** 默认「仅自己可见」（可编辑工作台）；显式 vis=all 为全部；vis=public 为已上探索 */
   const visibility: "private" | "public" | null =
     visRaw === "public" ? "public" : visRaw === "all" ? null : "private";
-  const initial = await getMyLibraryAssetsInitial(group, visibility);
+  const imageNo = sp.img === "no";
+  const initial = await getMyLibraryAssetsInitial(group, visibility, imageNo);
   if (initial === null) {
     return (
       <div className="px-4 py-6">
@@ -25,5 +26,11 @@ export default async function MyAssetsPage(props: Props) {
       </div>
     );
   }
-  return <MyLibraryView initialData={initial} libraryVisibility={visibility} />;
+  return (
+    <MyLibraryView
+      initialData={initial}
+      libraryVisibility={visibility}
+      imageFilter={imageNo ? "no" : "all"}
+    />
+  );
 }

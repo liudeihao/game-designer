@@ -16,24 +16,30 @@ import type { GridCardSize } from "@/components/asset/AssetCard";
 type Props = {
   initialData: PaginatedAssets;
   libraryVisibility: "private" | "public" | null;
+  imageFilter: "all" | "no";
 };
 
 function mapCardPref(s: "sm" | "md" | "lg"): GridCardSize {
   return s;
 }
 
-function buildLibraryHref(opts: { group?: string; vis?: "private" | "public" | "all" | null }) {
+function buildLibraryHref(opts: {
+  group?: string;
+  vis?: "private" | "public" | "all" | null;
+  img?: "no" | null;
+}) {
   const p = new URLSearchParams();
   if (opts.group === "ungrouped") p.set("group", "ungrouped");
   else if (opts.group) p.set("group", opts.group);
   if (opts.vis === "public") p.set("vis", "public");
   else if (opts.vis === "all") p.set("vis", "all");
+  if (opts.img === "no") p.set("img", "no");
   // private：默认不落参，与「进入我的库」缺省一致
   const s = p.toString();
   return s ? `/library/assets?${s}` : "/library/assets";
 }
 
-export function MyLibraryView({ initialData, libraryVisibility }: Props) {
+export function MyLibraryView({ initialData, libraryVisibility, imageFilter }: Props) {
   const sp = useSearchParams();
   const group = sp.get("group") || "";
   const { prefs, setPrefs } = useUiPreferences();
@@ -53,27 +59,37 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   const activeGroup = group && group !== "ungrouped" ? group : null;
 
   const visActive: "all" | "private" | "public" = libraryVisibility === null ? "all" : libraryVisibility;
+  const imgNoActive = imageFilter === "no";
+
+  const visQ = (): "private" | "public" | "all" | null =>
+    libraryVisibility === null ? "all" : libraryVisibility === "public" ? "public" : null;
 
   const hrefFor = useCallback(
     (g: string | null) =>
       buildLibraryHref({
         group: g ?? undefined,
-        vis:
-          libraryVisibility === null
-            ? "all"
-            : libraryVisibility === "public"
-              ? "public"
-              : null,
+        vis: visQ(),
+        img: imageFilter === "no" ? "no" : null,
       }),
-    [libraryVisibility]
+    [libraryVisibility, imageFilter]
   );
   const hrefVis = useCallback(
     (v: "all" | "private" | "public") =>
       buildLibraryHref({
         group: group || undefined,
         vis: v === "all" ? "all" : v === "public" ? "public" : null,
+        img: imageFilter === "no" ? "no" : null,
       }),
-    [group]
+    [group, imageFilter]
+  );
+  const hrefImg = useCallback(
+    (m: "all" | "no") =>
+      buildLibraryHref({
+        group: group || undefined,
+        vis: visQ(),
+        img: m === "no" ? "no" : null,
+      }),
+    [group, libraryVisibility]
   );
 
   return (
@@ -99,6 +115,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
                   : libraryVisibility === "public"
                     ? "public"
                     : null,
+              img: imageFilter === "no" ? "no" : null,
             });
           }
         }}
@@ -147,6 +164,27 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
               title="已出现在全站「探索」中，所有用户可浏览"
             >
               探索中（全站）
+            </Link>
+          </li>
+        </ul>
+        <p className="text-ui-mono mt-4 text-[11px] uppercase tracking-wider text-text-muted">图像</p>
+        <ul className="mt-1 space-y-0.5 text-ui-mono text-[13px] text-text-primary">
+          <li>
+            <Link
+              href={hrefImg("all")}
+              className={cn("block rounded px-2 py-1.5", !imgNoActive && "bg-accent/10 text-accent")}
+              title="不限制是否有生成图/封面"
+            >
+              全部
+            </Link>
+          </li>
+          <li>
+            <Link
+              href={hrefImg("no")}
+              className={cn("block rounded px-2 py-1.5", imgNoActive && "bg-accent/10 text-accent")}
+              title="尚未有任何图像记录，仅占位或待生图前"
+            >
+              仅无图
             </Link>
           </li>
         </ul>
@@ -286,13 +324,15 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
           {visActive === "private" && "仅你可见的草稿与创作中素材，不会出现在全站「探索」。"}
           {visActive === "public" &&
             "这些已发布到全站「探索」库；任何用户都能看到，与私库不是同一套列表。角标为「全站」。"}
+          {imgNoActive && "当前仅显示「尚无任何图像记录」的素材（未插入 asset_images 行）。有失败/生成中记录的不在此列。"}
         </p>
         <AssetGrid
-          key={`${group || "all"}-${visActive}`}
+          key={`${group || "all"}-${visActive}-${imageFilter}`}
           scope="private"
           initialData={initialData}
           groupId={group || null}
           libraryVisibility={libraryVisibility}
+          libraryImageNo={imageFilter === "no"}
           viewMode={prefs.libraryViewMode}
           gridSize={mapCardPref(prefs.libraryCardSize)}
         />

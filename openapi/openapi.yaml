@@ -143,6 +143,12 @@ paths:
             type: string
             enum: [createdAt_desc, createdAt_asc, updatedAt_desc]
             default: createdAt_desc
+        - name: img
+          in: query
+          schema:
+            type: string
+            enum: [no]
+          description: Set to `no` to return only assets that have no `asset_images` rows (image-less). Omit to list all.
       responses:
         "200":
           description: Page of assets

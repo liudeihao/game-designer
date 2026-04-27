@@ -160,6 +160,11 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 		}
 		uid = u
 	}
+	imgExtra := ""
+	if q.Get("img") == "no" {
+		imgExtra = " AND NOT EXISTS (SELECT 1 FROM asset_images i WHERE i.asset_id = a.id)"
+	}
+
 	sel := `
 		SELECT a.id, a.author_id, a.name, a.description, a.annotation, a.visibility, a.forked_from_id::text, a.fork_count,
 			a.cover_image_id::text, a.group_id::text, a.deleted_at, a.created_at, a.updated_at
@@ -168,7 +173,7 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 	var rows pgx.Rows
 	var err error
 	if scope == "public" {
-		qSQL := sel + `a.visibility = 'public'
+		qSQL := sel + `a.visibility = 'public'` + imgExtra + `
 			AND ($1::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $1::uuid))
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $2`
 		rows, err = s.pool.Query(ctx, qSQL, cursor, limit+1)
@@ -205,17 +210,17 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 		}
 		var qSQL string
 		if gf == "ungrouped" {
-			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + `
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + imgExtra + `
 			AND ($2::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $2::uuid))
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $3`
 			rows, err = s.pool.Query(ctx, qSQL, uid, cursor, limit+1)
 		} else if gu, perr := uuid.Parse(gf); perr == nil && gf != "" {
-			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + `
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + imgExtra + `
 			AND ($3::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $3::uuid))
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $4`
 			rows, err = s.pool.Query(ctx, qSQL, uid, gu, cursor, limit+1)
 		} else {
-			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + `
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + imgExtra + `
 			AND ($2::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $2::uuid))
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $3`
 			rows, err = s.pool.Query(ctx, qSQL, uid, cursor, limit+1)

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AssetGrid } from "@/components/asset/AssetGrid";
-import type { Asset, PaginatedAssets } from "@/lib/types";
+import type { PaginatedAssets } from "@/lib/types";
 import { serverFetch } from "@/lib/server-api";
 
 async function getPrivateInitial(): Promise<PaginatedAssets> {
@@ -33,11 +33,7 @@ export default async function MyAssetsPage() {
             新建素材
           </Link>
         </div>
-        <AssetGrid
-          scope="private"
-          initialData={initial}
-          itemHref={(a: Asset) => `/library/assets/${a.id}`}
-        />
+        <AssetGrid scope="private" initialData={initial} />
       </div>
     </div>
   );

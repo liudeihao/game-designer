@@ -3,19 +3,22 @@
 import { useEffect, useRef } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getAssets } from "@/lib/api";
-import type { Asset, PaginatedAssets } from "@/lib/types";
+import type { PaginatedAssets } from "@/lib/types";
 import { AssetCard } from "./AssetCard";
 import { cn } from "@/lib/utils";
+
+/** Base path for detail links, e.g. "/library/assets" → href is `${base}/${id}`. Must be a string (not a function) so the grid can be used from RSC. */
+const DEFAULT_ASSET_HREF_BASE = "/library/assets";
 
 export function AssetGrid({
   scope,
   className,
-  itemHref,
+  itemHrefBase = DEFAULT_ASSET_HREF_BASE,
   initialData,
 }: {
   scope: "public" | "private";
   className?: string;
-  itemHref: (a: Asset) => string;
+  itemHrefBase?: string;
   initialData?: PaginatedAssets;
 }) {
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -59,7 +62,7 @@ export function AssetGrid({
       >
         {items.map((a) => (
           <div key={a.id} className="mb-4 break-inside-avoid">
-            <AssetCard asset={a} href={itemHref(a)} />
+            <AssetCard asset={a} href={`${itemHrefBase}/${a.id}`} />
           </div>
         ))}
       </div>

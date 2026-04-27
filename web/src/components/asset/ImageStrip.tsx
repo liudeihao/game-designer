@@ -42,7 +42,7 @@ export function ImageStrip({
 
   return (
     <div className="space-y-3">
-      <h2 className="text-ui-mono text-[11px] uppercase tracking-wider text-text-muted">图像（可选）</h2>
+      <h2 className="text-ui-mono text-xs uppercase tracking-wider text-text-muted">图像（可选）</h2>
       <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
         {list.map((im) => (
           <button
@@ -76,7 +76,7 @@ export function ImageStrip({
                 <span
                   role="button"
                   tabIndex={0}
-                  className="text-ui-mono text-[10px] text-accent"
+                  className="text-ui-mono text-xs text-accent"
                   onClick={(e) => {
                     e.stopPropagation();
                     void onSetCover(im.id);
@@ -113,8 +113,8 @@ export function ImageStrip({
             <h3 id="image-gen-title" className="font-display text-lg text-text-primary">
               生成图像
             </h3>
-            <p className="text-ui-mono mt-1 text-[11px] text-text-muted">会基于素材描述生图，附加内容将一并记录</p>
-            <label className="text-ui-mono mt-4 block text-[11px] text-text-muted" htmlFor="image-gen-extra">
+            <p className="text-ui-mono mt-1 text-xs text-text-muted">会基于素材描述生图，附加内容将一并记录</p>
+            <label className="text-ui-mono mt-4 block text-xs text-text-muted" htmlFor="image-gen-extra">
               附加描述（可选）
             </label>
             <input
@@ -172,7 +172,7 @@ export function ImageStrip({
               className="max-h-[85vh] w-auto object-contain"
               unoptimized
             />
-            <p className="text-ui-mono mt-2 text-left text-[12px] text-text-muted">
+            <p className="text-ui-mono mt-2 text-left text-sm text-text-muted">
               附加：{lightbox.extraPrompt ?? "—"}
             </p>
           </div>

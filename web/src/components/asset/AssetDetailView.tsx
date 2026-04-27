@@ -160,9 +160,9 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
       <ConfirmDialog
         open={publishOpen}
         onOpenChange={setPublishOpen}
-        title="将素材公开到探索？"
-        description="公开后将从私库分组中移出，并出现在「已公开」中（相当于分享/归档）。你仍可改展示用名称与描述。生图、分组与继续迭代请使用「复制到私库」。确定公开？"
-        confirmLabel="公开"
+        title="发布到「探索」公开库？"
+        description="确认后，本条将进入全站「探索」页，任何用户都可以浏览，与仅自己可见的私库素材不同。发布后会移出你的私库分组。你仍可更新展示用名称、描述与封面；若需仅自己生图或深度编辑，请先「复制到私库」。确定发布？"
+        confirmLabel="发布到探索"
         onConfirm={async () => {
           await publishAsset(id);
           void refetch();
@@ -188,8 +188,8 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
         {full.visibility === "public" && isOwner && (
           <div className="space-y-2 rounded border border-border/50 bg-surface/50 p-3">
             <p className="text-ui-mono text-xs text-text-muted/90">
-              已公开 · 与探索区同步，相当于分享/归档；<span className="text-text-primary/80">不再属于私库分组</span>。
-              生图、分组与深度编辑请用下方「复制到私库」得到私有副本；此处仅可改展示用名称、描述、封面。
+              <span className="text-text-primary/90">公开素材</span>：本条在「探索」中，<span className="text-text-primary/80">全站用户均可浏览</span>，与仅自己可见的私库草稿不是同一类东西。
+              <span className="text-text-primary/80"> 它不再占用你的私库分组</span>。你仍可改展示用名称、描述与封面；生图、私库分组与深度编辑请用「复制到私库」得到仅自己可见的副本。
             </p>
             <button
               type="button"
@@ -198,7 +198,9 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             >
               复制到私库
             </button>
-            <p className="text-ui-mono text-xs text-text-muted/60">在私库中继续迭代后，可再次公开或保持私有。</p>
+            <p className="text-ui-mono text-xs text-text-muted/60">
+              私库副本仅你可见；完成后再选择发布到探索，或一直保留为私有。
+            </p>
           </div>
         )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -283,7 +285,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
                 onClick={() => setPublishOpen(true)}
                 className="text-ui-mono rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent"
               >
-                公开
+                发布到探索
               </button>
               <button
                 type="button"
@@ -294,7 +296,9 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
                 复制
               </button>
             </div>
-            <p className="text-ui-mono text-xs text-text-muted/80">「复制」在私库创建副本 (COPY)。</p>
+            <p className="text-ui-mono text-xs text-text-muted/80">
+              「发布到探索」后全站可见；「复制」仅在私库留一份仅自己可见的副本 (COPY)。
+            </p>
           </div>
         )}
         {showForkForPublicOther && (
@@ -306,7 +310,9 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             >
               Fork 到私库
             </button>
-            <p className="text-ui-mono text-xs text-text-muted/80">Fork 后可在你的私库中编辑、生图。</p>
+            <p className="text-ui-mono text-xs text-text-muted/80">
+              此为全站公开素材。Fork 到你的私库后，仅你可编辑、生图。
+            </p>
           </div>
         )}
         <div>

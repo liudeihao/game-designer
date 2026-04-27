@@ -110,6 +110,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
             <Link
               href={hrefVis("all")}
               className={cn("block rounded px-2 py-1.5", visActive === "all" && "bg-accent/10 text-accent")}
+              title="仅自己与已上探索的条目（两类可见性不同）"
             >
               全部
             </Link>
@@ -118,16 +119,18 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
             <Link
               href={hrefVis("private")}
               className={cn("block rounded px-2 py-1.5", visActive === "private" && "bg-accent/10 text-accent")}
+              title="仅自己可见，未在探索中展示"
             >
-              仅私有
+              仅自己可见
             </Link>
           </li>
           <li>
             <Link
               href={hrefVis("public")}
               className={cn("block rounded px-2 py-1.5", visActive === "public" && "bg-accent/10 text-accent")}
+              title="已出现在全站「探索」中，所有用户可浏览"
             >
-              已公开
+              探索中（全站）
             </Link>
           </li>
         </ul>
@@ -259,9 +262,11 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
           </div>
         </div>
         <p className="text-ui-mono mb-3 text-[11px] text-text-muted/90">
-          {visActive === "all" && "含私有与已公开；侧栏可只看一类。"}
-          {visActive === "private" && "仅未公开的草稿素材。"}
-          {visActive === "public" && "已从本库发布到探索区的素材，卡片角标为「已公开」。"}
+          {visActive === "all" &&
+            "私库素材与「探索」中的公开素材是两类：仅自己可见 vs 全站用户可见。侧栏可只筛一类。"}
+          {visActive === "private" && "仅你可见的草稿与创作中素材，不会出现在全站「探索」。"}
+          {visActive === "public" &&
+            "这些已发布到全站「探索」库；任何用户都能看到，与私库不是同一套列表。角标为「全站」。"}
         </p>
         <AssetGrid
           key={`${group || "all"}-${visActive}`}

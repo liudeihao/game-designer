@@ -29,7 +29,7 @@ export function AssetGrid({
   groupId?: string | null;
   viewMode?: LibraryViewMode;
   gridSize?: GridCardSize;
-  /** 我的库: 仅私有 / 仅已公开 / 未指定=全部 */
+  /** 我的库: 仅自己可见 / 探索中（全站） / 未指定=全部 */
   libraryVisibility?: "private" | "public" | null;
 }) {
   const sentinelRef = useRef<HTMLDivElement>(null);

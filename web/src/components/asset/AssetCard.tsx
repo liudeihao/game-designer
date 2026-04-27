@@ -34,7 +34,7 @@ export function AssetCard({
   gridSize?: GridCardSize;
   className?: string;
   href: string;
-  /** In 我的库: show 私有 / 已公开 for the owner. */
+  /** In 我的库: show 仅自己 / 全站 for the owner (contrast with platform-wide explore). */
   showOwnerLibraryBadge?: boolean;
 }) {
   if (asset.visibility === "deleted") {
@@ -72,8 +72,13 @@ export function AssetCard({
             ? "bg-accent/15 text-accent"
             : "bg-white/6 text-text-muted"
         )}
+        title={
+          full.visibility === "public"
+            ? "已在「探索」中，全站用户可见"
+            : "仅自己可见，未在全站探索中展示"
+        }
       >
-        {full.visibility === "public" ? "已公开" : "私有"}
+        {full.visibility === "public" ? "全站" : "仅自己"}
       </span>
     ) : null;
 

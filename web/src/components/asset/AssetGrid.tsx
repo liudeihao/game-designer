@@ -92,10 +92,19 @@ export function AssetGrid({
     if (!bulkMode) setSelectedIds([]);
   }, [bulkMode]);
 
+  // Prune selection when the loaded page set changes. Depend on `q.data` (stable until the query
+  // updates), not `items` — `flatMap` creates a new array every render and would retrigger this
+  // effect forever; `setSelectedIds` would always get a new array reference from `.filter`.
   useEffect(() => {
-    const ids = new Set(items.map((a) => a.id));
-    setSelectedIds((prev) => prev.filter((id) => ids.has(id)));
-  }, [items]);
+    const pages = q.data?.pages;
+    if (!pages) return;
+    const ids = new Set(pages.flatMap((p) => p.items.map((a) => a.id)));
+    setSelectedIds((prev) => {
+      const next = prev.filter((id) => ids.has(id));
+      if (next.length === prev.length && next.every((id, i) => id === prev[i])) return prev;
+      return next;
+    });
+  }, [q.data]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));

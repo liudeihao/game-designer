@@ -4,6 +4,7 @@ import type {
   Me,
   PaginatedAssets,
   ProjectDetail,
+  ProjectSummary,
   SessionDetail,
   SessionStagingGroup,
   SessionSummary,
@@ -345,7 +346,18 @@ export async function createAsset(body: { name: string; description: string; for
 export async function listProjects() {
   const r = await fetch("/api/projects", { credentials: "include" });
   if (!r.ok) throw new Error("projects");
-  return r.json() as Promise<ProjectDetail[]>;
+  return r.json() as Promise<ProjectSummary[]>;
+}
+
+export async function createProject(body: { name: string }) {
+  const r = await fetch("/api/projects", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error("create project");
+  return r.json() as Promise<ProjectDetail>;
 }
 
 export async function getProject(id: string) {

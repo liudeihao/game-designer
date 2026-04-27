@@ -3,13 +3,44 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { getAssets, getProject, patchProject } from "@/lib/api";
 import { isAssetFull } from "@/lib/guards";
-import { createShapeId, useEditor, serializeTldrawJson } from "tldraw";
+import type { ProjectDetail } from "@/lib/types";
+import { createShapeId, parseTldrawJsonFile, useEditor, serializeTldrawJson } from "tldraw";
 import "tldraw/tldraw.css";
 
 const Tldraw = dynamic(async () => (await import("tldraw")).Tldraw, { ssr: false });
+
+function isSavedTldrawFile(doc: unknown): doc is Record<string, unknown> {
+  if (!doc || typeof doc !== "object") return false;
+  const o = doc as Record<string, unknown>;
+  if (typeof o.tldrawFileFormatVersion === "number") return true;
+  if (o.schema != null && Array.isArray(o.records)) return true;
+  return false;
+}
+
+/** Load server-persisted .tldraw JSON (same shape as serializeTldrawJson output) into the editor. */
+function HydrateFromServer({ canvasDocument }: { canvasDocument: Record<string, unknown> | null }) {
+  const editor = useEditor();
+  const attempted = useRef(false);
+
+  useLayoutEffect(() => {
+    if (attempted.current) return;
+    attempted.current = true;
+    if (!isSavedTldrawFile(canvasDocument)) return;
+    const result = parseTldrawJsonFile({
+      json: JSON.stringify(canvasDocument),
+      schema: editor.store.schema,
+    });
+    if (!result.ok) return;
+    const snapshot = result.value.getStoreSnapshot();
+    editor.loadSnapshot(snapshot);
+    editor.clearHistory();
+  }, [editor, canvasDocument]);
+
+  return null;
+}
 
 function InCanvasAssetPanel() {
   const editor = useEditor();
@@ -69,10 +100,19 @@ function PersistenceBridge({ projectId }: { projectId: string }) {
   const editor = useEditor();
   const qc = useQueryClient();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const allowSave = useRef(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      allowSave.current = true;
+    }, 900);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     return editor.store.listen(
       () => {
+        if (!allowSave.current) return;
         if (timer.current) clearTimeout(timer.current);
         timer.current = setTimeout(() => {
           void (async () => {
@@ -90,9 +130,16 @@ function PersistenceBridge({ projectId }: { projectId: string }) {
   return null;
 }
 
-function CanvasInner({ projectId }: { projectId: string }) {
+function CanvasInner({
+  projectId,
+  canvasDocument,
+}: {
+  projectId: string;
+  canvasDocument: Record<string, unknown> | null;
+}) {
   return (
     <>
+      <HydrateFromServer canvasDocument={canvasDocument} />
       <PersistenceBridge projectId={projectId} />
       <div className="pointer-events-none absolute left-2 top-14 z-[200]">
         <div className="pointer-events-auto">
@@ -118,9 +165,16 @@ export function ProjectCanvasLoader({ id }: { id: string }) {
   if (!data) {
     return <p className="p-4 text-ui-mono text-text-muted">加载中…</p>;
   }
+  const detail = data as ProjectDetail;
   return (
     <div className="h-[100dvh] w-full">
-      <Tldraw components={{ InFrontOfTheCanvas: () => <CanvasInner projectId={id} /> }} />
+      <Tldraw
+        components={{
+          InFrontOfTheCanvas: () => (
+            <CanvasInner projectId={id} canvasDocument={detail.canvasDocument as Record<string, unknown> | null} />
+          ),
+        }}
+      />
     </div>
   );
 }

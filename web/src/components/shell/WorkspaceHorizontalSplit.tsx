@@ -70,10 +70,15 @@ export function WorkspaceHorizontalSplit({
         {left}
       </Panel>
       <Separator
+        aria-label="拖动调整左右区域宽度"
+        title="拖动调整左右区域宽度"
         className={cn(
+          // Wider hit band (px); thin line via ::before — mirror WorkspaceVerticalSplit py + before pattern.
           // Do not set flex-shrink here; the library owns flex-shrink on Separator (see package docs).
-          "relative z-20 w-px cursor-col-resize self-stretch outline-none transition-colors",
-          "bg-divider hover:bg-accent/45 focus-visible:bg-accent/55"
+          "relative z-20 box-border cursor-col-resize self-stretch px-2 outline-none",
+          "bg-transparent before:pointer-events-none",
+          "before:absolute before:bottom-0 before:left-1/2 before:top-0 before:w-px before:-translate-x-1/2 before:bg-divider before:content-['']",
+          "hover:before:bg-accent/45 focus-visible:before:bg-accent/55"
         )}
       />
       <Panel

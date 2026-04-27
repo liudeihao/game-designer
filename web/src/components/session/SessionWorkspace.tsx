@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
@@ -64,6 +64,15 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
   const [exportPrompt, setExportPrompt] = useState<ExportPrompt>(null);
   /** After single-draft export succeeds, show detail link before closing. */
   const [oneExportAssetId, setOneExportAssetId] = useState<string | null>(null);
+  /** Only mount one chat/drafts split: hidden duplicate Groups get size 0 and break react-resizable-panels. */
+  const [chatDraftsWide, setChatDraftsWide] = useState(true);
+  useLayoutEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const sync = () => setChatDraftsWide(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   const onEvent = useCallback((ev: StreamEvent) => {
     if (ev.type === "text") {
@@ -719,28 +728,29 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
           }
         }}
       />
-      <div className="min-h-0 min-w-0 flex-1 overflow-hidden md:hidden">
-        <WorkspaceVerticalSplit
-          storageKey="layout:session-chat-drafts-stack"
-          topDefaultSize={60}
-          bottomDefaultSize={40}
-          topMinSize={22}
-          bottomMinSize={18}
-          className="h-full min-h-0 min-w-0"
-          top={split.editor}
-          bottom={split.drafts}
-        />
-      </div>
-      <div className="hidden h-full min-h-0 min-w-0 flex-1 md:flex">
-        <WorkspaceHorizontalSplit
-          storageKey="layout:session-chat-drafts"
-          leftDefaultSize={56}
-          leftMinSize={28}
-          rightMinSize={22}
-          className="h-full min-h-0 min-w-0 flex-1"
-          left={split.editor}
-          right={split.drafts}
-        />
+      <div className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden">
+        {chatDraftsWide ? (
+          <WorkspaceHorizontalSplit
+            storageKey="layout:session-chat-drafts"
+            leftDefaultSize={56}
+            leftMinSize={28}
+            rightMinSize={22}
+            className="h-full min-h-0 min-w-0 flex-1"
+            left={split.editor}
+            right={split.drafts}
+          />
+        ) : (
+          <WorkspaceVerticalSplit
+            storageKey="layout:session-chat-drafts-stack"
+            topDefaultSize={60}
+            bottomDefaultSize={40}
+            topMinSize={22}
+            bottomMinSize={18}
+            className="h-full min-h-0 min-w-0"
+            top={split.editor}
+            bottom={split.drafts}
+          />
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 import type { Asset } from "@/lib/types";
 import { isAssetFull } from "@/lib/guards";
 import { patchAsset, publishAsset, forkAsset, getAsset, getMe } from "@/lib/api";
@@ -10,15 +11,6 @@ import { cn } from "@/lib/utils";
 import { ImageStrip } from "./ImageStrip";
 import { ForkBadge, GhostHint } from "./ForkBadge";
 import { ForkRelationPanel } from "./ForkRelationPanel";
-
-function useDebounced<T>(value: T, delay: number) {
-  const [v, setV] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setV(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return v;
-}
 
 export function AssetDetailView({ id, initial }: { id: string; initial: Asset }) {
   const qc = useQueryClient();
@@ -49,23 +41,38 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
     }
   }, [asset]);
 
-  const dName = useDebounced(name, 800);
-  const dDesc = useDebounced(description, 800);
-  const dAnn = useDebounced(annotation, 800);
-
+  const [editingText, setEditingText] = useState(false);
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "err">("idle");
 
   const isOwner = me != null && isAssetFull(asset) && me.id === asset.authorId;
   const canEdit = isOwner && asset.visibility === "private";
 
-  const persist = useCallback(async () => {
+  useEffect(() => {
+    if (!canEdit) setEditingText(false);
+  }, [canEdit]);
+
+  const dirty =
+    isAssetFull(asset) &&
+    (name !== asset.name ||
+      description !== asset.description ||
+      (annotation || "") !== (asset.annotation || ""));
+
+  const resetFormFromAsset = useCallback(() => {
+    if (!isAssetFull(asset)) return;
+    setName(asset.name);
+    setDescription(asset.description);
+    setAnnotation(asset.annotation ?? "");
+    setAnnOpen(!!asset.annotation);
+  }, [asset]);
+
+  const saveText = useCallback(async () => {
     if (asset?.visibility === "deleted" || !isAssetFull(asset) || !canEdit) return;
     setSave("saving");
     try {
       await patchAsset(id, {
-        name: dName,
-        description: dDesc,
-        annotation: dAnn || null,
+        name,
+        description,
+        annotation: annotation || null,
       });
       setSave("saved");
       void qc.invalidateQueries({ queryKey: ["asset", id] });
@@ -73,13 +80,26 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
     } catch {
       setSave("err");
     }
-  }, [id, dName, dDesc, dAnn, asset, canEdit, qc]);
+  }, [id, name, description, annotation, asset, canEdit, qc]);
+
+  const cancelEdit = useCallback(() => {
+    if (dirty && !confirm("放弃未保存的修改？")) return;
+    resetFormFromAsset();
+    setEditingText(false);
+    setSave("idle");
+  }, [dirty, resetFormFromAsset]);
 
   useEffect(() => {
-    if (!isAssetFull(asset) || !canEdit) return;
-    if (dName === asset.name && dDesc === asset.description && (dAnn || "") === (asset.annotation || "")) return;
-    void persist();
-  }, [dName, dDesc, dAnn, asset, canEdit, persist]);
+    if (!editingText || !canEdit) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        void saveText();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editingText, canEdit, saveText]);
 
   if (!asset) return <p>未找到</p>;
 
@@ -114,10 +134,10 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           </Link>{" "}
           / <span className="text-text-primary">{name}</span>
         </nav>
-        {canEdit && (
-          <p className="text-ui-mono h-4 text-[10px] text-text-muted/70">
+        {canEdit && editingText && (
+          <p className="text-ui-mono min-h-4 text-[10px] text-text-muted/70">
             {save === "saving" && "正在保存…"}
-            {save === "saved" && "已保存"}
+            {save === "saved" && "已保存 · Ctrl+S 可再次保存"}
             {save === "err" && "保存失败"}
             {save === "idle" && "\u00a0"}
           </p>
@@ -125,20 +145,57 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
         {full.visibility === "public" && isOwner && (
           <p className="text-ui-mono text-[11px] text-text-muted/90">已公开 · 内容不可再修改，仅展示</p>
         )}
-        <h1 className={cn("font-display text-3xl text-text-primary", !canEdit && "cursor-default")}>
-          {canEdit ? (
-            <input
-              className="w-full border-none bg-transparent outline-none"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <h1 className={cn("font-display min-w-0 flex-1 text-3xl text-text-primary", !canEdit && "cursor-default")}>
+            {canEdit && editingText ? (
+              <input
+                className="w-full border-b border-border/60 bg-transparent pb-1 outline-none focus:border-accent/50"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setSave("idle");
+                }}
+                placeholder="名称"
+                aria-label="素材名称"
+              />
+            ) : (
+              <span className="block">{full.name}</span>
+            )}
+          </h1>
+          {canEdit && !editingText && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingText(true);
                 setSave("idle");
               }}
-            />
-          ) : (
-            full.name
+              className="text-ui-mono inline-flex shrink-0 items-center gap-1.5 rounded border border-border px-2.5 py-1.5 text-[11px] text-text-muted hover:border-accent/40 hover:text-text-primary"
+              title="编辑名称与描述"
+            >
+              <Pencil className="h-3.5 w-3.5" aria-hidden />
+              编辑
+            </button>
           )}
-        </h1>
+          {canEdit && editingText && (
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void saveText()}
+                disabled={!dirty}
+                className="text-ui-mono rounded border border-accent/50 bg-accent/10 px-3 py-1.5 text-sm text-accent disabled:opacity-40"
+              >
+                保存
+              </button>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="text-ui-mono rounded border border-border px-3 py-1.5 text-sm text-text-muted hover:text-text-primary"
+              >
+                取消
+              </button>
+            </div>
+          )}
+        </div>
         <ForkBadge asset={full} />
         {showPrivateActions && (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
@@ -181,7 +238,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
         )}
         <div>
           <p className="text-ui-mono text-[10px] text-text-muted">描述</p>
-          {canEdit ? (
+          {canEdit && editingText ? (
             <textarea
               className="mt-1 w-full min-h-32 bg-surface/60 p-2 text-sm text-text-primary outline-none"
               value={description}
@@ -194,7 +251,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             <p className="mt-1 text-sm text-text-primary/90">{full.description}</p>
           )}
         </div>
-        {canEdit && (
+        {canEdit && editingText && (
           <div>
             <button
               type="button"

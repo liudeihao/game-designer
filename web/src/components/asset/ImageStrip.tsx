@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import type { AssetImage } from "@/lib/types";
 import { ProceduralPlaceholder } from "./ProceduralPlaceholder";
@@ -30,6 +30,15 @@ export function ImageStrip({
   const [busy, setBusy] = useState(false);
   const [lightbox, setLightbox] = useState<AssetImage | null>(null);
   const list = images ?? [];
+
+  useEffect(() => {
+    if (!panel) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPanel(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [panel]);
 
   return (
     <div className="space-y-3">
@@ -82,7 +91,7 @@ export function ImageStrip({
         {canGenerate && (
           <button
             type="button"
-            onClick={() => setPanel((p) => !p)}
+            onClick={() => setPanel(true)}
             className="flex h-60 w-60 shrink-0 flex-col items-center justify-center rounded-md border border-dashed border-border text-text-muted hover:border-accent/40"
           >
             + 生图
@@ -90,33 +99,58 @@ export function ImageStrip({
         )}
       </div>
       {panel && canGenerate && (
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-bg-base/95 p-4 shadow-lg">
-          <p className="text-ui-mono text-[11px] text-text-muted">附加描述（会记录）</p>
-          <div className="mt-2 flex gap-2">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="image-gen-title"
+          onClick={() => setPanel(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-md border border-border bg-bg-base p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="image-gen-title" className="font-display text-lg text-text-primary">
+              生成图像
+            </h3>
+            <p className="text-ui-mono mt-1 text-[11px] text-text-muted">会基于素材描述生图，附加内容将一并记录</p>
+            <label className="text-ui-mono mt-4 block text-[11px] text-text-muted" htmlFor="image-gen-extra">
+              附加描述（可选）
+            </label>
             <input
-              className="flex-1 border-b border-border bg-transparent py-2 text-sm outline-none focus:border-accent"
+              id="image-gen-extra"
+              className="mt-1 w-full border-b border-border bg-transparent py-2 text-sm outline-none focus:border-accent/60"
               value={extra}
               onChange={(e) => setExtra(e.target.value)}
-              placeholder="可选"
+              placeholder="如：夜景、近景、偏冷色调"
             />
-            <button
-              type="button"
-              disabled={busy}
-              className="text-ui-mono rounded bg-accent/20 px-3 text-sm text-accent"
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await onRequestImage(extra.trim() || null);
-                  setExtra("");
-                  setPanel(false);
-                  onRefresh();
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              {busy ? "…" : "生成"}
-            </button>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="text-ui-mono rounded border border-border px-3 py-1.5 text-sm text-text-muted hover:text-text-primary"
+                onClick={() => setPanel(false)}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                className="text-ui-mono rounded bg-accent/20 px-3 py-1.5 text-sm text-accent disabled:opacity-50"
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await onRequestImage(extra.trim() || null);
+                    setExtra("");
+                    setPanel(false);
+                    onRefresh();
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                {busy ? "…" : "开始生成"}
+              </button>
+            </div>
           </div>
         </div>
       )}

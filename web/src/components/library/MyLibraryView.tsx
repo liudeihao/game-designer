@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { PaginatedAssets } from "@/lib/types";
 import { listAssetGroups, createAssetGroup, deleteAssetGroup } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
 import type { GridCardSize } from "@/components/asset/AssetCard";
 
 type Props = {
@@ -73,52 +74,8 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
     [group]
   );
 
-  return (
-    <div className="flex min-h-screen">
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="删除分组？"
-        description={deleteTarget ? `分组「${deleteTarget.name}」下的素材会移入「未分组」列表，此操作可稍后通过新建分组再整理。` : undefined}
-        confirmLabel="删除"
-        pendingLabel="删除中…"
-        tone="danger"
-        onConfirm={async () => {
-          if (!deleteTarget) return;
-          await deleteAssetGroup(deleteTarget.id);
-          setDeleteTarget(null);
-          void refetchGroups();
-          void qc.invalidateQueries({ queryKey: ["assets", "private"] });
-          if (activeGroup === deleteTarget.id) {
-            window.location.href = buildLibraryHref({
-              vis:
-                libraryVisibility === null
-                  ? "all"
-                  : libraryVisibility === "public"
-                    ? "public"
-                    : null,
-            });
-          }
-        }}
-      />
-      <ConfirmDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title="创建分组？"
-        description={pendingGroupName ? `将创建「${pendingGroupName}」` : undefined}
-        confirmLabel="创建"
-        pendingLabel="创建中…"
-        onConfirm={async () => {
-          const n = pendingGroupName.trim();
-          if (!n) return;
-          await createAssetGroup(n);
-          setNewName("");
-          setCreateOpen(false);
-          void refetchGroups();
-        }}
-      />
-
-      <aside className="hidden w-56 shrink-0 border-r border-divider p-4 lg:block">
+  const sidebar = (
+    <aside className="box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto border-r border-divider p-4">
         <p className="text-ui-mono text-[11px] uppercase tracking-wider text-text-muted">范围</p>
         <ul className="mt-1 space-y-0.5 text-ui-mono text-[13px] text-text-primary">
           <li>
@@ -217,58 +174,119 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
             <Plus className="h-4 w-4" />
           </button>
         </form>
-      </aside>
-      <div className="min-w-0 flex-1 px-4 py-6 lg:px-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <h1 className="font-display text-2xl">我的库</h1>
-          <div className="flex flex-wrap items-center gap-2">
-            <div
-              className="text-ui-mono flex items-center gap-1 text-[11px] text-text-muted"
-              title="无：不显示缩略图；小/中/大：宫格下正方形封面尺寸"
-            >
-              <span>无</span>
-              <input
-                type="range"
-                min={0}
-                max={3}
-                value={LIBRARY_CARD_SIZES.indexOf(prefs.libraryCardSize)}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setPrefs({ libraryCardSize: LIBRARY_CARD_SIZES[v] ?? "md" });
-                }}
-                className="h-1 w-24 accent-accent"
-              />
-              <span>大</span>
-            </div>
-            <Link
-              href="/library/preferences"
-              className="text-ui-mono inline-flex items-center gap-1 rounded border border-border/50 px-2 py-1 text-[11px] text-text-muted hover:text-text-primary"
-            >
-              <Settings className="h-3.5 w-3.5" />
-              显示与字体
-            </Link>
-            <Link
-              href="/library/assets/new"
-              className="text-ui-mono rounded bg-accent/15 px-3 py-1.5 text-sm text-accent hover:bg-accent/25"
-            >
-              新建素材
-            </Link>
+    </aside>
+  );
+
+  const main = (
+    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl">我的库</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            className="text-ui-mono flex items-center gap-1 text-[11px] text-text-muted"
+            title="无：不显示缩略图；小/中/大：宫格下正方形封面尺寸"
+          >
+            <span>无</span>
+            <input
+              type="range"
+              min={0}
+              max={3}
+              value={LIBRARY_CARD_SIZES.indexOf(prefs.libraryCardSize)}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setPrefs({ libraryCardSize: LIBRARY_CARD_SIZES[v] ?? "md" });
+              }}
+              className="h-1 w-24 accent-accent"
+            />
+            <span>大</span>
           </div>
+          <Link
+            href="/library/preferences"
+            className="text-ui-mono inline-flex items-center gap-1 rounded border border-border/50 px-2 py-1 text-[11px] text-text-muted hover:text-text-primary"
+          >
+            <Settings className="h-3.5 w-3.5" />
+            显示与字体
+          </Link>
+          <Link
+            href="/library/assets/new"
+            className="text-ui-mono rounded bg-accent/15 px-3 py-1.5 text-sm text-accent hover:bg-accent/25"
+          >
+            新建素材
+          </Link>
         </div>
-        <p className="text-ui-mono mb-3 text-[11px] text-text-muted/90">
-          {visActive === "all" &&
-            "私库素材与「探索」中的公开素材是两类：仅自己可见 vs 全站用户可见。侧栏可只筛一类。"}
-          {visActive === "private" && "仅你可见的草稿与创作中素材，不会出现在全站「探索」。"}
-          {visActive === "public" &&
-            "这些已发布到全站「探索」库；任何用户都能看到，与私库不是同一套列表。角标为「全站」。"}
-        </p>
-        <AssetGrid
-          key={`${group || "all"}-${visActive}`}
-          scope="private"
-          initialData={initialData}
-          groupId={group || null}
-          libraryVisibility={libraryVisibility}
-          gridSize={prefs.libraryCardSize}
+      </div>
+      <p className="text-ui-mono mb-3 text-[11px] text-text-muted/90">
+        {visActive === "all" &&
+          "私库素材与「探索」中的公开素材是两类：仅自己可见 vs 全站用户可见。侧栏可只筛一类。"}
+        {visActive === "private" && "仅你可见的草稿与创作中素材，不会出现在全站「探索」。"}
+        {visActive === "public" &&
+          "这些已发布到全站「探索」库；任何用户都能看到，与私库不是同一套列表。角标为「全站」。"}
+      </p>
+      <AssetGrid
+        key={`${group || "all"}-${visActive}`}
+        scope="private"
+        initialData={initialData}
+        groupId={group || null}
+        libraryVisibility={libraryVisibility}
+        gridSize={prefs.libraryCardSize}
+      />
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-0 min-h-screen w-full flex-1 flex-col">
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="删除分组？"
+        description={deleteTarget ? `分组「${deleteTarget.name}」下的素材会移入「未分组」列表，此操作可稍后通过新建分组再整理。` : undefined}
+        confirmLabel="删除"
+        pendingLabel="删除中…"
+        tone="danger"
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          await deleteAssetGroup(deleteTarget.id);
+          setDeleteTarget(null);
+          void refetchGroups();
+          void qc.invalidateQueries({ queryKey: ["assets", "private"] });
+          if (activeGroup === deleteTarget.id) {
+            window.location.href = buildLibraryHref({
+              vis:
+                libraryVisibility === null
+                  ? "all"
+                  : libraryVisibility === "public"
+                    ? "public"
+                    : null,
+            });
+          }
+        }}
+      />
+      <ConfirmDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="创建分组？"
+        description={pendingGroupName ? `将创建「${pendingGroupName}」` : undefined}
+        confirmLabel="创建"
+        pendingLabel="创建中…"
+        onConfirm={async () => {
+          const n = pendingGroupName.trim();
+          if (!n) return;
+          await createAssetGroup(n);
+          setNewName("");
+          setCreateOpen(false);
+          void refetchGroups();
+        }}
+      />
+      <div className="min-h-0 flex-1 lg:hidden">{main}</div>
+      <div className="hidden min-h-0 min-w-0 flex-1 lg:flex">
+        <WorkspaceHorizontalSplit
+          storageKey="layout:library-sidebar"
+          leftDefaultSize={17.5}
+          leftMinSize={14}
+          rightMinSize={40}
+          className="min-h-0 min-w-0 flex-1"
+          left={sidebar}
+          right={main}
         />
       </div>
     </div>

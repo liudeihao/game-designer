@@ -44,7 +44,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
   const inGroup = (gid: string) => sessionRows.filter((s) => s.stagingGroup?.id === gid);
 
   return (
-    <aside className="hidden w-56 shrink-0 border-r border-divider p-4 lg:block">
+    <aside className="box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto border-r border-divider p-4">
       <ConfirmDialog
         open={!!deleteId}
         onOpenChange={(o) => !o && setDeleteId(null)}

@@ -12,6 +12,7 @@ import { ImageStrip } from "./ImageStrip";
 import { ForkBadge, GhostHint } from "./ForkBadge";
 import { ForkRelationPanel } from "./ForkRelationPanel";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
 import { ThemeSelect } from "@/components/ui/ThemeSelect";
 
 export function AssetDetailView({ id, initial }: { id: string; initial: Asset }) {
@@ -139,48 +140,8 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
     ...(groupList?.items.map((g) => ({ value: g.id, label: g.name })) ?? []),
   ];
 
-  return (
-    <div className="grid min-h-screen grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[minmax(0,45%)_1fr] lg:px-8">
-      <ConfirmDialog
-        open={discardOpen}
-        onOpenChange={setDiscardOpen}
-        title="放弃未保存的修改？"
-        description="当前编辑尚未保存，确定要关闭吗？"
-        confirmLabel="放弃"
-        tone="danger"
-        onConfirm={() => {
-          resetFormFromAsset();
-          setEditingText(false);
-          setSave("idle");
-        }}
-      />
-      <ConfirmDialog
-        open={publishOpen}
-        onOpenChange={setPublishOpen}
-        title="发布到「探索」公开库？"
-        description="确认后，本条将进入全站「探索」页，任何用户都可以浏览。发布为不可逆：展示用名称、描述、封面与图像将冻结，不可再编辑；若需修改或仅自己生图，须先「复制到私库」得到新私稿。发布后会移出你的私库分组。确定发布？"
-        confirmLabel="发布到探索"
-        pendingLabel="发布中…"
-        onConfirm={async () => {
-          await publishAsset(id);
-          void refetch();
-          void qc.invalidateQueries({ queryKey: ["assets"] });
-        }}
-      />
-      <ConfirmDialog
-        open={forkOpen}
-        onOpenChange={setForkOpen}
-        title="确认复制到私库？"
-        description="确认后会在你的私库中新建一条仅自己可见的素材副本（新 ID、独立编辑历史），可单独改名称、描述、封面、分组与注释。原素材不会删除；若当前在「探索」中公开，公开页仍保留。复制完成后会跳转到新素材页。"
-        confirmLabel="确认复制"
-        pendingLabel="复制中…"
-        onConfirm={async () => {
-          const f = await forkAsset(id);
-          window.location.href = `/library/assets/${f.id}`;
-        }}
-      />
-
-      <div className="space-y-4">
+  const textColumn = (
+    <div className="min-h-0 min-w-0 space-y-4 overflow-y-auto lg:pr-2">
         <nav className="text-ui-mono text-xs text-text-muted/80">
           <Link href="/library/assets" className="hover:text-accent">
             我的库
@@ -369,8 +330,11 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           </div>
         )}
         <ForkRelationPanel assetId={id} />
-      </div>
-      <div>
+    </div>
+  );
+
+  const imageColumn = (
+      <div className="min-h-0 min-w-0 lg:pl-2">
         <ImageStrip
           assetId={id}
           images={full.images}
@@ -390,6 +354,63 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           }}
           canGenerate={isOwner && isPrivateAsset}
           showProceduralWhenEmpty={false}
+        />
+      </div>
+  );
+
+  return (
+    <div className="flex min-h-screen w-full flex-col px-4 py-6 lg:min-h-0 lg:flex-1 lg:px-8">
+      <ConfirmDialog
+        open={discardOpen}
+        onOpenChange={setDiscardOpen}
+        title="放弃未保存的修改？"
+        description="当前编辑尚未保存，确定要关闭吗？"
+        confirmLabel="放弃"
+        tone="danger"
+        onConfirm={() => {
+          resetFormFromAsset();
+          setEditingText(false);
+          setSave("idle");
+        }}
+      />
+      <ConfirmDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        title="发布到「探索」公开库？"
+        description="确认后，本条将进入全站「探索」页，任何用户都可以浏览。发布为不可逆：展示用名称、描述、封面与图像将冻结，不可再编辑；若需修改或仅自己生图，须先「复制到私库」得到新私稿。发布后会移出你的私库分组。确定发布？"
+        confirmLabel="发布到探索"
+        pendingLabel="发布中…"
+        onConfirm={async () => {
+          await publishAsset(id);
+          void refetch();
+          void qc.invalidateQueries({ queryKey: ["assets"] });
+        }}
+      />
+      <ConfirmDialog
+        open={forkOpen}
+        onOpenChange={setForkOpen}
+        title="确认复制到私库？"
+        description="确认后会在你的私库中新建一条仅自己可见的素材副本（新 ID、独立编辑历史），可单独改名称、描述、封面、分组与注释。原素材不会删除；若当前在「探索」中公开，公开页仍保留。复制完成后会跳转到新素材页。"
+        confirmLabel="确认复制"
+        pendingLabel="复制中…"
+        onConfirm={async () => {
+          const f = await forkAsset(id);
+          window.location.href = `/library/assets/${f.id}`;
+        }}
+      />
+      <div className="flex min-h-0 flex-1 flex-col gap-6 lg:hidden">
+        {textColumn}
+        {imageColumn}
+      </div>
+      <div className="hidden min-h-0 flex-1 lg:flex">
+        <WorkspaceHorizontalSplit
+          storageKey="layout:asset-detail"
+          leftDefaultSize={45}
+          leftMinSize={28}
+          rightMinSize={35}
+          className="min-h-0 min-w-0 flex-1"
+          left={textColumn}
+          right={imageColumn}
         />
       </div>
     </div>

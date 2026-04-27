@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   getSession,
   listSessionStagingGroups,
@@ -17,6 +17,7 @@ import { createStreamParser } from "@/lib/stream-jsonl";
 import type { DraftAsset, SessionDetail, StreamEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
 import { motion } from "framer-motion";
 
 export function SessionWorkspace({ id, initial }: { id: string; initial: SessionDetail }) {
@@ -92,34 +93,14 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
 
   if (!session) return <p className="p-6 text-text-muted">未找到会话</p>;
 
-  return (
-    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="从暂存中删除？"
-        description="删除后需重新手填；不会动「我的库」里已导出的素材。"
-        confirmLabel="删除"
-        tone="danger"
-        pendingLabel="删除中…"
-        onConfirm={async () => {
-          if (!deleteTarget) return;
-          const tid = deleteTarget;
-          await deleteSessionDraft(id, tid);
-          if (editingId === tid) {
-            setEditingId(null);
-            setEditName("");
-            setEditDesc("");
-          }
-          setDeleteTarget(null);
-          void refetch();
-          void qc.invalidateQueries({ queryKey: ["session", id] });
-          void qc.invalidateQueries({ queryKey: ["sessions"] });
-          void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
-        }}
-      />
-        <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] lg:grid-rows-1">
-          <div className="gd-editor-panel relative flex min-h-0 min-w-0 flex-col border-r border-divider">
+  function makeSessionColumns(forSplit: boolean, s: SessionDetail): { editor: ReactNode; drafts: ReactNode } {
+    const editor = (
+      <div
+        className={cn(
+          "gd-editor-panel relative flex min-h-0 min-w-0 flex-col border-divider",
+          !forSplit && "border-r"
+        )}
+      >
             <div className="pointer-events-none absolute inset-0 z-0">
               <span className="gd-editor-panel__blade" aria-hidden />
               <span className="gd-editor-panel__corners" aria-hidden />
@@ -133,7 +114,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
             </p>
             <div className="relative z-[2] flex min-h-0 min-w-0 flex-1 flex-col">
               <div className="shrink-0 space-y-1 px-2 pb-1 pt-2">
-                <p className="text-ui-mono text-center text-[11px] text-text-muted/70">{session.title}</p>
+                <p className="text-ui-mono text-center text-[11px] text-text-muted/70">{s.title}</p>
                 <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[10px]">
                   <label htmlFor={`sg-${id}`} className="text-ui-mono text-text-muted">
                     分组
@@ -142,7 +123,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                     id={`sg-${id}`}
                     className="text-ui-mono max-w-[10rem] rounded border border-border/80 bg-surface/80 px-1 py-0.5 text-[10px] text-text-primary outline-none focus:border-accent"
                     disabled={groupSelectBusy}
-                    value={session.stagingGroup?.id ?? ""}
+                    value={s.stagingGroup?.id ?? ""}
                     onChange={async (e) => {
                       const v = e.target.value;
                       setGroupSelectBusy(true);
@@ -165,9 +146,9 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                       </option>
                     ))}
                   </select>
-                  {session.stagingGroup && (
+                  {s.stagingGroup && (
                     <span className="text-ui-mono text-text-muted/90">
-                      暂存·{session.stagingGroup.draftStaging === "shared" ? "组内共享" : "各会话独立"}
+                      暂存·{s.stagingGroup.draftStaging === "shared" ? "组内共享" : "各会话独立"}
                     </span>
                   )}
                 </div>
@@ -279,8 +260,14 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
               </div>
             </div>
           </div>
-
-          <aside className="flex min-h-0 min-w-0 max-h-[42vh] flex-col overflow-y-auto border-t border-divider p-3 [scrollbar-width:thin] lg:max-h-none lg:min-h-0 lg:border-t-0">
+    );
+    const drafts = (
+          <aside
+            className={cn(
+              "flex min-h-0 min-w-0 flex-col overflow-y-auto p-3 [scrollbar-width:thin]",
+              forSplit ? "min-h-0" : "max-h-[42vh] border-t border-divider"
+            )}
+          >
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
               <h2 className="text-ui-mono text-[11px] uppercase text-text-muted">暂存</h2>
               <div className="flex flex-wrap items-center gap-1.5">
@@ -312,7 +299,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                 </button>
               </div>
             </div>
-            {session.stagingGroup?.draftStaging === "shared" && (
+            {s.stagingGroup?.draftStaging === "shared" && (
               <p className="text-ui-mono mt-0.5 shrink-0 text-[10px] leading-snug text-accent/80">
                 与组内其他会话共享同一套暂存；任一会话中增删会同步反映。
               </p>
@@ -537,7 +524,54 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
               </p>
             )}
           </aside>
-        </div>
+    );
+    return { editor, drafts };
+  }
+
+  const stacked = makeSessionColumns(false, session);
+  const split = makeSessionColumns(true, session);
+
+  return (
+    <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="从暂存中删除？"
+        description="删除后需重新手填；不会动「我的库」里已导出的素材。"
+        confirmLabel="删除"
+        tone="danger"
+        pendingLabel="删除中…"
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          const tid = deleteTarget;
+          await deleteSessionDraft(id, tid);
+          if (editingId === tid) {
+            setEditingId(null);
+            setEditName("");
+            setEditDesc("");
+          }
+          setDeleteTarget(null);
+          void refetch();
+          void qc.invalidateQueries({ queryKey: ["session", id] });
+          void qc.invalidateQueries({ queryKey: ["sessions"] });
+          void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
+        }}
+      />
+      <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden lg:hidden">
+        {stacked.editor}
+        {stacked.drafts}
+      </div>
+      <div className="hidden min-h-0 min-w-0 flex-1 lg:flex">
+        <WorkspaceHorizontalSplit
+          storageKey="layout:session-chat-drafts"
+          leftDefaultSize={56}
+          leftMinSize={38}
+          rightMinSize={24}
+          className="min-h-0 min-w-0 flex-1"
+          left={split.editor}
+          right={split.drafts}
+        />
+      </div>
     </div>
   );
 }

@@ -75,7 +75,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   );
 
   const sidebar = (
-    <aside className="box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto border-r border-divider p-4">
+    <aside className="gd-scrollbar box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto border-r border-divider p-4">
         <p className="text-ui-mono text-[11px] uppercase tracking-wider text-text-muted">范围</p>
         <ul className="mt-1 space-y-0.5 text-ui-mono text-[13px] text-text-primary">
           <li>
@@ -178,7 +178,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   );
 
   const main = (
-    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+    <div className="gd-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl">我的库</h1>
         <div className="flex flex-wrap items-center gap-2">

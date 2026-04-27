@@ -87,6 +87,48 @@ body {
     font-family: var(--font-dm-mono), ui-monospace, monospace;
   }
 
+  /**
+   * Themed scrollbars (Firefox `scrollbar-color` + WebKit pseudos).
+   * Add class `gd-scrollbar` to overflow-auto containers; `textarea` is covered globally.
+   */
+  .gd-scrollbar,
+  textarea {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--accent) 42%, transparent)
+      color-mix(in srgb, var(--text-primary) 8%, transparent);
+  }
+
+  .gd-scrollbar::-webkit-scrollbar,
+  textarea::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+
+  .gd-scrollbar::-webkit-scrollbar-track,
+  textarea::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+    border-radius: 9999px;
+  }
+
+  .gd-scrollbar::-webkit-scrollbar-thumb,
+  textarea::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--accent) 48%, transparent);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .gd-scrollbar::-webkit-scrollbar-thumb:hover,
+  textarea::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--accent) 68%, transparent);
+    background-clip: padding-box;
+  }
+
+  .gd-scrollbar::-webkit-scrollbar-corner,
+  textarea::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   /* AI session column: L-shaped corner marks (decorative layer is real DOM, not ::before) */
   .gd-editor-panel {
     position: relative;

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { listSessionStagingGroups, postSession } from "@/lib/api";
+import { ThemeSelect } from "@/components/ui/ThemeSelect";
 export default function NewSessionPage() {
   const r = useRouter();
   const [t, setT] = useState("");
@@ -15,7 +16,7 @@ export default function NewSessionPage() {
   });
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto px-4 py-6 sm:px-6">
+    <div className="gd-scrollbar flex h-full min-h-0 flex-col overflow-y-auto px-4 py-6 sm:px-6">
       <div className="mx-auto w-full max-w-md">
         <h1 className="font-display text-2xl">新会话</h1>
         <input
@@ -26,24 +27,23 @@ export default function NewSessionPage() {
         />
         {groups.length > 0 && (
           <div className="text-ui-mono mt-4 text-[12px] text-text-muted">
-            <label htmlFor="new-sg" className="mb-1 block">
+            <p id="new-sg-label" className="mb-1 block">
               会话分组（可选）
-            </label>
-            <select
+            </p>
+            <ThemeSelect
               id="new-sg"
-              className="w-full rounded border border-border/80 bg-surface/80 px-2 py-1.5 text-[13px] text-text-primary outline-none focus:border-accent"
+              aria-labelledby="new-sg-label"
+              className="max-w-none"
               value={groupId}
-              onChange={(e) => setGroupId(e.target.value)}
-            >
-              <option value="">无</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}（
-                  {g.draftStaging === "shared" ? "组内共享暂存" : "各会话独立暂存"}
-                  ）
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "无" },
+                ...groups.map((g) => ({
+                  value: g.id,
+                  label: `${g.name}（${g.draftStaging === "shared" ? "组内共享暂存" : "各会话独立暂存"}）`,
+                })),
+              ]}
+              onValueChange={setGroupId}
+            />
           </div>
         )}
         <button

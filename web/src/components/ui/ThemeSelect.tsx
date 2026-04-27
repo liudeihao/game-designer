@@ -11,7 +11,9 @@ export function ThemeSelect({
   placeholder = "选择…",
   id: _id,
   "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   className,
+  disabled = false,
 }: {
   value: string;
   onValueChange: (v: string) => void;
@@ -19,19 +21,24 @@ export function ThemeSelect({
   placeholder?: string;
   id?: string;
   "aria-label"?: string;
+  "aria-labelledby"?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   const current = options.find((o) => o.value === value);
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
+      <DropdownMenu.Trigger asChild disabled={disabled}>
         <button
           type="button"
           id={_id}
           aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
+          disabled={disabled}
           className={cn(
             "text-ui-mono flex w-full max-w-xs items-center justify-between gap-2 rounded border border-border/60 bg-surface/60 px-3 py-2 text-left text-[13px] text-text-primary outline-none",
             "hover:border-accent/30 focus:border-accent/50",
+            disabled && "cursor-not-allowed opacity-50 hover:border-border/60",
             className
           )}
         >

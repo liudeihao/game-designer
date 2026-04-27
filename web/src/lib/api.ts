@@ -214,6 +214,16 @@ export async function deleteSessionStagingGroup(id: string) {
   if (!r.ok) throw new Error("delete session-staging-group");
 }
 
+/** All drafts in a staging group (shared pool or union of per-session rows). */
+export async function listSessionStagingGroupDrafts(groupId: string) {
+  const r = await fetch(`/api/session-staging-groups/${encodeURIComponent(groupId)}/drafts`, {
+    credentials: "include",
+  });
+  if (!r.ok) throw new Error("session-staging-group drafts");
+  const data = (await r.json()) as unknown;
+  return Array.isArray(data) ? (data as DraftAsset[]) : [];
+}
+
 export async function getSession(id: string) {
   const r = await fetch(`/api/sessions/${id}`, { credentials: "include" });
   if (r.status === 404) return null;

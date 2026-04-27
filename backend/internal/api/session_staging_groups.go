@@ -57,6 +57,87 @@ func (s *Server) listSessionStagingGroups(w http.ResponseWriter, r *http.Request
 	writeJSON(w, 200, out)
 }
 
+// listSessionStagingGroupDrafts returns all staging rows for a group: shared pool on group_id,
+// or union of per-session rows for independent mode (each item includes owner session id/title).
+func (s *Server) listSessionStagingGroupDrafts(w http.ResponseWriter, r *http.Request) {
+	uid, _ := userID(r.Context())
+	gid, err := uuid.Parse(chi.URLParam(r, "groupId"))
+	if err != nil {
+		writeErr(w, 400, "bad id", "bad_request")
+		return
+	}
+	ctx := r.Context()
+	var ds string
+	err = s.pool.QueryRow(ctx, `
+		SELECT draft_staging FROM session_staging_groups WHERE id = $1 AND user_id = $2
+	`, gid, uid).Scan(&ds)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeErr(w, 404, "not found", "not_found")
+		} else {
+			writeErr(w, 500, err.Error(), "internal")
+		}
+		return
+	}
+	var out []any
+	if ds == "shared" {
+		rows, err := s.pool.Query(ctx, `
+			SELECT temp_id, name, description, done FROM draft_assets WHERE group_id = $1 ORDER BY id
+		`, gid)
+		if err != nil {
+			writeErr(w, 500, err.Error(), "internal")
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var tempID, name, desc string
+			var done bool
+			if err := rows.Scan(&tempID, &name, &desc, &done); err != nil {
+				writeErr(w, 500, err.Error(), "internal")
+				return
+			}
+			out = append(out, map[string]any{
+				"tempId": tempID, "name": name, "description": desc, "done": done,
+			})
+		}
+	} else {
+		rows, err := s.pool.Query(ctx, `
+			SELECT d.temp_id, d.name, d.description, d.done, cs.id, cs.title
+			FROM draft_assets d
+			INNER JOIN chat_sessions cs ON cs.id = d.session_id
+			WHERE cs.staging_group_id = $1 AND cs.user_id = $2 AND d.group_id IS NULL
+			ORDER BY cs.updated_at DESC, d.id
+		`, gid, uid)
+		if err != nil {
+			writeErr(w, 500, err.Error(), "internal")
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var tempID, name, desc string
+			var done bool
+			var sid uuid.UUID
+			var title string
+			if err := rows.Scan(&tempID, &name, &desc, &done, &sid, &title); err != nil {
+				writeErr(w, 500, err.Error(), "internal")
+				return
+			}
+			out = append(out, map[string]any{
+				"tempId":            tempID,
+				"name":              name,
+				"description":       desc,
+				"done":              done,
+				"ownerSessionId":    sid.String(),
+				"ownerSessionTitle": title,
+			})
+		}
+	}
+	if out == nil {
+		out = []any{}
+	}
+	writeJSON(w, 200, out)
+}
+
 func (s *Server) createSessionStagingGroup(w http.ResponseWriter, r *http.Request) {
 	uid, _ := userID(r.Context())
 	var b sessionStagingGroupCreate

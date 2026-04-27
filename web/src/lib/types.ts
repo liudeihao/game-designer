@@ -108,6 +108,9 @@ export type DraftAsset = {
   name: string;
   description: string;
   done: boolean;
+  /** Per-session staging row in an independent group; use for PATCH/DELETE paths. */
+  ownerSessionId?: string;
+  ownerSessionTitle?: string;
 };
 
 export type SessionDetail = SessionSummary & {

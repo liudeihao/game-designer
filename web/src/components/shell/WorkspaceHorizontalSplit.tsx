@@ -54,7 +54,7 @@ export function WorkspaceHorizontalSplit({
     <Group
       id={storageKey}
       orientation="horizontal"
-      className={cn("min-h-0 min-w-0", className)}
+      className={cn("min-h-0 min-w-0 overflow-hidden", className)}
       defaultLayout={defaultLayout}
       onLayoutChanged={onLayoutChanged}
     >

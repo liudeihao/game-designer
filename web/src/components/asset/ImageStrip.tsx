@@ -48,7 +48,7 @@ export function ImageStrip({
   return (
     <div className="space-y-3">
       <h2 className="text-ui-mono text-xs uppercase tracking-wider text-text-muted">图像（可选）</h2>
-      <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
+      <div className="gd-scrollbar flex gap-3 overflow-x-auto pb-2">
         {list.map((im) => {
           const isCover = coverImageId === im.id;
           const canSetCover = canGenerate && im.generationStatus === "done";

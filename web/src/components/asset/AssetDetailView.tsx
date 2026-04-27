@@ -141,7 +141,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
   ];
 
   const textColumn = (
-    <div className="min-h-0 min-w-0 space-y-4 overflow-y-auto lg:pr-2">
+    <div className="gd-scrollbar min-h-0 min-w-0 space-y-4 overflow-y-auto lg:pr-2">
         <nav className="text-ui-mono text-xs text-text-muted/80">
           <Link href="/library/assets" className="hover:text-accent">
             我的库

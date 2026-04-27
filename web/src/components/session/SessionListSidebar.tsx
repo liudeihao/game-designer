@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderInput, Plus, Trash2 } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { ChevronDown, FolderInput, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   listSessions,
@@ -44,7 +45,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
   const inGroup = (gid: string) => sessionRows.filter((s) => s.stagingGroup?.id === gid);
 
   return (
-    <aside className="box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto border-r border-divider p-4">
+    <aside className="gd-scrollbar box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto border-r border-divider p-4">
       <ConfirmDialog
         open={!!deleteId}
         onOpenChange={(o) => !o && setDeleteId(null)}
@@ -89,7 +90,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
       </ul>
 
       <p className="text-ui-mono mt-4 text-[10px] uppercase tracking-wider text-text-muted">分组</p>
-      <ul className="mt-1 max-h-[min(48vh,22rem)] space-y-3 overflow-y-auto [scrollbar-width:thin] pr-0.5 text-ui-mono text-[12px]">
+      <ul className="gd-scrollbar mt-1 max-h-[min(48vh,22rem)] space-y-3 overflow-y-auto pr-0.5 text-ui-mono text-[12px]">
         {groupRows.map((g) => {
           const sessions = inGroup(g.id);
           return (
@@ -140,60 +141,91 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
         )}
       </ul>
 
-      <div className="text-ui-mono mt-2 space-y-1 rounded border border-dashed border-border/80 p-2 text-[10px]">
-        <p className="text-text-muted">新建分组</p>
-        <input
-          className="w-full border-b border-border/80 bg-transparent py-0.5 text-[11px] text-text-primary outline-none focus:border-accent"
-          placeholder="名称"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <div className="flex flex-col gap-0.5 text-text-muted">
-          <label className="inline-flex items-center gap-1.5">
+      <DropdownMenu.Root modal={false}>
+        <DropdownMenu.Trigger asChild>
+          <button
+            type="button"
+            className="text-ui-mono mt-2 flex w-full items-center justify-between gap-2 rounded border border-border/60 bg-surface/30 px-2 py-1.5 text-left text-[11px] text-text-muted hover:border-accent/25 hover:text-text-primary"
+          >
+            管理分组
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+          </button>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            className="text-ui-mono z-[80] w-[min(calc(100vw-2rem),17rem)] rounded-md border border-border bg-bg-base p-2 shadow-lg"
+            sideOffset={6}
+            align="start"
+          >
+            <p className="px-0.5 text-[10px] text-text-muted">新建分组</p>
             <input
-              type="radio"
-              name="sg-mode"
-              checked={newMode === "independent"}
-              onChange={() => setNewMode("independent")}
+              className="mt-1 w-full rounded border border-border/60 bg-surface/40 px-2 py-1 text-[11px] text-text-primary outline-none focus:border-accent"
+              placeholder="名称"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
             />
-            各会话独立暂存
-          </label>
-          <label className="inline-flex items-center gap-1.5">
-            <input
-              type="radio"
-              name="sg-mode"
-              checked={newMode === "shared"}
-              onChange={() => setNewMode("shared")}
-            />
-            组内共享暂存
-          </label>
-        </div>
-        <button
-          type="button"
-          className="mt-0.5 w-full rounded bg-accent/10 py-0.5 text-[11px] text-accent disabled:opacity-40"
-          disabled={createBusy || !newName.trim()}
-          onClick={async () => {
-            setCreateBusy(true);
-            try {
-              await createSessionStagingGroup(newName.trim(), newMode);
-              setNewName("");
-              setNewMode("independent");
-              void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
-            } catch {
-              // ignore
-            } finally {
-              setCreateBusy(false);
-            }
-          }}
-        >
-          {createBusy ? "创建中…" : "创建"}
-        </button>
-      </div>
+            <div
+              className="mt-2 flex rounded border border-border/60 bg-surface/30 p-0.5"
+              role="radiogroup"
+              aria-label="新建分组的暂存模式"
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={newMode === "independent"}
+                className={cn(
+                  "text-ui-mono flex-1 rounded px-1.5 py-1 text-left text-[10px] outline-none transition-colors",
+                  newMode === "independent"
+                    ? "bg-accent/15 text-accent"
+                    : "text-text-muted hover:text-text-primary"
+                )}
+                onClick={() => setNewMode("independent")}
+              >
+                各会话独立暂存
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={newMode === "shared"}
+                className={cn(
+                  "text-ui-mono flex-1 rounded px-1.5 py-1 text-left text-[10px] outline-none transition-colors",
+                  newMode === "shared"
+                    ? "bg-accent/15 text-accent"
+                    : "text-text-muted hover:text-text-primary"
+                )}
+                onClick={() => setNewMode("shared")}
+              >
+                组内共享暂存
+              </button>
+            </div>
+            <button
+              type="button"
+              className="text-ui-mono mt-2 w-full rounded bg-accent/10 py-1 text-[11px] text-accent disabled:opacity-40"
+              disabled={createBusy || !newName.trim()}
+              onClick={async () => {
+                setCreateBusy(true);
+                try {
+                  await createSessionStagingGroup(newName.trim(), newMode);
+                  setNewName("");
+                  setNewMode("independent");
+                  void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
+                } catch {
+                  // ignore
+                } finally {
+                  setCreateBusy(false);
+                }
+              }}
+            >
+              {createBusy ? "创建中…" : "创建"}
+            </button>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
 
       {ungrouped.length > 0 && (
         <>
           <p className="text-ui-mono mt-4 text-[10px] uppercase tracking-wider text-text-muted">未分组</p>
-          <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto [scrollbar-width:thin] text-ui-mono text-[13px]">
+          <ul className="gd-scrollbar mt-1 max-h-40 space-y-0.5 overflow-y-auto text-ui-mono text-[13px]">
             {ungrouped.map((s) => (
               <li key={s.id}>
                 <Link

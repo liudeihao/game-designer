@@ -2,9 +2,11 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   getSession,
   listSessionStagingGroups,
+  listSessionStagingGroupDrafts,
   patchSession,
   postChatStream,
   postSessionDraft,
@@ -17,8 +19,11 @@ import { createStreamParser } from "@/lib/stream-jsonl";
 import type { DraftAsset, SessionDetail, StreamEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ThemeSelect } from "@/components/ui/ThemeSelect";
 import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
+import { WorkspaceVerticalSplit } from "@/components/shell/WorkspaceVerticalSplit";
 import { motion } from "framer-motion";
+import { Settings2 } from "lucide-react";
 
 export function SessionWorkspace({ id, initial }: { id: string; initial: SessionDetail }) {
   const qc = useQueryClient();
@@ -55,7 +60,17 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
   }, []);
 
   const messages = useMemo(() => session?.messages ?? [], [session]);
-  const draftAssets = useMemo(() => session?.draftAssets ?? [], [session]);
+  const groupIdForDrafts = session?.stagingGroup?.id;
+  const { data: groupDraftsList } = useQuery({
+    queryKey: ["session-staging-group-drafts", groupIdForDrafts],
+    queryFn: () => listSessionStagingGroupDrafts(groupIdForDrafts!),
+    enabled: !!groupIdForDrafts,
+  });
+  const draftAssets = useMemo(() => {
+    if (!groupIdForDrafts) return session?.draftAssets ?? [];
+    if (groupDraftsList !== undefined) return groupDraftsList;
+    return session?.draftAssets ?? [];
+  }, [groupIdForDrafts, groupDraftsList, session?.draftAssets]);
 
   const selectedDrafts: DraftAsset[] = useMemo(
     () => draftAssets.filter((d) => selectedIds.includes(d.tempId)),
@@ -91,13 +106,18 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
     setSelectedIds([]);
   }, []);
 
+  const draftOwnerSessionId = useCallback(
+    (tempId: string) => draftAssets.find((d) => d.tempId === tempId)?.ownerSessionId ?? id,
+    [draftAssets, id]
+  );
+
   if (!session) return <p className="p-6 text-text-muted">未找到会话</p>;
 
   function makeSessionColumns(forSplit: boolean, s: SessionDetail): { editor: ReactNode; drafts: ReactNode } {
     const editor = (
       <div
         className={cn(
-          "gd-editor-panel relative flex min-h-0 min-w-0 flex-col border-divider",
+          "gd-editor-panel relative flex min-h-0 min-w-0 flex-col overflow-hidden border-divider",
           !forSplit && "border-r"
         )}
       >
@@ -113,159 +133,202 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
               })()}
             </p>
             <div className="relative z-[2] flex min-h-0 min-w-0 flex-1 flex-col">
-              <div className="shrink-0 space-y-1 px-2 pb-1 pt-2">
-                <p className="text-ui-mono text-center text-[11px] text-text-muted/70">{s.title}</p>
-                <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[10px]">
-                  <label htmlFor={`sg-${id}`} className="text-ui-mono text-text-muted">
-                    分组
-                  </label>
-                  <select
-                    id={`sg-${id}`}
-                    className="text-ui-mono max-w-[10rem] rounded border border-border/80 bg-surface/80 px-1 py-0.5 text-[10px] text-text-primary outline-none focus:border-accent"
-                    disabled={groupSelectBusy}
-                    value={s.stagingGroup?.id ?? ""}
-                    onChange={async (e) => {
-                      const v = e.target.value;
-                      setGroupSelectBusy(true);
-                      try {
-                        await patchSession(id, { stagingGroupId: v === "" ? null : v });
-                        await refetch();
-                        void qc.invalidateQueries({ queryKey: ["sessions"] });
-                        void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
-                      } catch {
-                        // ignore
-                      } finally {
-                        setGroupSelectBusy(false);
-                      }
-                    }}
-                  >
-                    <option value="">无</option>
-                    {stagingGroups.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                  {s.stagingGroup && (
-                    <span className="text-ui-mono text-text-muted/90">
-                      暂存·{s.stagingGroup.draftStaging === "shared" ? "组内共享" : "各会话独立"}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-white/[0.02] to-transparent [scrollbar-width:thin]">
-                <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-3 py-3 sm:px-4">
-                  {messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={cn("flex w-full", m.role === "user" ? "justify-end" : "justify-start")}
-                    >
-                      <div
-                        className={cn(
-                          "max-w-[min(90%,20rem)] shadow-md sm:max-w-md",
-                          "rounded-2xl px-3.5 py-2.5 text-[14px] leading-[1.65] [word-break:break-word] whitespace-pre-wrap",
-                          m.role === "user"
-                            ? "rounded-tr-md border border-accent/35 bg-gradient-to-br from-accent/20 to-accent/[0.08] text-text-primary"
-                            : "rounded-tl-md border border-border/80 bg-surface/90 text-text-primary/95 shadow-black/5 backdrop-blur-sm"
-                        )}
+              <div className="shrink-0 px-2 pb-1 pt-2">
+                <div className="flex items-center justify-center gap-1.5">
+                  <p className="text-ui-mono min-w-0 flex-1 text-center text-[11px] text-text-muted/70">
+                    {s.title}
+                  </p>
+                  <DropdownMenu.Root modal={false}>
+                    <DropdownMenu.Trigger asChild>
+                      <button
+                        type="button"
+                        className="text-ui-mono shrink-0 rounded border border-border/50 bg-surface/40 p-1 text-text-muted hover:border-accent/30 hover:text-text-primary"
+                        title="分组与暂存设置"
+                        aria-label="分组与暂存设置"
                       >
-                        {m.role === "assistant" && (
-                          <p className="text-ui-mono mb-1 text-[9px] uppercase tracking-widest text-text-muted/80">
-                            AI
+                        <Settings2 className="h-3.5 w-3.5" />
+                      </button>
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Portal>
+                      <DropdownMenu.Content
+                        className="text-ui-mono z-[100] min-w-[14rem] rounded-md border border-border bg-bg-base p-3 shadow-lg"
+                        sideOffset={6}
+                        align="end"
+                      >
+                        <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">
+                          所属分组
+                        </p>
+                        <ThemeSelect
+                          id={`sg-${id}`}
+                          aria-label="会话分组"
+                          className="mt-1.5 max-w-none text-[12px]"
+                          disabled={groupSelectBusy}
+                          value={s.stagingGroup?.id ?? ""}
+                          options={[
+                            { value: "", label: "无" },
+                            ...stagingGroups.map((g) => ({ value: g.id, label: g.name })),
+                          ]}
+                          onValueChange={async (v) => {
+                            setGroupSelectBusy(true);
+                            try {
+                              await patchSession(id, { stagingGroupId: v === "" ? null : v });
+                              await refetch();
+                              void qc.invalidateQueries({ queryKey: ["sessions"] });
+                              void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
+                              void qc.invalidateQueries({ queryKey: ["session-staging-group-drafts"] });
+                            } catch {
+                              // ignore
+                            } finally {
+                              setGroupSelectBusy(false);
+                            }
+                          }}
+                        />
+                        {s.stagingGroup ? (
+                          <p className="mt-2 text-[10px] leading-relaxed text-text-muted/90">
+                            当前分组「{s.stagingGroup.name}」·
+                            {s.stagingGroup.draftStaging === "shared"
+                              ? "组内共享暂存，右侧列表为全组条目。"
+                              : "各会话独立暂存，右侧列表汇总本组全部会话的暂存。"}
+                          </p>
+                        ) : (
+                          <p className="mt-2 text-[10px] leading-relaxed text-text-muted/80">
+                            未加入分组时，仅本会话的暂存显示在右侧。
                           </p>
                         )}
-                        <p
-                          className={cn(
-                            m.role === "user" ? "text-inter" : "text-ui-mono"
-                          )}
-                        >
-                          {m.content}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {streaming && (
-                    <div className="flex w-full justify-start">
-                      <div className="max-w-[min(90%,20rem)] rounded-2xl rounded-tl-md border border-dashed border-accent/25 bg-surface/60 px-3.5 py-2.5 text-[14px] leading-[1.65] text-text-primary/90 shadow-md backdrop-blur-sm sm:max-w-md">
-                        <p className="text-ui-mono mb-1 text-[9px] uppercase tracking-widest text-text-muted/70">
-                          AI
-                        </p>
-                        <p className="text-ui-mono [word-break:break-word] whitespace-pre-wrap">
-                          {textBuf}
-                          <span
-                            className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-accent align-middle"
-                            aria-hidden
-                          />
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Portal>
+                  </DropdownMenu.Root>
                 </div>
               </div>
-              <div className="h-20 shrink-0 border-t border-border px-3 py-2">
-                <form
-                  className="flex h-full min-h-0 items-end gap-2"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (!input.trim() || streaming) return;
-                    setStreaming(true);
-                    setTextBuf("");
-                    try {
-                      const res = await postChatStream(id, input);
-                      if (!res.ok) throw new Error("chat");
-                      const reader = res.body?.getReader();
-                      if (!reader) return;
-                      const dec = new TextDecoder();
-                      const feed = createStreamParser(onEvent);
-                      for (;;) {
-                        const { value, done } = await reader.read();
-                        if (done) break;
-                        feed(dec.decode(value, { stream: true }));
-                      }
-                      setInput("");
-                      void refetch();
-                      void qc.invalidateQueries({ queryKey: ["session", id] });
-                      void qc.invalidateQueries({ queryKey: ["sessions"] });
-                    } catch {
-                      // ignore
-                    } finally {
-                      setStreaming(false);
-                      setTextBuf("");
-                      void refetch();
-                      void qc.invalidateQueries({ queryKey: ["sessions"] });
-                    }
-                  }}
-                >
-                  <textarea
-                    rows={2}
-                    className="text-ui-mono box-border max-h-28 min-h-14 w-0 min-w-0 flex-1 resize-y overflow-y-auto border-b border-accent/40 bg-transparent text-sm text-text-primary outline-none focus:border-accent"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              <WorkspaceVerticalSplit
+                storageKey="layout:session-chat-composer"
+                topDefaultSize={74}
+                topMinSize={30}
+                bottomMinSize={12}
+                className="min-h-0 min-w-0 flex-1"
+                topClassName="min-h-0 min-w-0"
+                bottomClassName="min-h-0 min-w-0"
+                top={
+                  <div className="flex h-full min-h-0 flex-col">
+                    <div className="gd-scrollbar min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-white/[0.02] to-transparent">
+                      <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-3 py-3 sm:px-4">
+                        {messages.map((m) => (
+                          <div
+                            key={m.id}
+                            className={cn("flex w-full", m.role === "user" ? "justify-end" : "justify-start")}
+                          >
+                            <div
+                              className={cn(
+                                "max-w-[min(90%,20rem)] shadow-md sm:max-w-md",
+                                "rounded-2xl px-3.5 py-2.5 text-[14px] leading-[1.65] [word-break:break-word] whitespace-pre-wrap",
+                                m.role === "user"
+                                  ? "rounded-tr-md border border-accent/35 bg-gradient-to-br from-accent/20 to-accent/[0.08] text-text-primary"
+                                  : "rounded-tl-md border border-border/80 bg-surface/90 text-text-primary/95 shadow-black/5 backdrop-blur-sm"
+                              )}
+                            >
+                              {m.role === "assistant" && (
+                                <p className="text-ui-mono mb-1 text-[9px] uppercase tracking-widest text-text-muted/80">
+                                  AI
+                                </p>
+                              )}
+                              <p
+                                className={cn(
+                                  m.role === "user" ? "text-inter" : "text-ui-mono"
+                                )}
+                              >
+                                {m.content}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {streaming && (
+                          <div className="flex w-full justify-start">
+                            <div className="max-w-[min(90%,20rem)] rounded-2xl rounded-tl-md border border-dashed border-accent/25 bg-surface/60 px-3.5 py-2.5 text-[14px] leading-[1.65] text-text-primary/90 shadow-md backdrop-blur-sm sm:max-w-md">
+                              <p className="text-ui-mono mb-1 text-[9px] uppercase tracking-widest text-text-muted/70">
+                                AI
+                              </p>
+                              <p className="text-ui-mono [word-break:break-word] whitespace-pre-wrap">
+                                {textBuf}
+                                <span
+                                  className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-accent align-middle"
+                                  aria-hidden
+                                />
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                }
+                bottom={
+                  <div className="box-border flex h-full min-h-0 flex-col px-3 py-2">
+                    <form
+                      className="flex min-h-0 flex-1 gap-2"
+                      onSubmit={async (e) => {
                         e.preventDefault();
-                        e.currentTarget.form?.requestSubmit();
-                      }
-                    }}
-                    placeholder="和 AI 聊方向、灵感即可；右侧「视觉描述」再写进私库卡片的画面感。"
-                  />
-                  <button
-                    type="submit"
-                    className="gd-btn-dataflow text-ui-mono mb-0.5 shrink-0 rounded border border-border px-3 py-1 text-sm hover:border-accent/40"
-                    disabled={streaming}
-                  >
-                    发送
-                  </button>
-                </form>
-              </div>
+                        if (!input.trim() || streaming) return;
+                        setStreaming(true);
+                        setTextBuf("");
+                        try {
+                          const res = await postChatStream(id, input);
+                          if (!res.ok) throw new Error("chat");
+                          const reader = res.body?.getReader();
+                          if (!reader) return;
+                          const dec = new TextDecoder();
+                          const feed = createStreamParser(onEvent);
+                          for (;;) {
+                            const { value, done } = await reader.read();
+                            if (done) break;
+                            feed(dec.decode(value, { stream: true }));
+                          }
+                          setInput("");
+                          void refetch();
+                          void qc.invalidateQueries({ queryKey: ["session", id] });
+                          void qc.invalidateQueries({ queryKey: ["sessions"] });
+                        } catch {
+                          // ignore
+                        } finally {
+                          setStreaming(false);
+                          setTextBuf("");
+                          void refetch();
+                          void qc.invalidateQueries({ queryKey: ["sessions"] });
+                        }
+                      }}
+                    >
+                      <textarea
+                        className="text-ui-mono box-border max-h-none min-h-12 w-0 min-w-0 flex-1 resize-none overflow-y-auto border-b border-accent/40 bg-transparent text-sm text-text-primary outline-none focus:border-accent"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                            e.preventDefault();
+                            e.currentTarget.form?.requestSubmit();
+                          }
+                        }}
+                        placeholder="和 AI 聊方向、灵感即可；右侧「视觉描述」再写进私库卡片的画面感。"
+                        rows={1}
+                        aria-label="聊天输入"
+                      />
+                      <button
+                        type="submit"
+                        className="gd-btn-dataflow text-ui-mono shrink-0 self-end rounded border border-border px-3 py-1 text-sm hover:border-accent/40"
+                        disabled={streaming}
+                      >
+                        发送
+                      </button>
+                    </form>
+                  </div>
+                }
+              />
             </div>
           </div>
     );
     const drafts = (
           <aside
             className={cn(
-              "flex min-h-0 min-w-0 flex-col overflow-y-auto p-3 [scrollbar-width:thin]",
-              forSplit ? "min-h-0" : "max-h-[42vh] border-t border-divider"
+              "flex min-h-0 min-w-0 flex-col overflow-hidden p-3",
+              forSplit ? "h-full min-h-0" : "max-h-[42vh] border-t border-divider"
             )}
           >
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
@@ -301,7 +364,12 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
             </div>
             {s.stagingGroup?.draftStaging === "shared" && (
               <p className="text-ui-mono mt-0.5 shrink-0 text-[10px] leading-snug text-accent/80">
-                与组内其他会话共享同一套暂存；任一会话中增删会同步反映。
+                组内共享暂存：右侧为「{s.stagingGroup.name}」内全部条目，任一会话中增删会同步。
+              </p>
+            )}
+            {s.stagingGroup?.draftStaging === "independent" && (
+              <p className="text-ui-mono mt-0.5 shrink-0 text-[10px] leading-snug text-text-muted/85">
+                各会话独立暂存：右侧汇总「{s.stagingGroup.name}」下所有会话的暂存；来源见各条目标注。
               </p>
             )}
             {bulkMode && draftAssets.length > 0 && (
@@ -362,6 +430,11 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                   void refetch();
                   void qc.invalidateQueries({ queryKey: ["session", id] });
                   void qc.invalidateQueries({ queryKey: ["sessions"] });
+                  if (s.stagingGroup?.id) {
+                    void qc.invalidateQueries({
+                      queryKey: ["session-staging-group-drafts", s.stagingGroup.id],
+                    });
+                  }
                 } catch {
                   // user feedback optional
                 } finally {
@@ -393,11 +466,12 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                 {draftSaving ? "加入中…" : "加入暂存"}
               </button>
             </form>
+            <div className="gd-scrollbar mt-3 min-h-0 flex-1 overflow-y-auto pr-0.5">
             {draftAssets.length > 0 && (
-              <motion.ul className="mt-3 space-y-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <motion.ul className="space-y-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 {draftAssets.map((d) => (
                   <li
-                    key={d.tempId}
+                    key={`${d.ownerSessionId ?? "shared"}-${d.tempId}`}
                     className="rounded-md border border-border/60 bg-surface/50 p-2.5"
                   >
                     <div className="flex gap-2">
@@ -422,11 +496,19 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                           if (!n || !t) return;
                           setEditSaving(true);
                           try {
-                            await patchSessionDraft(id, d.tempId, { name: n, description: t });
+                            await patchSessionDraft(d.ownerSessionId ?? id, d.tempId, {
+                              name: n,
+                              description: t,
+                            });
                             setEditingId(null);
                             void refetch();
                             void qc.invalidateQueries({ queryKey: ["session", id] });
                             void qc.invalidateQueries({ queryKey: ["sessions"] });
+                            if (s.stagingGroup?.id) {
+                              void qc.invalidateQueries({
+                                queryKey: ["session-staging-group-drafts", s.stagingGroup.id],
+                              });
+                            }
                           } finally {
                             setEditSaving(false);
                           }
@@ -470,6 +552,13 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                       </form>
                     ) : (
                       <>
+                        {d.ownerSessionId && s.stagingGroup?.draftStaging === "independent" && (
+                          <p className="text-ui-mono mb-1 text-[9px] text-text-muted/80">
+                            {d.ownerSessionId === id
+                              ? "本会话"
+                              : `来自：${d.ownerSessionTitle ?? "其他会话"}`}
+                          </p>
+                        )}
                         <p className="font-display line-clamp-2 text-sm text-text-primary">{d.name}</p>
                         <p className="text-ui-mono mt-0.5 line-clamp-4 text-[11px] leading-relaxed text-text-muted">
                           {d.description}
@@ -519,10 +608,11 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
               </motion.ul>
             )}
             {draftAssets.length === 0 && (
-              <p className="text-ui-mono mt-3 text-center text-[11px] text-text-muted/90">
+              <p className="text-ui-mono py-2 text-center text-[11px] text-text-muted/90">
                 暂无暂存。在上方填写名称与「视觉描述」并加入后，会在此列表显示。
               </p>
             )}
+            </div>
           </aside>
     );
     return { editor, drafts };
@@ -544,7 +634,8 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
         onConfirm={async () => {
           if (!deleteTarget) return;
           const tid = deleteTarget;
-          await deleteSessionDraft(id, tid);
+          const owner = draftOwnerSessionId(tid);
+          await deleteSessionDraft(owner, tid);
           if (editingId === tid) {
             setEditingId(null);
             setEditName("");
@@ -555,6 +646,11 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
           void qc.invalidateQueries({ queryKey: ["session", id] });
           void qc.invalidateQueries({ queryKey: ["sessions"] });
           void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
+          if (session.stagingGroup?.id) {
+            void qc.invalidateQueries({
+              queryKey: ["session-staging-group-drafts", session.stagingGroup.id],
+            });
+          }
         }}
       />
       <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden lg:hidden">

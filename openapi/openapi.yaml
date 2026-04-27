@@ -374,6 +374,25 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SessionStagingGroup" }
 
+  /session-staging-groups/{groupId}/drafts:
+    parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [session-staging-groups]
+      summary: List all staging draft rows for this group (shared pool or union of per-session rows)
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DraftAsset" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /session-staging-groups/{groupId}:
     parameters:
       - name: groupId
@@ -852,6 +871,10 @@ components:
         name: { type: string }
         description: { type: string }
         done: { type: boolean, default: false }
+        ownerSessionId:
+          type: string
+          description: Present when draftStaging is independent — session that owns this row (for PATCH/DELETE paths)
+        ownerSessionTitle: { type: string }
       required: [tempId, name, description, done]
 
     ProjectSummary:

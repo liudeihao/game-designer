@@ -87,12 +87,14 @@ export function WorkspaceShell({
           )}
         </header>
         <motion.main
-          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
           initial={{ x: 12, opacity: 0.9 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          {children}
+          <div className="gd-scrollbar flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+            {children}
+          </div>
         </motion.main>
       </div>
       <DevLoginButton />

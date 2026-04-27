@@ -51,6 +51,7 @@ func (s *Server) Router() http.Handler {
 
 		r.With(s.requireUser).Get("/session-staging-groups", s.listSessionStagingGroups)
 		r.With(s.requireUser).Post("/session-staging-groups", s.createSessionStagingGroup)
+		r.With(s.requireUser).Get("/session-staging-groups/{groupId}/drafts", s.listSessionStagingGroupDrafts)
 		r.With(s.requireUser).Patch("/session-staging-groups/{groupId}", s.patchSessionStagingGroup)
 		r.With(s.requireUser).Delete("/session-staging-groups/{groupId}", s.deleteSessionStagingGroup)
 

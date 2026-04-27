@@ -2,10 +2,11 @@ import Link from "next/link";
 import { serverFetch } from "@/lib/server-api";
 import type { SessionSummary } from "@/lib/types";
 
-async function load() {
+async function load(): Promise<SessionSummary[]> {
   const r = await serverFetch("/api/sessions");
   if (!r.ok) return [];
-  return r.json() as Promise<SessionSummary[]>;
+  const data = (await r.json()) as SessionSummary[] | null;
+  return Array.isArray(data) ? data : [];
 }
 
 export default async function SessionsPage() {

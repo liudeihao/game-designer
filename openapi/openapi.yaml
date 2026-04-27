@@ -1,0 +1,554 @@
+openapi: 3.1.0
+info:
+  title: Game Designer API
+  version: 0.1.0
+  description: |
+    HTTP contract for assets, sessions, projects, and auth. Session cookie (HttpOnly) is the auth mechanism; browser sends Cookie automatically.
+servers:
+  - url: /api
+    description: Next.js rewrites to backend; MSW uses same paths under /api
+tags:
+  - name: me
+  - name: assets
+  - name: forks
+  - name: sessions
+  - name: projects
+  - name: stream
+
+paths:
+  /me:
+    get:
+      tags: [me]
+      summary: Current user
+      security: []
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBody" }
+
+  /assets:
+    get:
+      tags: [assets]
+      summary: List assets (cursor pagination)
+      parameters:
+        - name: scope
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [public, private]
+          description: public = explore; private = my library
+        - name: cursor
+          in: query
+          schema: { type: string, nullable: true }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 24, minimum: 1, maximum: 48 }
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [createdAt_desc, createdAt_asc, updatedAt_desc]
+            default: createdAt_desc
+      responses:
+        "200":
+          description: Page of assets
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginatedAssets" }
+    post:
+      tags: [assets]
+      summary: Create asset (private by default)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssetCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /assets/{id}:
+    get:
+      tags: [assets]
+      summary: Get asset by id
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [assets]
+      summary: Update editable fields
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssetUpdate" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /assets/{id}/publish:
+    post:
+      tags: [assets]
+      summary: Publish private asset to public (irreversible content freeze per product rules)
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /assets/{id}/fork:
+    post:
+      tags: [assets]
+      summary: Fork asset into current user's private library
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Asset" }
+        "404":
+          description: Source missing or not forkable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBody" }
+
+  /assets/{id}/images:
+    post:
+      tags: [assets]
+      summary: Request image generation for asset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                extraPrompt: { type: string, nullable: true }
+      responses:
+        "202":
+          description: Job accepted; new AssetImage pending
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetImage" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /assets/{id}/forks:
+    get:
+      tags: [forks]
+      summary: Lazy fork neighbourhood (v1 depth=1 only)
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+        - name: direction
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [upstream, downstream]
+        - name: depth
+          in: query
+          schema: { type: integer, default: 1, minimum: 1, maximum: 1 }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ForkPage" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /sessions:
+    get:
+      tags: [sessions]
+      summary: List AI material sessions
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SessionSummary" }
+    post:
+      tags: [sessions]
+      summary: Create session
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionDetail" }
+
+  /sessions/{sessionId}:
+    get:
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionDetail" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      responses:
+        "204": { description: Archived / deleted }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /sessions/{sessionId}/chat:
+    post:
+      tags: [stream]
+      summary: Start assistant reply stream (SSE, JSONL body lines)
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string }
+      responses:
+        "200":
+          description: text/event-stream of JSONL lines
+          content:
+            text/event-stream:
+              schema: { type: string, format: binary }
+
+  /projects:
+    get:
+      tags: [projects]
+      summary: List projects
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProjectSummary" }
+    post:
+      tags: [projects]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectDetail" }
+
+  /projects/{projectId}:
+    get:
+      tags: [projects]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectDetail" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [projects]
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectPatch" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectDetail" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    AssetId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema: { type: string }
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorBody" }
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorBody" }
+    NotFound:
+      description: Not found (or 404 for private resource per product rules)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorBody" }
+
+  schemas:
+    ErrorBody:
+      type: object
+      properties:
+        error: { type: string, description: Human-readable message for UI }
+        code: { type: string, description: Stable machine code }
+      required: [error]
+
+    Me:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string, nullable: true }
+      required: [id, username]
+
+    AssetVisibility:
+      type: string
+      enum: [private, public, deleted]
+
+    AssetImage:
+      type: object
+      properties:
+        id: { type: string }
+        assetId: { type: string }
+        url: { type: string, description: CDN template, append ?w= }
+        extraPrompt: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        generationStatus:
+          type: string
+          enum: [pending, done, failed]
+      required: [id, assetId, url, createdAt, generationStatus]
+
+    Asset:
+      oneOf:
+        - $ref: "#/components/schemas/AssetFull"
+        - $ref: "#/components/schemas/AssetDeletedGhost"
+      discriminator:
+        propertyName: visibility
+        mapping:
+          deleted: "#/components/schemas/AssetDeletedGhost"
+          private: "#/components/schemas/AssetFull"
+          public: "#/components/schemas/AssetFull"
+
+    AssetFull:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        annotation: { type: string, nullable: true }
+        authorId: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        visibility: { $ref: "#/components/schemas/AssetVisibility" }
+        forkedFromId: { type: string, nullable: true }
+        forkCount: { type: number }
+        images:
+          type: array
+          items: { $ref: "#/components/schemas/AssetImage" }
+        coverImageId: { type: string, nullable: true }
+        deletedAt: { type: string, format: date-time, nullable: true }
+      required:
+        - id
+        - name
+        - description
+        - authorId
+        - createdAt
+        - updatedAt
+        - visibility
+        - forkedFromId
+        - forkCount
+        - images
+        - coverImageId
+        - deletedAt
+
+    AssetDeletedGhost:
+      type: object
+      description: When visibility=deleted, only these fields are returned
+      properties:
+        id: { type: string }
+        visibility:
+          const: deleted
+        forkedFromId: { type: string, nullable: true }
+        deletedAt: { type: string, format: date-time, nullable: true }
+      required: [id, visibility, forkedFromId, deletedAt]
+
+    AssetCreate:
+      type: object
+      required: [name, description]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        annotation: { type: string, nullable: true }
+        sessionId: { type: string, description: optional link to originating AI session }
+        forkedFromId: { type: string, nullable: true }
+
+    AssetUpdate:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        annotation: { type: string, nullable: true }
+        coverImageId: { type: string, nullable: true }
+        # publish/delete via dedicated routes
+
+    PaginatedAssets:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Asset" }
+        nextCursor: { type: string, nullable: true }
+        total: { type: number, nullable: true }
+      required: [items, nextCursor]
+
+    ForkNode:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string, description: empty when ghost upstream }
+        visibility: { $ref: "#/components/schemas/AssetVisibility" }
+        forkedFromId: { type: string, nullable: true }
+        deletedAt: { type: string, format: date-time, nullable: true }
+      required: [id, visibility, forkedFromId, deletedAt]
+
+    ForkPage:
+      type: object
+      properties:
+        direction: { type: string, enum: [upstream, downstream] }
+        nodes:
+          type: array
+          items: { $ref: "#/components/schemas/ForkNode" }
+      required: [direction, nodes]
+
+    SessionSummary:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        updatedAt: { type: string, format: date-time }
+        draftAssetCount: { type: integer }
+      required: [id, title, updatedAt, draftAssetCount]
+
+    SessionDetail:
+      allOf:
+        - { $ref: "#/components/schemas/SessionSummary" }
+        - type: object
+          properties:
+            messages:
+              type: array
+              items: { $ref: "#/components/schemas/ChatMessage" }
+            draftAssets:
+              type: array
+              items: { $ref: "#/components/schemas/DraftAsset" }
+
+    ChatMessage:
+      type: object
+      properties:
+        id: { type: string }
+        role: { type: string, enum: [user, assistant, system] }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, role, content, createdAt]
+
+    DraftAsset:
+      type: object
+      properties:
+        tempId: { type: string }
+        name: { type: string }
+        description: { type: string }
+        done: { type: boolean, default: false }
+      required: [tempId, name, description, done]
+
+    ProjectSummary:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        updatedAt: { type: string, format: date-time }
+      required: [id, name, updatedAt]
+
+    ProjectDetail:
+      allOf:
+        - { $ref: "#/components/schemas/ProjectSummary" }
+        - type: object
+          properties:
+            canvasDocument:
+              type: object
+              description: tldraw document JSON; only asset refs are semantic
+              additionalProperties: true
+
+    ProjectPatch:
+      type: object
+      properties:
+        name: { type: string }
+        canvasDocument:
+          type: object
+          additionalProperties: true

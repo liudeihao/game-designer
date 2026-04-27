@@ -52,6 +52,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "err">("idle");
   const [discardOpen, setDiscardOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [forkOpen, setForkOpen] = useState(false);
 
   const isOwner = me != null && isAssetFull(asset) && me.id === asset.authorId;
   const canEditContent = isOwner && isAssetFull(asset);
@@ -132,11 +133,6 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
   const showPrivateActions = full.visibility === "private" && isOwner;
   const showForkForPublicOther = full.visibility === "public" && me != null && !isOwner;
 
-  const runFork = async () => {
-    const f = await forkAsset(id);
-    window.location.href = `/library/assets/${f.id}`;
-  };
-
   const groupOptions: { value: string; label: string }[] = [
     { value: "", label: "未分组" },
     ...(groupList?.items.map((g) => ({ value: g.id, label: g.name })) ?? []),
@@ -169,6 +165,17 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           void qc.invalidateQueries({ queryKey: ["assets"] });
         }}
       />
+      <ConfirmDialog
+        open={forkOpen}
+        onOpenChange={setForkOpen}
+        title="确认复制到私库？"
+        description="确认后会在你的私库中新建一条仅自己可见的素材副本（新 ID、独立编辑历史），可单独改名称、描述、封面、分组与注释。原素材不会删除；若当前在「探索」中公开，公开页仍保留。复制完成后会跳转到新素材页。"
+        confirmLabel="确认复制"
+        onConfirm={async () => {
+          const f = await forkAsset(id);
+          window.location.href = `/library/assets/${f.id}`;
+        }}
+      />
 
       <div className="space-y-4">
         <nav className="text-ui-mono text-xs text-text-muted/80">
@@ -193,7 +200,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             </p>
             <button
               type="button"
-              onClick={() => void runFork()}
+              onClick={() => setForkOpen(true)}
               className="text-ui-mono rounded border border-accent/45 bg-accent/10 px-3 py-1.5 text-sm text-accent hover:border-accent/60"
             >
               复制到私库
@@ -289,9 +296,9 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
               </button>
               <button
                 type="button"
-                onClick={() => void runFork()}
+                onClick={() => setForkOpen(true)}
                 className="text-ui-mono rounded border border-border px-3 py-1 text-sm"
-                title="复制到私库为副本"
+                title="打开说明并复制到私库为副本"
               >
                 复制
               </button>
@@ -305,7 +312,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           <div className="flex flex-col gap-1">
             <button
               type="button"
-              onClick={() => void runFork()}
+              onClick={() => setForkOpen(true)}
               className="text-ui-mono w-fit rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent"
             >
               Fork 到私库

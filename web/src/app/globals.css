@@ -63,6 +63,17 @@ body {
   position: relative;
 }
 
+@layer base {
+  /* Native buttons default to arrow in many UAs; match link affordance for clickable controls */
+  button:enabled,
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
 @layer components {
   .font-display {
     font-family: var(--font-bebas), impact, sans-serif;

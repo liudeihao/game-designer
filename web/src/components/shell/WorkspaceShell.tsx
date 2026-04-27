@@ -36,7 +36,7 @@ export function WorkspaceShell({
     { href: userHref, icon: User, label: "用户" },
   ];
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-svh min-h-0">
       <aside className="fixed left-0 top-0 z-40 flex h-full w-12 flex-col items-center border-r border-border bg-bg-base/95 py-3 gap-1">
         {nav.map((n) => {
           const active =
@@ -66,7 +66,7 @@ export function WorkspaceShell({
           );
         })}
       </aside>
-      <div className="flex min-h-screen flex-1 flex-col pl-12">
+      <div className="flex min-h-0 flex-1 flex-col pl-12">
         <header className="flex h-10 shrink-0 items-center justify-end gap-3 border-b border-border/60 px-4 text-ui-mono text-xs text-text-muted">
           {me ? (
             <>
@@ -87,7 +87,7 @@ export function WorkspaceShell({
           )}
         </header>
         <motion.main
-          className="min-h-0 flex-1"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto"
           initial={{ x: 12, opacity: 0.9 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.2 }}

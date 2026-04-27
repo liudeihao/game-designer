@@ -76,11 +76,24 @@ export type ForkNode = {
 
 export type ForkPage = { direction: "upstream" | "downstream"; nodes: ForkNode[] };
 
+/** 会话分组（与素材库的 asset group 不同）：控制多个 AI 会话是否共用同一套暂存区。 */
+export type StagingGroupDraft = "independent" | "shared";
+
+export type SessionStagingGroup = {
+  id: string;
+  name: string;
+  position: number;
+  draftStaging: StagingGroupDraft;
+  createdAt: string;
+};
+
 export type SessionSummary = {
   id: string;
   title: string;
   updatedAt: string;
   draftAssetCount: number;
+  /** 所属分组；无分组时为 null（旧数据可能缺省）。 */
+  stagingGroup?: { id: string; name: string; draftStaging: StagingGroupDraft } | null;
 };
 
 export type ChatMessage = {

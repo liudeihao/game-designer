@@ -31,10 +31,17 @@ export default async function SessionsPage() {
           <li key={s.id}>
             <Link
               href={`/library/sessions/${s.id}`}
-              className="text-ui-mono flex items-center justify-between rounded border border-border bg-surface/60 px-4 py-3 text-sm text-text-primary hover:border-accent/30"
+              className="text-ui-mono flex items-center justify-between gap-2 rounded border border-border bg-surface/60 px-4 py-3 text-sm text-text-primary hover:border-accent/30"
             >
-              {s.title}
-              <span className="text-[11px] text-text-muted">{s.draftAssetCount} 条暂存</span>
+              <span className="min-w-0 flex-1 truncate">{s.title}</span>
+              <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+                {s.stagingGroup && (
+                  <span className="max-w-[10rem] truncate text-[10px] text-accent/90" title={s.stagingGroup.name}>
+                    {s.stagingGroup.name}
+                  </span>
+                )}
+                <span className="text-[11px] text-text-muted">{s.draftAssetCount} 条暂存</span>
+              </span>
             </Link>
           </li>
         ))}

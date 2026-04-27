@@ -16,18 +16,11 @@ func (m *MockChat) StreamChat(ctx context.Context, w io.Writer, sessionID, userI
 	_ = sessionID
 	_ = userID
 	_ = userMessage
-	tid := draftTempID
-	if tid == "" {
-		tid = "temp_m_" + uuid.NewString()[:8]
-	}
+	// text-only: staging is user-driven via POST /drafts, not the stream
+	_ = draftTempID
 	events := []string{
 		`{"type":"text","delta":"[mock] "}`,
-		`{"type":"text","delta":"這條回覆由 Go MockChat 生成。\n"}`,
-		fmt.Sprintf(`{"type":"asset_start","id":%q}`, tid),
-		fmt.Sprintf(`{"type":"asset_field","id":%q,"field":"name","delta":"MOCK "}`, tid),
-		fmt.Sprintf(`{"type":"asset_field","id":%q,"field":"name","delta":"ASSET"}`, tid),
-		fmt.Sprintf(`{"type":"asset_field","id":%q,"field":"description","delta":"由後端 mock AI 產生，可替換為真實 Provider。"}`, tid),
-		fmt.Sprintf(`{"type":"asset_end","id":%q}`, tid),
+		`{"type":"text","delta":"這條回覆由 Go MockChat 生成。若你已有清晰的素材名稱與說明，可在右側「暫存」手動填寫後加入，再一鍵導出到我的庫。\n"}`,
 	}
 	for _, line := range events {
 		select {

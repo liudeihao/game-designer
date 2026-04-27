@@ -5,7 +5,9 @@ import type {
   PaginatedAssets,
   ProjectDetail,
   SessionDetail,
+  SessionStagingGroup,
   SessionSummary,
+  StagingGroupDraft,
 } from "./types";
 
 const json = (r: Response) => r.json().catch(() => ({}));
@@ -173,6 +175,45 @@ export async function listSessions() {
   return r.json() as Promise<SessionSummary[]>;
 }
 
+export async function listSessionStagingGroups() {
+  const r = await fetch("/api/session-staging-groups", { credentials: "include" });
+  if (!r.ok) throw new Error("session-staging-groups");
+  return r.json() as Promise<SessionStagingGroup[]>;
+}
+
+export async function createSessionStagingGroup(name: string, draftStaging: StagingGroupDraft) {
+  const r = await fetch("/api/session-staging-groups", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, draftStaging }),
+  });
+  if (!r.ok) throw new Error("create session-staging-group");
+  return r.json() as Promise<SessionStagingGroup>;
+}
+
+export async function patchSessionStagingGroup(
+  id: string,
+  body: { name?: string; draftStaging?: StagingGroupDraft }
+) {
+  const r = await fetch(`/api/session-staging-groups/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error("patch session-staging-group");
+  return r.json() as Promise<SessionStagingGroup>;
+}
+
+export async function deleteSessionStagingGroup(id: string) {
+  const r = await fetch(`/api/session-staging-groups/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!r.ok) throw new Error("delete session-staging-group");
+}
+
 export async function getSession(id: string) {
   const r = await fetch(`/api/sessions/${id}`, { credentials: "include" });
   if (r.status === 404) return null;
@@ -180,14 +221,28 @@ export async function getSession(id: string) {
   return r.json() as Promise<SessionDetail>;
 }
 
-export async function postSession(title?: string) {
+export async function postSession(title?: string, stagingGroupId?: string | null) {
+  const body: { title?: string; stagingGroupId?: string | null } = {};
+  if (title != null && title !== "") body.title = title;
+  if (stagingGroupId !== undefined) body.stagingGroupId = stagingGroupId;
   const r = await fetch("/api/sessions", {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title }),
+    body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error("create session");
+  return r.json() as Promise<SessionDetail>;
+}
+
+export async function patchSession(id: string, body: { title?: string; stagingGroupId?: string | null }) {
+  const r = await fetch(`/api/sessions/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error("patch session");
   return r.json() as Promise<SessionDetail>;
 }
 
@@ -198,6 +253,45 @@ export async function postChatStream(sessionId: string, message: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message }),
   });
+}
+
+function draftByTempPath(sessionId: string, tempId: string) {
+  return `/api/sessions/${encodeURIComponent(sessionId)}/drafts/${encodeURIComponent(tempId)}`;
+}
+
+/** User-authored staging row; requires name + description (not created by chat stream). */
+export async function postSessionDraft(sessionId: string, body: { name: string; description: string }) {
+  const r = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/drafts`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error("session draft");
+  return r.json() as Promise<DraftAsset>;
+}
+
+export async function patchSessionDraft(
+  sessionId: string,
+  tempId: string,
+  body: { name: string; description: string }
+) {
+  const r = await fetch(draftByTempPath(sessionId, tempId), {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error("patch session draft");
+  return r.json() as Promise<DraftAsset>;
+}
+
+export async function deleteSessionDraft(sessionId: string, tempId: string) {
+  const r = await fetch(draftByTempPath(sessionId, tempId), {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!r.ok) throw new Error("delete session draft");
 }
 
 export async function createAsset(body: { name: string; description: string; forkedFromId?: string | null }) {
@@ -237,8 +331,11 @@ export async function patchProject(id: string, body: { name?: string; canvasDocu
 
 export async function exportDraftsToLibrary(drafts: DraftAsset[]) {
   for (const d of drafts) {
-    if (d.name && d.description) {
-      await createAsset({ name: d.name, description: d.description });
-    }
+    await exportDraftToLibrary(d);
   }
+}
+
+export async function exportDraftToLibrary(d: DraftAsset) {
+  if (!d.name?.trim() || !d.description?.trim()) return;
+  await createAsset({ name: d.name.trim(), description: d.description.trim() });
 }

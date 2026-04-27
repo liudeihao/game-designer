@@ -16,6 +16,7 @@ tags:
   - name: sessions
   - name: projects
   - name: stream
+  - name: session-staging-groups
 
 paths:
   /me:
@@ -337,17 +338,97 @@ paths:
               type: object
               properties:
                 title: { type: string }
+                stagingGroupId: { type: string, description: optional session staging group to attach }
       responses:
         "201":
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SessionDetail" }
 
+  /session-staging-groups:
+    get:
+      tags: [session-staging-groups]
+      summary: List session staging groups (independent vs shared draft pool)
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SessionStagingGroup" }
+    post:
+      tags: [session-staging-groups]
+      summary: Create session staging group
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                draftStaging: { type: string, enum: [independent, shared], default: independent }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionStagingGroup" }
+
+  /session-staging-groups/{groupId}:
+    parameters:
+      - name: groupId
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      tags: [session-staging-groups]
+      summary: Update name or draft staging mode (mode change requires empty staging in conflict paths)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                draftStaging: { type: string, enum: [independent, shared] }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionStagingGroup" }
+    delete:
+      tags: [session-staging-groups]
+      summary: Delete group (sessions unlinked; group-scoped drafts removed)
+      responses:
+        "204": { description: No content }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /sessions/{sessionId}:
     get:
       tags: [sessions]
       parameters:
         - $ref: "#/components/parameters/SessionId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionDetail" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [sessions]
+      summary: Update title and/or assign session to a staging group
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                stagingGroupId: { type: string, nullable: true, description: set null to remove from group }
       responses:
         "200":
           content:
@@ -384,6 +465,69 @@ paths:
           content:
             text/event-stream:
               schema: { type: string, format: binary }
+
+  /sessions/{sessionId}/drafts:
+    post:
+      tags: [sessions]
+      summary: Add a user-authored draft (name + description) to session staging; not auto-created by chat stream
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description]
+              properties:
+                name: { type: string }
+                description: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DraftAsset" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /sessions/{sessionId}/drafts/{tempId}:
+    patch:
+      tags: [sessions]
+      summary: Update a staged draft (name + description)
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/DraftTempId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description]
+              properties:
+                name: { type: string }
+                description: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DraftAsset" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [sessions]
+      summary: Remove a draft from session staging
+      parameters:
+        - $ref: "#/components/parameters/SessionId"
+        - $ref: "#/components/parameters/DraftTempId"
+      responses:
+        "204": { description: Removed }
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /projects:
     get:
@@ -451,6 +595,11 @@ components:
       schema: { type: string }
     SessionId:
       name: sessionId
+      in: path
+      required: true
+      schema: { type: string }
+    DraftTempId:
+      name: tempId
       in: path
       required: true
       schema: { type: string }
@@ -646,6 +795,25 @@ components:
           items: { $ref: "#/components/schemas/ForkNode" }
       required: [direction, nodes]
 
+    SessionStagingGroupRef:
+      type: object
+      description: Staging group attached to a chat session (independent = per-session drafts, shared = one pool per group)
+      properties:
+        id: { type: string }
+        name: { type: string }
+        draftStaging: { type: string, enum: [independent, shared] }
+      required: [id, name, draftStaging]
+
+    SessionStagingGroup:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        position: { type: integer }
+        draftStaging: { type: string, enum: [independent, shared] }
+        createdAt: { type: string, format: date-time }
+      required: [id, name, position, draftStaging, createdAt]
+
     SessionSummary:
       type: object
       properties:
@@ -653,6 +821,7 @@ components:
         title: { type: string }
         updatedAt: { type: string, format: date-time }
         draftAssetCount: { type: integer }
+        stagingGroup: { $ref: "#/components/schemas/SessionStagingGroupRef", nullable: true }
       required: [id, title, updatedAt, draftAssetCount]
 
     SessionDetail:

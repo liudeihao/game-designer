@@ -49,6 +49,11 @@ func (s *Server) Router() http.Handler {
 		r.With(s.requireUser).Post("/asset-groups", s.createAssetGroup)
 		r.With(s.requireUser).Delete("/asset-groups/{id}", s.deleteAssetGroup)
 
+		r.With(s.requireUser).Get("/session-staging-groups", s.listSessionStagingGroups)
+		r.With(s.requireUser).Post("/session-staging-groups", s.createSessionStagingGroup)
+		r.With(s.requireUser).Patch("/session-staging-groups/{groupId}", s.patchSessionStagingGroup)
+		r.With(s.requireUser).Delete("/session-staging-groups/{groupId}", s.deleteSessionStagingGroup)
+
 		r.Route("/assets", func(r chi.Router) {
 			r.Get("/", s.listAssets)
 			r.With(s.requireUser).Post("/", s.createAsset)
@@ -66,8 +71,12 @@ func (s *Server) Router() http.Handler {
 			r.With(s.requireUser).Get("/", s.listChatSessions)
 			r.With(s.requireUser).Post("/", s.createChatSession)
 			r.With(s.requireUser).Get("/{sessionId}", s.getChatSession)
+			r.With(s.requireUser).Patch("/{sessionId}", s.patchChatSession)
 			r.With(s.requireUser).Delete("/{sessionId}", s.deleteChatSession)
 			r.With(s.requireUser).Post("/{sessionId}/chat", s.postChat)
+			r.With(s.requireUser).Post("/{sessionId}/drafts", s.postSessionDraft)
+			r.With(s.requireUser).Patch("/{sessionId}/drafts/{tempId}", s.patchSessionDraft)
+			r.With(s.requireUser).Delete("/{sessionId}/drafts/{tempId}", s.deleteSessionDraft)
 		})
 
 		r.Route("/projects", func(r chi.Router) {

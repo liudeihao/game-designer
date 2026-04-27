@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Pencil } from "lucide-react";
 import type { Asset } from "@/lib/types";
 import { isAssetFull } from "@/lib/guards";
-import { patchAsset, publishAsset, forkAsset, getAsset, getMe, listAssetGroups } from "@/lib/api";
+import { deleteAssetImage, patchAsset, publishAsset, forkAsset, getAsset, getMe, listAssetGroups } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ImageStrip } from "./ImageStrip";
@@ -55,8 +55,9 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
   const [forkOpen, setForkOpen] = useState(false);
 
   const isOwner = me != null && isAssetFull(asset) && me.id === asset.authorId;
-  const canEditContent = isOwner && isAssetFull(asset);
   const isPrivateAsset = isAssetFull(asset) && asset.visibility === "private";
+  /** 公开后的展示内容不可再改；要改请「复制到私库」。与后端 publish=freeze 一致。 */
+  const canEditContent = isOwner && isAssetFull(asset) && isPrivateAsset;
 
   useEffect(() => {
     if (!canEditContent) setEditingText(false);
@@ -157,7 +158,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
         open={publishOpen}
         onOpenChange={setPublishOpen}
         title="发布到「探索」公开库？"
-        description="确认后，本条将进入全站「探索」页，任何用户都可以浏览，与仅自己可见的私库素材不同。发布后会移出你的私库分组。你仍可更新展示用名称、描述与封面；若需仅自己生图或深度编辑，请先「复制到私库」。确定发布？"
+        description="确认后，本条将进入全站「探索」页，任何用户都可以浏览。发布为不可逆：展示用名称、描述、封面与图像将冻结，不可再编辑；若需修改或仅自己生图，须先「复制到私库」得到新私稿。发布后会移出你的私库分组。确定发布？"
         confirmLabel="发布到探索"
         onConfirm={async () => {
           await publishAsset(id);
@@ -196,12 +197,12 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           <div className="space-y-2 rounded border border-border/50 bg-surface/50 p-3">
             <p className="text-ui-mono text-xs text-text-muted/90">
               <span className="text-text-primary/90">公开素材</span>：本条在「探索」中，<span className="text-text-primary/80">全站用户均可浏览</span>，与仅自己可见的私库草稿不是同一类东西。
-              <span className="text-text-primary/80"> 它不再占用你的私库分组</span>。你仍可改展示用名称、描述与封面；生图、私库分组与深度编辑请用「复制到私库」得到仅自己可见的副本。
+              <span className="text-text-primary/80"> 它不再占用你的私库分组</span>。公开展示内容已冻结，不可再改名称、描述、封面或继续生图；若要调整或深度编辑，请用「复制到私库」得到仅自己可见的新副本。
             </p>
             <button
               type="button"
               onClick={() => setForkOpen(true)}
-              className="text-ui-mono rounded border border-accent/45 bg-accent/10 px-3 py-1.5 text-sm text-accent hover:border-accent/60"
+              className="text-ui-mono rounded border border-accent/45 bg-accent/10 px-3 py-1.5 text-sm text-accent hover:border-accent/70 hover:bg-accent/20 hover:shadow-[0_0_16px_rgba(0,255,178,0.12)]"
             >
               复制到私库
             </button>
@@ -252,14 +253,14 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
                 type="button"
                 onClick={() => void saveText()}
                 disabled={!dirty}
-                className="text-ui-mono rounded border border-accent/50 bg-accent/10 px-3 py-1.5 text-sm text-accent disabled:opacity-40"
+                className="text-ui-mono rounded border border-accent/50 bg-accent/10 px-3 py-1.5 text-sm text-accent hover:border-accent/70 hover:bg-accent/20 hover:shadow-[0_0_12px_rgba(0,255,178,0.1)] disabled:opacity-40 disabled:hover:border-accent/50 disabled:hover:bg-accent/10 disabled:hover:shadow-none"
               >
                 保存
               </button>
               <button
                 type="button"
                 onClick={cancelEdit}
-                className="text-ui-mono rounded border border-border px-3 py-1.5 text-sm text-text-muted hover:text-text-primary"
+                className="text-ui-mono rounded border border-border px-3 py-1.5 text-sm text-text-muted hover:border-accent/25 hover:bg-white/[0.04] hover:text-text-primary"
               >
                 取消
               </button>
@@ -290,14 +291,14 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
               <button
                 type="button"
                 onClick={() => setPublishOpen(true)}
-                className="text-ui-mono rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent"
+                className="text-ui-mono rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent hover:border-accent/65 hover:bg-accent/18 hover:shadow-[0_0_16px_rgba(0,255,178,0.12)]"
               >
                 发布到探索
               </button>
               <button
                 type="button"
                 onClick={() => setForkOpen(true)}
-                className="text-ui-mono rounded border border-border px-3 py-1 text-sm"
+                className="text-ui-mono rounded border border-border bg-transparent px-3 py-1 text-sm text-text-primary/90 hover:border-accent/45 hover:bg-white/[0.05] hover:text-text-primary"
                 title="打开说明并复制到私库为副本"
               >
                 复制
@@ -313,7 +314,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             <button
               type="button"
               onClick={() => setForkOpen(true)}
-              className="text-ui-mono w-fit rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent"
+              className="text-ui-mono w-fit rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent hover:border-accent/65 hover:bg-accent/18 hover:shadow-[0_0_16px_rgba(0,255,178,0.12)]"
             >
               Fork 到私库
             </button>
@@ -374,15 +375,19 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           coverImageId={full.coverImageId}
           onRefresh={() => void refetch()}
           onSetCover={async (imageId) => {
-            if (!isOwner) return;
+            if (!isOwner || !isPrivateAsset) return;
             await patchAsset(id, { coverImageId: imageId });
             void refetch();
+          }}
+          onDeleteImage={async (imageId) => {
+            await deleteAssetImage(id, imageId);
           }}
           onRequestImage={async (extra) => {
             const { postImage } = await import("@/lib/api");
             return postImage(id, extra);
           }}
           canGenerate={isOwner && isPrivateAsset}
+          showProceduralWhenEmpty={false}
         />
       </div>
     </div>

@@ -22,11 +22,13 @@ function mapCardPref(s: "sm" | "md" | "lg"): GridCardSize {
   return s;
 }
 
-function buildLibraryHref(opts: { group?: string; vis?: "private" | "public" | null }) {
+function buildLibraryHref(opts: { group?: string; vis?: "private" | "public" | "all" | null }) {
   const p = new URLSearchParams();
   if (opts.group === "ungrouped") p.set("group", "ungrouped");
   else if (opts.group) p.set("group", opts.group);
-  if (opts.vis === "private" || opts.vis === "public") p.set("vis", opts.vis);
+  if (opts.vis === "public") p.set("vis", "public");
+  else if (opts.vis === "all") p.set("vis", "all");
+  // private：默认不落参，与「进入我的库」缺省一致
   const s = p.toString();
   return s ? `/library/assets?${s}` : "/library/assets";
 }
@@ -50,19 +52,26 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   const activeUngrouped = group === "ungrouped";
   const activeGroup = group && group !== "ungrouped" ? group : null;
 
-  const visActive: "all" | "private" | "public" = !libraryVisibility
-    ? "all"
-    : libraryVisibility;
+  const visActive: "all" | "private" | "public" = libraryVisibility === null ? "all" : libraryVisibility;
 
   const hrefFor = useCallback(
-    (g: string | null) => buildLibraryHref({ group: g ?? undefined, vis: libraryVisibility ?? undefined }),
+    (g: string | null) =>
+      buildLibraryHref({
+        group: g ?? undefined,
+        vis:
+          libraryVisibility === null
+            ? "all"
+            : libraryVisibility === "public"
+              ? "public"
+              : null,
+      }),
     [libraryVisibility]
   );
   const hrefVis = useCallback(
     (v: "all" | "private" | "public") =>
       buildLibraryHref({
         group: group || undefined,
-        vis: v === "all" ? null : v,
+        vis: v === "all" ? "all" : v === "public" ? "public" : null,
       }),
     [group]
   );
@@ -83,7 +92,14 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
           void refetchGroups();
           void qc.invalidateQueries({ queryKey: ["assets", "private"] });
           if (activeGroup === deleteTarget.id) {
-            window.location.href = buildLibraryHref({ vis: libraryVisibility });
+            window.location.href = buildLibraryHref({
+              vis:
+                libraryVisibility === null
+                  ? "all"
+                  : libraryVisibility === "public"
+                    ? "public"
+                    : null,
+            });
           }
         }}
       />

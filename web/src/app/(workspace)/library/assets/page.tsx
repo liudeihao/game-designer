@@ -8,8 +8,9 @@ export default async function MyAssetsPage(props: Props) {
   const sp = await props.searchParams;
   const group = sp.group;
   const visRaw = sp.vis;
-  const visibility =
-    visRaw === "private" || visRaw === "public" ? (visRaw as "private" | "public") : null;
+  /** 默认「仅自己可见」（可编辑工作台）；显式 vis=all 为全部；vis=public 为已上探索 */
+  const visibility: "private" | "public" | null =
+    visRaw === "public" ? "public" : visRaw === "all" ? null : "private";
   const initial = await getMyLibraryAssetsInitial(group, visibility);
   if (initial === null) {
     return (

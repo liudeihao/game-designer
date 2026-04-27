@@ -156,6 +156,17 @@ export async function postImage(id: string, extraPrompt: string | null) {
   return r.json() as Promise<import("./types").AssetImage>;
 }
 
+export async function deleteAssetImage(assetId: string, imageId: string) {
+  const r = await fetch(`/api/assets/${assetId}/images/${imageId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!r.ok) {
+    const err = await json(r);
+    throw new Error((err as { error?: string })?.error || "delete image");
+  }
+}
+
 export async function listSessions() {
   const r = await fetch("/api/sessions", { credentials: "include" });
   if (!r.ok) throw new Error("sessions");

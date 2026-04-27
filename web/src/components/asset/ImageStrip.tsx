@@ -13,8 +13,11 @@ export function ImageStrip({
   coverImageId,
   onRefresh,
   onSetCover,
+  onDeleteImage,
   onRequestImage,
   canGenerate,
+  /** On asset detail, hide the procedural tile; list cards still use their own cover placeholder. */
+  showProceduralWhenEmpty = true,
 }: {
   assetId: string;
   /** May be null/undefined from API when no images; treat as none. */
@@ -22,8 +25,10 @@ export function ImageStrip({
   coverImageId: string | null;
   onRefresh: () => void;
   onSetCover: (imageId: string | null) => Promise<void>;
+  onDeleteImage?: (imageId: string) => Promise<void>;
   onRequestImage: (extra: string | null) => Promise<AssetImage>;
   canGenerate: boolean;
+  showProceduralWhenEmpty?: boolean;
 }) {
   const [panel, setPanel] = useState(false);
   const [extra, setExtra] = useState("");
@@ -44,50 +49,91 @@ export function ImageStrip({
     <div className="space-y-3">
       <h2 className="text-ui-mono text-xs uppercase tracking-wider text-text-muted">图像（可选）</h2>
       <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
-        {list.map((im) => (
-          <button
-            key={im.id}
-            type="button"
-            onClick={() => setLightbox(im)}
-            className={cn(
-              "relative h-60 w-60 shrink-0 overflow-hidden rounded-md border bg-surface text-left",
-              coverImageId === im.id ? "border-accent" : "border-border"
-            )}
-          >
-            {im.generationStatus === "pending" ? (
-              <div className="flex h-full items-center justify-center">
-                <StatusDot status="pulse" label="生成中" />
-              </div>
-            ) : im.generationStatus === "failed" ? (
-              <div className="flex h-full items-center justify-center p-2">
-                <StatusDot status="fail" label="失败" />
-              </div>
-            ) : (
-              <Image
-                src={im.url.includes("?") ? im.url : `${im.url}?w=800`}
-                alt=""
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            )}
-            <div className="absolute bottom-0 left-0 right-0 flex justify-between bg-bg-base/80 p-1">
-              {canGenerate && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="text-ui-mono text-xs text-accent"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void onSetCover(im.id);
-                  }}
-                >
+        {list.map((im) => {
+          const isCover = coverImageId === im.id;
+          const canSetCover = canGenerate && im.generationStatus === "done";
+          const showMenu = canGenerate && (onDeleteImage != null || canSetCover);
+          return (
+            <div
+              key={im.id}
+              className={cn(
+                "group relative h-60 w-60 shrink-0 cursor-pointer overflow-hidden rounded-md border bg-surface text-left outline-none ring-offset-bg-base focus-within:ring-2 focus-within:ring-accent/40",
+                isCover ? "border-accent" : "border-border"
+              )}
+              tabIndex={0}
+              aria-label="查看图像大图，悬停可展开操作"
+              onClick={() => setLightbox(im)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setLightbox(im);
+                }
+              }}
+            >
+              {im.generationStatus === "pending" ? (
+                <div className="flex h-full items-center justify-center">
+                  <StatusDot status="pulse" label="生成中" />
+                </div>
+              ) : im.generationStatus === "failed" ? (
+                <div className="flex h-full items-center justify-center p-2">
+                  <StatusDot status="fail" label="失败" />
+                </div>
+              ) : (
+                <Image
+                  src={im.url.includes("?") ? im.url : `${im.url}?w=800`}
+                  alt=""
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              )}
+              {isCover && (
+                <span className="pointer-events-none absolute left-2 top-2 z-10 rounded bg-accent/25 px-1.5 py-0.5 text-ui-mono text-[10px] tracking-wide text-accent">
                   封面
                 </span>
               )}
+              {showMenu && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 z-20 max-h-[55%] bg-gradient-to-t from-bg-base from-40% via-bg-base/85 to-transparent p-2 pt-6 opacity-0 pointer-events-none transition-opacity duration-150 max-md:opacity-100 max-md:pointer-events-auto group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  <p className="text-ui-mono mb-1.5 text-[9px] uppercase tracking-[0.12em] text-text-muted/90">操作</p>
+                  <div className="flex flex-col gap-1.5">
+                    {canSetCover && (
+                      <button
+                        type="button"
+                        className="text-ui-mono w-full rounded border border-border/70 bg-surface/95 px-2.5 py-1.5 text-left text-xs text-text-primary/95 hover:border-accent/45 hover:text-accent"
+                        onClick={() => void onSetCover(im.id)}
+                      >
+                        设为封面
+                      </button>
+                    )}
+                    {onDeleteImage && (
+                      <button
+                        type="button"
+                        className="text-ui-mono w-full rounded border border-rose-900/50 bg-surface/95 px-2.5 py-1.5 text-left text-xs text-rose-300/95 hover:border-rose-500/50 hover:bg-rose-950/30"
+                        onClick={() => {
+                          if (!window.confirm("从本素材中移除此图像？此操作不可撤销。")) return;
+                          void (async () => {
+                            try {
+                              await onDeleteImage(im.id);
+                              onRefresh();
+                            } catch {
+                              /* toast optional */
+                            }
+                          })();
+                        }}
+                      >
+                        删除
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-          </button>
-        ))}
+          );
+        })}
         {canGenerate && (
           <button
             type="button"
@@ -178,12 +224,15 @@ export function ImageStrip({
           </div>
         </button>
       )}
-      {list.length === 0 && (
+      {list.length === 0 && showProceduralWhenEmpty && (
         <div className="flex h-40 items-center justify-center rounded-md border border-border/50 bg-surface/50">
           <div className="h-24 w-24 overflow-hidden rounded">
             <ProceduralPlaceholder seed={assetId} />
           </div>
         </div>
+      )}
+      {list.length === 0 && !showProceduralWhenEmpty && !canGenerate && (
+        <p className="text-ui-mono text-sm text-text-muted/80">尚未添加图像</p>
       )}
     </div>
   );

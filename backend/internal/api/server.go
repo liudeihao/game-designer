@@ -56,6 +56,7 @@ func (s *Server) Router() http.Handler {
 			r.Get("/{id}/forks", s.getForks)
 			r.With(s.requireUser).Post("/{id}/publish", s.publishAsset)
 			r.With(s.requireUser).Post("/{id}/fork", s.forkAsset)
+			r.With(s.requireUser).Delete("/{id}/images/{imageId}", s.deleteAssetImage)
 			r.With(s.requireUser).Post("/{id}/images", s.postImage)
 			r.Get("/{id}", s.getAsset)
 			r.With(s.requireUser).Patch("/{id}", s.patchAsset)

@@ -373,9 +373,9 @@ func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, "forbidden", "forbidden")
 		return
 	}
-	// 已公开素材不属于私库分组；元数据、封面可改。
-	if p.GroupID != nil && vis == "public" {
-		writeErr(w, 400, "public materials are not in private groups; fork to a private copy to organize", "bad_request")
+	// 已公开：内容冻结，仅可通过 fork 到私库再改（与 product / OpenAPI「publish = irreversible freeze」一致）
+	if vis == "public" {
+		writeErr(w, 400, "public assets are read-only; fork a private copy to edit", "bad_request")
 		return
 	}
 	_, _ = s.pool.Exec(ctx, `
@@ -517,12 +517,16 @@ func (s *Server) postImage(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "not found", "not_found")
 		return
 	}
-	if vis == "public" && author != uid {
-		writeErr(w, 403, "fork first", "forbidden")
+	if author != uid {
+		if vis == "public" {
+			writeErr(w, 403, "fork first", "forbidden")
+			return
+		}
+		writeErr(w, 403, "forbidden", "forbidden")
 		return
 	}
-	if author != uid {
-		writeErr(w, 403, "forbidden", "forbidden")
+	if vis == "public" {
+		writeErr(w, 400, "public assets are read-only; fork a private copy to generate images", "bad_request")
 		return
 	}
 	imgID, url, err := s.ai.Image.GenerateImage(ctx, aid, uid, b.ExtraPrompt)
@@ -542,6 +546,50 @@ func (s *Server) postImage(w http.ResponseWriter, r *http.Request) {
 		"id": imgID.String(), "assetId": aid.String(), "url": url, "extraPrompt": b.ExtraPrompt,
 		"createdAt": time.Now().Format(time.RFC3339), "generationStatus": "done",
 	})
+}
+
+func (s *Server) deleteAssetImage(w http.ResponseWriter, r *http.Request) {
+	uid, _ := userID(r.Context())
+	aid, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeErr(w, 400, "bad id", "bad_request")
+		return
+	}
+	iid, err := uuid.Parse(chi.URLParam(r, "imageId"))
+	if err != nil {
+		writeErr(w, 400, "bad image id", "bad_request")
+		return
+	}
+	ctx := r.Context()
+	var author uuid.UUID
+	var vis string
+	err = s.pool.QueryRow(ctx, `SELECT author_id, visibility::text FROM assets WHERE id = $1`, aid).Scan(&author, &vis)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeErr(w, 404, "not found", "not_found")
+		} else {
+			writeErr(w, 500, err.Error(), "internal")
+		}
+		return
+	}
+	if author != uid {
+		writeErr(w, 403, "forbidden", "forbidden")
+		return
+	}
+	if vis == "public" {
+		writeErr(w, 400, "public assets are read-only; fork a private copy to edit", "bad_request")
+		return
+	}
+	cmd, err := s.pool.Exec(ctx, `DELETE FROM asset_images WHERE id = $1 AND asset_id = $2`, iid, aid)
+	if err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
+	if cmd.RowsAffected() == 0 {
+		writeErr(w, 404, "not found", "not_found")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) getForks(w http.ResponseWriter, r *http.Request) {

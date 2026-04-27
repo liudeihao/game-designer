@@ -181,7 +181,7 @@ paths:
           $ref: "#/components/responses/NotFound"
     patch:
       tags: [assets]
-      summary: Update editable fields
+      summary: Update editable fields (private assets only; public = read-only)
       parameters:
         - $ref: "#/components/parameters/AssetId"
       requestBody:
@@ -193,6 +193,11 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Asset" }
+        "400":
+          description: Public asset — content frozen after publish
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBody" }
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":
@@ -234,7 +239,7 @@ paths:
   /assets/{id}/images:
     post:
       tags: [assets]
-      summary: Request image generation for asset
+      summary: Request image generation for private asset only (public = read-only)
       parameters:
         - $ref: "#/components/parameters/AssetId"
       requestBody:
@@ -250,6 +255,33 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AssetImage" }
+        "400":
+          description: Public asset — no new images after publish
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBody" }
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /assets/{id}/images/{imageId}:
+    delete:
+      tags: [assets]
+      summary: Remove one image from a private asset (public = read-only; cover_id cleared if needed)
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+        - name: imageId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Image removed
+        "400":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBody" }
         "403":
           $ref: "#/components/responses/Forbidden"
         "404":

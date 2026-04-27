@@ -68,6 +68,9 @@ body {
   button:enabled,
   [role="button"]:not([aria-disabled="true"]) {
     cursor: pointer;
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 0.15s;
+    transition-timing-function: ease-out;
   }
   button:disabled {
     cursor: not-allowed;

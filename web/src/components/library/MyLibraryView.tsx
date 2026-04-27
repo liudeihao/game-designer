@@ -247,7 +247,10 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
                 <List className="h-4 w-4" />
               </button>
             </div>
-            <div className="text-ui-mono flex items-center gap-1 text-[11px] text-text-muted">
+            <div
+              className="text-ui-mono flex items-center gap-1 text-[11px] text-text-muted"
+              title="宫格下封面为正方形，三档为整体等比例放大/缩小"
+            >
               <span>缩略</span>
               <input
                 type="range"

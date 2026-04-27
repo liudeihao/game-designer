@@ -12,12 +12,18 @@ import { ForkFromIdLine } from "./ForkBadge";
 type Variant = "grid" | "compact";
 export type GridCardSize = "sm" | "md" | "lg";
 
-const coverW = 400;
+/** Request width for cover URL; matches typical display size per grid step. */
+const coverWByGrid: Record<GridCardSize, number> = {
+  sm: 256,
+  md: 400,
+  lg: 512,
+};
 
-const gridHeights: Record<GridCardSize, string> = {
-  sm: "h-32",
-  md: "h-48",
-  lg: "h-64",
+/** Square tile max edge (Tailwind); grid 下等比例缩放，窄列时随列宽缩小。 */
+const gridCardMaxW: Record<GridCardSize, string> = {
+  sm: "max-w-32",
+  md: "max-w-48",
+  lg: "max-w-64",
 };
 
 export function AssetCard({
@@ -30,7 +36,7 @@ export function AssetCard({
 }: {
   asset: Asset;
   variant?: Variant;
-  /** Image area height in grid view only. */
+  /** 宫格封面正方形边长档位（小/中/大），仅 grid 变体。 */
   gridSize?: GridCardSize;
   className?: string;
   href: string;
@@ -57,10 +63,11 @@ export function AssetCard({
   const cover = full.coverImageId
     ? imgs.find((i) => i.id === full.coverImageId) ?? imgs[0]
     : imgs[0];
+  const thumbReqW = variant === "compact" ? 96 : coverWByGrid[gridSize];
   const coverUrl = cover
     ? cover.url.includes("?")
         ? cover.url
-        : `${cover.url}${cover.url.includes("picsum") ? "" : `?w=${coverW}`}`
+        : `${cover.url}${cover.url.includes("picsum") ? "" : `?w=${thumbReqW}`}`
     : null;
 
   const visPill =
@@ -113,11 +120,12 @@ export function AssetCard({
     <Link
       href={href}
       className={cn(
-        "group relative block overflow-hidden rounded-md border border-border bg-surface transition-none hover:-translate-y-0.5 hover:border-[rgba(0,255,178,0.35)]",
+        "group relative mx-auto block w-full overflow-hidden rounded-md border border-border bg-surface transition-none hover:-translate-y-0.5 hover:border-[rgba(0,255,178,0.35)]",
+        gridCardMaxW[gridSize],
         className
       )}
     >
-      <div className={cn("relative w-full overflow-hidden rounded-t-md", gridHeights[gridSize])}>
+      <div className="relative aspect-square w-full overflow-hidden rounded-t-md">
         {visPill && (
           <div className="absolute left-2 top-2 z-10">{visPill}</div>
         )}
@@ -127,7 +135,7 @@ export function AssetCard({
             alt=""
             fill
             className="object-cover"
-            sizes="(max-width: 768px) 50vw, 25vw"
+            sizes="(max-width: 768px) 45vw, 200px"
             unoptimized
           />
         ) : (

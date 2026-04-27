@@ -8,7 +8,9 @@ servers:
   - url: /api
     description: Next.js rewrites /api to Go; RSC may call Go directly (API_URL). MSW in tests uses same /api paths.
 tags:
+  - name: auth
   - name: me
+  - name: users
   - name: assets
   - name: forks
   - name: sessions
@@ -32,6 +34,90 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorBody" }
+    patch:
+      tags: [me]
+      summary: Update profile (displayName only in v1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MePatch" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Create account; sets session cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterRequest" }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Email or username already in use
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorBody" }
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Log in; sets session cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Log out; clears session
+      security: []
+      responses:
+        "204":
+          description: No content; clears gd_session cookie
+
+  /users/{username}:
+    get:
+      tags: [users]
+      summary: Public profile (no email)
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPublic" }
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /assets:
     get:
@@ -337,6 +423,11 @@ components:
       schema: { type: string }
 
   responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorBody" }
     Unauthorized:
       description: Unauthorized
       content:
@@ -362,6 +453,35 @@ components:
       required: [error]
 
     Me:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        displayName: { type: string, nullable: true }
+      required: [id, username]
+
+    MePatch:
+      type: object
+      properties:
+        displayName: { type: string, nullable: true }
+
+    RegisterRequest:
+      type: object
+      required: [email, password, username]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        username: { type: string, minLength: 1, maxLength: 32 }
+        displayName: { type: string, nullable: true }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    UserPublic:
       type: object
       properties:
         id: { type: string }

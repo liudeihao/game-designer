@@ -2,7 +2,6 @@ package api
 
 import (
 	"crypto/rand"
-	"database/sql"
 	"encoding/hex"
 	"net/http"
 	"time"
@@ -39,7 +38,12 @@ func (s *Server) Router() http.Handler {
 		if s.cfg.DevLogin {
 			r.Post("/dev/login", s.handleDevLogin)
 		}
+		r.Post("/auth/register", s.handleRegister)
+		r.Post("/auth/login", s.handleLogin)
+		r.Post("/auth/logout", s.handleLogout)
+		r.Get("/users/{username}", s.getUserPublic)
 		r.Get("/me", s.handleMe)
+		r.With(s.requireUser).Patch("/me", s.patchMe)
 
 		r.Route("/assets", func(r chi.Router) {
 			r.Get("/", s.listAssets)
@@ -77,18 +81,12 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusUnauthorized, "not logged in", "unauthorized")
 		return
 	}
-	var username string
-	var displayName sql.NullString
-	err = s.pool.QueryRow(r.Context(), `SELECT username, display_name FROM users WHERE id = $1`, uid).Scan(&username, &displayName)
+	m, err := s.meMap(r.Context(), uid)
 	if err != nil {
 		writeErr(w, http.StatusUnauthorized, "not logged in", "unauthorized")
 		return
 	}
-	dn := any(nil)
-	if displayName.Valid {
-		dn = displayName.String
-	}
-	writeJSON(w, 200, map[string]any{"id": uid.String(), "username": username, "displayName": dn})
+	writeJSON(w, http.StatusOK, m)
 }
 
 func (s *Server) handleDevLogin(w http.ResponseWriter, r *http.Request) {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for AssetImageGenerationStatus.
@@ -264,11 +265,22 @@ type ForkPage struct {
 // ForkPageDirection defines model for ForkPage.Direction.
 type ForkPageDirection string
 
+// LoginRequest defines model for LoginRequest.
+type LoginRequest struct {
+	Email    openapi_types.Email `json:"email"`
+	Password string              `json:"password"`
+}
+
 // Me defines model for Me.
 type Me struct {
 	DisplayName *string `json:"displayName,omitempty"`
 	Id          string  `json:"id"`
 	Username    string  `json:"username"`
+}
+
+// MePatch defines model for MePatch.
+type MePatch struct {
+	DisplayName *string `json:"displayName,omitempty"`
 }
 
 // PaginatedAssets defines model for PaginatedAssets.
@@ -300,6 +312,14 @@ type ProjectSummary struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+// RegisterRequest defines model for RegisterRequest.
+type RegisterRequest struct {
+	DisplayName *string             `json:"displayName,omitempty"`
+	Email       openapi_types.Email `json:"email"`
+	Password    string              `json:"password"`
+	Username    string              `json:"username"`
+}
+
 // SessionDetail defines model for SessionDetail.
 type SessionDetail struct {
 	DraftAssetCount int            `json:"draftAssetCount"`
@@ -318,6 +338,13 @@ type SessionSummary struct {
 	UpdatedAt       time.Time `json:"updatedAt"`
 }
 
+// UserPublic defines model for UserPublic.
+type UserPublic struct {
+	DisplayName *string `json:"displayName,omitempty"`
+	Id          string  `json:"id"`
+	Username    string  `json:"username"`
+}
+
 // AssetId defines model for AssetId.
 type AssetId = string
 
@@ -326,6 +353,9 @@ type ProjectId = string
 
 // SessionId defines model for SessionId.
 type SessionId = string
+
+// BadRequest defines model for BadRequest.
+type BadRequest = ErrorBody
 
 // Forbidden defines model for Forbidden.
 type Forbidden = ErrorBody
@@ -388,6 +418,15 @@ type PatchAssetsIdJSONRequestBody = AssetUpdate
 
 // PostAssetsIdImagesJSONRequestBody defines body for PostAssetsIdImages for application/json ContentType.
 type PostAssetsIdImagesJSONRequestBody PostAssetsIdImagesJSONBody
+
+// PostAuthLoginJSONRequestBody defines body for PostAuthLogin for application/json ContentType.
+type PostAuthLoginJSONRequestBody = LoginRequest
+
+// PostAuthRegisterJSONRequestBody defines body for PostAuthRegister for application/json ContentType.
+type PostAuthRegisterJSONRequestBody = RegisterRequest
+
+// PatchMeJSONRequestBody defines body for PatchMe for application/json ContentType.
+type PatchMeJSONRequestBody = MePatch
 
 // PostProjectsJSONRequestBody defines body for PostProjects for application/json ContentType.
 type PostProjectsJSONRequestBody PostProjectsJSONBody

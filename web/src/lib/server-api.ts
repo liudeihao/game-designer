@@ -1,5 +1,5 @@
 import { cookies, headers } from "next/headers";
-import type { PaginatedAssets, Asset } from "./types";
+import type { PaginatedAssets, Asset, Me } from "./types";
 
 /** Server-side calls to the Go API. Uses API_URL (direct) so RSC does not rely on Next rewrites. Forwards cookies. */
 function serverApiBase(): string {
@@ -39,4 +39,11 @@ export async function getAssetServer(id: string): Promise<Asset | null> {
   if (r.status === 404) return null;
   if (!r.ok) throw new Error("asset");
   return r.json();
+}
+
+export async function loadMe(): Promise<Me | null> {
+  const r = await serverFetch("/api/me");
+  if (r.status === 401) return null;
+  if (!r.ok) return null;
+  return r.json() as Promise<Me>;
 }

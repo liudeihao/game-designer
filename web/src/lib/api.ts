@@ -1,4 +1,12 @@
-import type { Asset, DraftAsset, Me, PaginatedAssets, ProjectDetail, SessionDetail, SessionSummary } from "./types";
+import type {
+  Asset,
+  DraftAsset,
+  Me,
+  PaginatedAssets,
+  ProjectDetail,
+  SessionDetail,
+  SessionSummary,
+} from "./types";
 
 const json = (r: Response) => r.json().catch(() => ({}));
 
@@ -6,6 +14,43 @@ export async function getMe() {
   const r = await fetch("/api/me", { credentials: "include" });
   if (!r.ok) throw new Error("me");
   return r.json() as Promise<Me>;
+}
+
+export async function registerAccount(body: {
+  email: string;
+  password: string;
+  username: string;
+  displayName?: string | null;
+}) {
+  const r = await fetch("/api/auth/register", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const j = (await r.json().catch(() => ({}))) as { error?: string };
+    throw new Error(j.error || "register");
+  }
+  return r.json() as Promise<Me>;
+}
+
+export async function loginAccount(body: { email: string; password: string }) {
+  const r = await fetch("/api/auth/login", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const j = (await r.json().catch(() => ({}))) as { error?: string };
+    throw new Error(j.error || "login");
+  }
+  return r.json() as Promise<Me>;
+}
+
+export async function logoutAccount() {
+  await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
 }
 
 export async function getAssets(

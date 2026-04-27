@@ -42,6 +42,12 @@ export type Me = {
   displayName: string | null;
 };
 
+export type UserPublic = {
+  id: string;
+  username: string;
+  displayName: string | null;
+};
+
 export type PaginatedAssets = {
   items: Asset[];
   nextCursor: string | null;

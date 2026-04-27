@@ -63,6 +63,7 @@ export function AssetGrid({
   }, [q]);
 
   const items = q.data?.pages.flatMap((p) => p.items) ?? [];
+  const showQueryErr = q.isError && !q.isFetching;
 
   const colClass =
     viewMode === "list"
@@ -75,6 +76,11 @@ export function AssetGrid({
 
   return (
     <div className={cn("w-full", className)}>
+      {showQueryErr && (
+        <p className="text-ui-mono mb-3 rounded border border-error-dim/20 bg-surface/60 px-3 py-2 text-center text-[12px] text-text-muted">
+          无法刷新列表。请检查网络或后端是否可用。
+        </p>
+      )}
       <div className={colClass} style={viewMode === "list" ? undefined : { columnGap: "1rem" }}>
         {items.map((a) => (
           <div key={a.id} className={viewMode === "list" ? "" : "mb-4 break-inside-avoid"}>

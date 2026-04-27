@@ -3,10 +3,14 @@ import { serverFetch } from "@/lib/server-api";
 import type { ProjectSummary } from "@/lib/types";
 
 async function load(): Promise<ProjectSummary[]> {
-  const r = await serverFetch("/api/projects");
-  if (!r.ok) return [];
-  const data = (await r.json()) as ProjectSummary[] | null;
-  return Array.isArray(data) ? data : [];
+  try {
+    const r = await serverFetch("/api/projects");
+    if (!r.ok) return [];
+    const data = (await r.json()) as ProjectSummary[] | null;
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
 }
 
 export default async function ProjectsPage() {

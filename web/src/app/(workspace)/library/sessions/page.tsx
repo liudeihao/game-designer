@@ -3,10 +3,14 @@ import { serverFetch } from "@/lib/server-api";
 import type { SessionSummary } from "@/lib/types";
 
 async function load(): Promise<SessionSummary[]> {
-  const r = await serverFetch("/api/sessions");
-  if (!r.ok) return [];
-  const data = (await r.json()) as SessionSummary[] | null;
-  return Array.isArray(data) ? data : [];
+  try {
+    const r = await serverFetch("/api/sessions");
+    if (!r.ok) return [];
+    const data = (await r.json()) as SessionSummary[] | null;
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
 }
 
 export default async function SessionsPage() {

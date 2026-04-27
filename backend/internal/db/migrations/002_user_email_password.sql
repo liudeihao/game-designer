@@ -3,6 +3,17 @@
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
 
+-- Seed dev user (id matches dev login in server). Include email+password so re-runs are safe when columns are already NOT NULL.
+INSERT INTO users (id, username, display_name, email, password_hash) VALUES
+  (
+    '00000000-0000-0000-0000-000000000001',
+    'indiedev',
+    'Indie',
+    'indiedev@local.dev',
+    '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'
+  )
+ON CONFLICT (username) DO NOTHING;
+
 -- Password for seed user: "password" (bcrypt) — for local dev only; change in non-dev as needed
 UPDATE users SET
   email = 'indiedev@local.dev',

@@ -95,6 +95,5 @@ CREATE TABLE IF NOT EXISTS projects (
 
 CREATE INDEX IF NOT EXISTS projects_user ON projects (user_id, updated_at DESC);
 
-INSERT INTO users (id, username, display_name) VALUES
-  ('00000000-0000-0000-0000-000000000001', 'indiedev', 'Indie')
-ON CONFLICT (username) DO NOTHING;
+-- Dev seed user is created in 002_user_email_password.sql (after email/password columns exist).
+-- A seed INSERT here breaks on re-run once email is NOT NULL: INSERT would omit email and fail.

@@ -28,30 +28,52 @@ export async function serverFetch(path: string, init?: RequestInit) {
   });
 }
 
-export async function getExploreAssets(): Promise<PaginatedAssets> {
-  const r = await serverFetch("/api/assets?scope=public&limit=24");
-  if (!r.ok) throw new Error("explore");
-  return r.json();
+export type AssetServerResult =
+  | { ok: true; asset: Asset }
+  | { ok: false; notFound: true }
+  | { ok: false; notFound: false };
+
+export async function getExploreAssets(): Promise<PaginatedAssets | null> {
+  try {
+    const r = await serverFetch("/api/assets?scope=public&limit=24");
+    if (!r.ok) return null;
+    return (await r.json()) as PaginatedAssets;
+  } catch {
+    return null;
+  }
 }
 
-export async function getMyLibraryAssetsInitial(groupId?: string | null): Promise<PaginatedAssets> {
-  let path = "/api/assets?scope=private&limit=24";
-  if (groupId) path += `&groupId=${encodeURIComponent(groupId)}`;
-  const r = await serverFetch(path);
-  if (!r.ok) throw new Error("library");
-  return r.json();
+export async function getMyLibraryAssetsInitial(groupId?: string | null): Promise<PaginatedAssets | null> {
+  try {
+    let path = "/api/assets?scope=private&limit=24";
+    if (groupId) path += `&groupId=${encodeURIComponent(groupId)}`;
+    const r = await serverFetch(path);
+    if (!r.ok) return null;
+    return (await r.json()) as PaginatedAssets;
+  } catch {
+    return null;
+  }
 }
 
-export async function getAssetServer(id: string): Promise<Asset | null> {
-  const r = await serverFetch(`/api/assets/${id}`);
-  if (r.status === 404) return null;
-  if (!r.ok) throw new Error("asset");
-  return r.json();
+export async function getAssetServer(id: string): Promise<AssetServerResult> {
+  try {
+    const r = await serverFetch(`/api/assets/${id}`);
+    if (r.status === 404) return { ok: false, notFound: true };
+    if (!r.ok) return { ok: false, notFound: false };
+    const asset = (await r.json()) as Asset;
+    return { ok: true, asset };
+  } catch {
+    return { ok: false, notFound: false };
+  }
 }
 
 export async function loadMe(): Promise<Me | null> {
-  const r = await serverFetch("/api/me");
-  if (r.status === 401) return null;
-  if (!r.ok) return null;
-  return r.json() as Promise<Me>;
+  try {
+    const r = await serverFetch("/api/me");
+    if (r.status === 401) return null;
+    if (!r.ok) return null;
+    return r.json() as Promise<Me>;
+  } catch {
+    return null;
+  }
 }

@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { Asset } from "@/lib/types";
 import { isAssetFull } from "@/lib/guards";
-import { patchAsset, publishAsset, forkAsset, getAsset } from "@/lib/api";
+import { patchAsset, publishAsset, forkAsset, getAsset, getMe } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ImageStrip } from "./ImageStrip";
 import { ForkBadge, GhostHint } from "./ForkBadge";
+import { ForkRelationPanel } from "./ForkRelationPanel";
 
 function useDebounced<T>(value: T, delay: number) {
   const [v, setV] = useState(value);
@@ -21,6 +22,11 @@ function useDebounced<T>(value: T, delay: number) {
 
 export function AssetDetailView({ id, initial }: { id: string; initial: Asset }) {
   const qc = useQueryClient();
+  const { data: me } = useQuery({
+    queryKey: ["me"],
+    queryFn: getMe,
+    staleTime: 60_000,
+  });
   const { data: asset = initial, refetch } = useQuery({
     queryKey: ["asset", id],
     queryFn: async () => {
@@ -49,9 +55,11 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
 
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "err">("idle");
 
+  const isOwner = me != null && isAssetFull(asset) && me.id === asset.authorId;
+  const canEdit = isOwner && asset.visibility === "private";
+
   const persist = useCallback(async () => {
-    if (asset?.visibility === "deleted" || !isAssetFull(asset)) return;
-    if (asset.authorId !== "user-1") return;
+    if (asset?.visibility === "deleted" || !isAssetFull(asset) || !canEdit) return;
     setSave("saving");
     try {
       await patchAsset(id, {
@@ -65,13 +73,13 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
     } catch {
       setSave("err");
     }
-  }, [id, dName, dDesc, dAnn, asset, qc]);
+  }, [id, dName, dDesc, dAnn, asset, canEdit, qc]);
 
   useEffect(() => {
-    if (!isAssetFull(asset) || asset.authorId !== "user-1") return;
+    if (!isAssetFull(asset) || !canEdit) return;
     if (dName === asset.name && dDesc === asset.description && (dAnn || "") === (asset.annotation || "")) return;
     void persist();
-  }, [dName, dDesc, dAnn, asset, persist]);
+  }, [dName, dDesc, dAnn, asset, canEdit, persist]);
 
   if (!asset) return <p>未找到</p>;
 
@@ -88,7 +96,15 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
   }
 
   const full = asset;
-  const isOwner = full.authorId === "user-1";
+  const showPrivateActions = full.visibility === "private" && isOwner;
+  const showForkForPublicOther =
+    full.visibility === "public" && me != null && !isOwner;
+
+  const runFork = async () => {
+    const f = await forkAsset(id);
+    window.location.href = `/library/assets/${f.id}`;
+  };
+
   return (
     <div className="grid min-h-screen grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[minmax(0,45%)_1fr] lg:px-8">
       <div className="space-y-4">
@@ -98,7 +114,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           </Link>{" "}
           / <span className="text-text-primary">{name}</span>
         </nav>
-        {isOwner && (
+        {canEdit && (
           <p className="text-ui-mono h-4 text-[10px] text-text-muted/70">
             {save === "saving" && "正在保存…"}
             {save === "saved" && "已保存"}
@@ -106,8 +122,11 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             {save === "idle" && "\u00a0"}
           </p>
         )}
-        <h1 className={cn("font-display text-3xl text-text-primary", !isOwner && "cursor-default")}>
-          {isOwner ? (
+        {full.visibility === "public" && isOwner && (
+          <p className="text-ui-mono text-[11px] text-text-muted/90">已公开 · 内容不可再修改，仅展示</p>
+        )}
+        <h1 className={cn("font-display text-3xl text-text-primary", !canEdit && "cursor-default")}>
+          {canEdit ? (
             <input
               className="w-full border-none bg-transparent outline-none"
               value={name}
@@ -121,34 +140,48 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           )}
         </h1>
         <ForkBadge asset={full} />
-        {full.visibility === "private" && isOwner && (
-          <div className="flex gap-2">
+        {showPrivateActions && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm("公开后内容不可在公开区修改。确定？")) return;
+                  await publishAsset(id);
+                  void refetch();
+                  void qc.invalidateQueries({ queryKey: ["assets"] });
+                }}
+                className="text-ui-mono rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent"
+              >
+                公开
+              </button>
+              <button
+                type="button"
+                onClick={() => void runFork()}
+                className="text-ui-mono rounded border border-border px-3 py-1 text-sm"
+                title="复制到私库为副本"
+              >
+                复制
+              </button>
+            </div>
+            <p className="text-ui-mono text-[10px] text-text-muted/80">「复制」在私库创建副本 (COPY)。</p>
+          </div>
+        )}
+        {showForkForPublicOther && (
+          <div className="flex flex-col gap-1">
             <button
               type="button"
-              onClick={async () => {
-                if (!confirm("公开后内容不可在公开区修改。确定？")) return;
-                await publishAsset(id);
-                void refetch();
-              }}
-              className="text-ui-mono rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent"
+              onClick={() => void runFork()}
+              className="text-ui-mono w-fit rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent"
             >
-              公开
+              Fork 到私库
             </button>
-            <button
-              type="button"
-              onClick={async () => {
-                const f = await forkAsset(id);
-                window.location.href = `/library/assets/${f.id}`;
-              }}
-              className="text-ui-mono rounded border border-border px-3 py-1 text-sm"
-            >
-              Fork
-            </button>
+            <p className="text-ui-mono text-[10px] text-text-muted/80">Fork 后可在你的私库中编辑、生图。</p>
           </div>
         )}
         <div>
           <p className="text-ui-mono text-[10px] text-text-muted">描述</p>
-          {isOwner ? (
+          {canEdit ? (
             <textarea
               className="mt-1 w-full min-h-32 bg-surface/60 p-2 text-sm text-text-primary outline-none"
               value={description}
@@ -161,7 +194,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             <p className="mt-1 text-sm text-text-primary/90">{full.description}</p>
           )}
         </div>
-        {isOwner && (
+        {canEdit && (
           <div>
             <button
               type="button"
@@ -183,6 +216,13 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             )}
           </div>
         )}
+        {isOwner && full.visibility === "public" && full.annotation && (
+          <div>
+            <p className="text-ui-mono text-[10px] text-text-muted">注释（已冻结）</p>
+            <p className="mt-1 text-sm text-text-muted/90">{full.annotation}</p>
+          </div>
+        )}
+        <ForkRelationPanel assetId={id} />
       </div>
       <div>
         <ImageStrip
@@ -191,7 +231,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           coverImageId={full.coverImageId}
           onRefresh={() => void refetch()}
           onSetCover={async (imageId) => {
-            if (!isOwner) return;
+            if (!canEdit) return;
             await patchAsset(id, { coverImageId: imageId });
             void refetch();
           }}
@@ -199,7 +239,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             const { postImage } = await import("@/lib/api");
             return postImage(id, extra);
           }}
-          canGenerate={isOwner && full.visibility === "private"}
+          canGenerate={canEdit}
         />
       </div>
     </div>

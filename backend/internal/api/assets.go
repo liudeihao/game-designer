@@ -310,7 +310,8 @@ func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
 	_ = readJSON(r, &p)
 	ctx := r.Context()
 	var author uuid.UUID
-	err = s.pool.QueryRow(ctx, `SELECT author_id FROM assets WHERE id = $1`, id).Scan(&author)
+	var vis string
+	err = s.pool.QueryRow(ctx, `SELECT author_id, visibility FROM assets WHERE id = $1`, id).Scan(&author, &vis)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeErr(w, 404, "not found", "not_found")
@@ -321,6 +322,19 @@ func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
 	}
 	if author != uid {
 		writeErr(w, 403, "forbidden", "forbidden")
+		return
+	}
+	if vis == "public" {
+		if p.Name != nil || p.Description != nil || p.Annotation != nil || p.CoverImageID != nil {
+			writeErr(w, 403, "public asset is immutable", "forbidden")
+			return
+		}
+		m, err := s.getAssetByID(ctx, id)
+		if err != nil {
+			writeErr(w, 500, err.Error(), "internal")
+			return
+		}
+		writeJSON(w, 200, m)
 		return
 	}
 	_, _ = s.pool.Exec(ctx, `
@@ -351,13 +365,23 @@ func (s *Server) publishAsset(w http.ResponseWriter, r *http.Request) {
 	id, _ := uuid.Parse(chi.URLParam(r, "id"))
 	ctx := r.Context()
 	var author uuid.UUID
-	err := s.pool.QueryRow(ctx, `SELECT author_id FROM assets WHERE id = $1`, id).Scan(&author)
+	var preVis string
+	err := s.pool.QueryRow(ctx, `SELECT author_id, visibility FROM assets WHERE id = $1`, id).Scan(&author, &preVis)
 	if err != nil {
 		writeErr(w, 404, "not found", "not_found")
 		return
 	}
 	if author != uid {
 		writeErr(w, 403, "forbidden", "forbidden")
+		return
+	}
+	if preVis == "public" {
+		m, err := s.getAssetByID(ctx, id)
+		if err != nil {
+			writeErr(w, 500, err.Error(), "internal")
+			return
+		}
+		writeJSON(w, 200, m)
 		return
 	}
 	_, err = s.pool.Exec(ctx, `UPDATE assets SET visibility = 'public', updated_at = now() WHERE id = $1`, id)

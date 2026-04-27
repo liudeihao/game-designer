@@ -4,21 +4,34 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LayoutGrid, List, Plus, Settings } from "lucide-react";
+import { useState, useCallback } from "react";
 import { AssetGrid } from "@/components/asset/AssetGrid";
 import { useUiPreferences } from "@/components/providers/UiPreferencesProvider";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { PaginatedAssets } from "@/lib/types";
 import { listAssetGroups, createAssetGroup, deleteAssetGroup } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 import type { GridCardSize } from "@/components/asset/AssetCard";
 
-type Props = { initialData: PaginatedAssets };
+type Props = {
+  initialData: PaginatedAssets;
+  libraryVisibility: "private" | "public" | null;
+};
 
 function mapCardPref(s: "sm" | "md" | "lg"): GridCardSize {
   return s;
 }
 
-export function MyLibraryView({ initialData }: Props) {
+function buildLibraryHref(opts: { group?: string; vis?: "private" | "public" | null }) {
+  const p = new URLSearchParams();
+  if (opts.group === "ungrouped") p.set("group", "ungrouped");
+  else if (opts.group) p.set("group", opts.group);
+  if (opts.vis === "private" || opts.vis === "public") p.set("vis", opts.vis);
+  const s = p.toString();
+  return s ? `/library/assets?${s}` : "/library/assets";
+}
+
+export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   const sp = useSearchParams();
   const group = sp.get("group") || "";
   const { prefs, setPrefs } = useUiPreferences();
@@ -28,21 +41,97 @@ export function MyLibraryView({ initialData }: Props) {
     queryFn: listAssetGroups,
   });
   const [newName, setNewName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [pendingGroupName, setPendingGroupName] = useState("");
 
   const items = groupData?.items ?? [];
   const activeAll = !group;
   const activeUngrouped = group === "ungrouped";
   const activeGroup = group && group !== "ungrouped" ? group : null;
 
-  const hrefFor = (g: string | null) => {
-    if (!g) return "/library/assets";
-    return `/library/assets?group=${encodeURIComponent(g)}`;
-  };
+  const visActive: "all" | "private" | "public" = !libraryVisibility
+    ? "all"
+    : libraryVisibility;
+
+  const hrefFor = useCallback(
+    (g: string | null) => buildLibraryHref({ group: g ?? undefined, vis: libraryVisibility ?? undefined }),
+    [libraryVisibility]
+  );
+  const hrefVis = useCallback(
+    (v: "all" | "private" | "public") =>
+      buildLibraryHref({
+        group: group || undefined,
+        vis: v === "all" ? null : v,
+      }),
+    [group]
+  );
 
   return (
     <div className="flex min-h-screen">
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="删除分组？"
+        description={deleteTarget ? `分组「${deleteTarget.name}」下的素材会移入「未分组」列表，此操作可稍后通过新建分组再整理。` : undefined}
+        confirmLabel="删除"
+        tone="danger"
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          await deleteAssetGroup(deleteTarget.id);
+          setDeleteTarget(null);
+          void refetchGroups();
+          void qc.invalidateQueries({ queryKey: ["assets", "private"] });
+          if (activeGroup === deleteTarget.id) {
+            window.location.href = buildLibraryHref({ vis: libraryVisibility });
+          }
+        }}
+      />
+      <ConfirmDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="创建分组？"
+        description={pendingGroupName ? `将创建「${pendingGroupName}」` : undefined}
+        confirmLabel="创建"
+        onConfirm={async () => {
+          const n = pendingGroupName.trim();
+          if (!n) return;
+          await createAssetGroup(n);
+          setNewName("");
+          setCreateOpen(false);
+          void refetchGroups();
+        }}
+      />
+
       <aside className="hidden w-56 shrink-0 border-r border-divider p-4 lg:block">
-        <p className="text-ui-mono text-[11px] uppercase tracking-wider text-text-muted">素材</p>
+        <p className="text-ui-mono text-[11px] uppercase tracking-wider text-text-muted">范围</p>
+        <ul className="mt-1 space-y-0.5 text-ui-mono text-[13px] text-text-primary">
+          <li>
+            <Link
+              href={hrefVis("all")}
+              className={cn("block rounded px-2 py-1.5", visActive === "all" && "bg-accent/10 text-accent")}
+            >
+              全部
+            </Link>
+          </li>
+          <li>
+            <Link
+              href={hrefVis("private")}
+              className={cn("block rounded px-2 py-1.5", visActive === "private" && "bg-accent/10 text-accent")}
+            >
+              仅私有
+            </Link>
+          </li>
+          <li>
+            <Link
+              href={hrefVis("public")}
+              className={cn("block rounded px-2 py-1.5", visActive === "public" && "bg-accent/10 text-accent")}
+            >
+              已公开
+            </Link>
+          </li>
+        </ul>
+        <p className="text-ui-mono mt-4 text-[11px] uppercase tracking-wider text-text-muted">素材</p>
         <ul className="mt-2 space-y-0.5 text-ui-mono text-[13px] text-text-primary">
           <li>
             <Link
@@ -78,15 +167,7 @@ export function MyLibraryView({ initialData }: Props) {
                   type="button"
                   title="删除分组"
                   className="shrink-0 rounded p-1 text-[10px] text-text-muted opacity-0 hover:text-error-dim group-hover/item:opacity-100"
-                  onClick={async () => {
-                    if (!confirm("删除后素材将移回「未分组」。")) return;
-                    await deleteAssetGroup(g.id);
-                    void refetchGroups();
-                    void qc.invalidateQueries({ queryKey: ["assets", "private"] });
-                    if (activeGroup === g.id) {
-                      window.location.href = "/library/assets";
-                    }
-                  }}
+                  onClick={() => setDeleteTarget({ id: g.id, name: g.name })}
                 >
                   ×
                 </button>
@@ -96,17 +177,12 @@ export function MyLibraryView({ initialData }: Props) {
         )}
         <form
           className="mt-3 flex gap-1 border-t border-border/40 pt-3"
-          onSubmit={async (e) => {
+          onSubmit={(e) => {
             e.preventDefault();
             const n = newName.trim();
             if (!n) return;
-            try {
-              await createAssetGroup(n);
-              setNewName("");
-              void refetchGroups();
-            } catch {
-              /* ignore */
-            }
+            setPendingGroupName(n);
+            setCreateOpen(true);
           }}
         >
           <input
@@ -182,11 +258,17 @@ export function MyLibraryView({ initialData }: Props) {
             </Link>
           </div>
         </div>
+        <p className="text-ui-mono mb-3 text-[11px] text-text-muted/90">
+          {visActive === "all" && "含私有与已公开；侧栏可只看一类。"}
+          {visActive === "private" && "仅未公开的草稿素材。"}
+          {visActive === "public" && "已从本库发布到探索区的素材，卡片角标为「已公开」。"}
+        </p>
         <AssetGrid
-          key={group || "all"}
+          key={`${group || "all"}-${visActive}`}
           scope="private"
           initialData={initialData}
           groupId={group || null}
+          libraryVisibility={libraryVisibility}
           viewMode={prefs.libraryViewMode}
           gridSize={mapCardPref(prefs.libraryCardSize)}
         />

@@ -7,6 +7,7 @@ import type { Asset } from "@/lib/types";
 import { isAssetFull } from "@/lib/guards";
 import { cn } from "@/lib/utils";
 import { ProceduralPlaceholder } from "./ProceduralPlaceholder";
+import { ForkFromIdLine } from "./ForkBadge";
 
 type Variant = "grid" | "compact";
 export type GridCardSize = "sm" | "md" | "lg";
@@ -25,6 +26,7 @@ export function AssetCard({
   gridSize = "md",
   className,
   href,
+  showOwnerLibraryBadge,
 }: {
   asset: Asset;
   variant?: Variant;
@@ -32,6 +34,8 @@ export function AssetCard({
   gridSize?: GridCardSize;
   className?: string;
   href: string;
+  /** In 我的库: show 私有 / 已公开 for the owner. */
+  showOwnerLibraryBadge?: boolean;
 }) {
   if (asset.visibility === "deleted") {
     return (
@@ -42,10 +46,8 @@ export function AssetCard({
           className
         )}
       >
-        <p className="text-ui-mono text-[12px] text-text-muted/70 line-through">已删除的公开素材</p>
-        {asset.forkedFromId && (
-          <p className="text-ui-mono mt-2 text-[11px] text-text-muted/50">仍可追溯 fork 自：{asset.forkedFromId}</p>
-        )}
+        <p className="text-ui-mono text-xs text-text-muted/70 line-through">已删除的公开素材</p>
+        {asset.forkedFromId && <ForkFromIdLine forkedFromId={asset.forkedFromId} />}
       </div>
     );
   }
@@ -61,12 +63,26 @@ export function AssetCard({
         : `${cover.url}${cover.url.includes("picsum") ? "" : `?w=${coverW}`}`
     : null;
 
+  const visPill =
+    showOwnerLibraryBadge && isAssetFull(full) ? (
+      <span
+        className={cn(
+          "text-ui-mono shrink-0 rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wide",
+          full.visibility === "public"
+            ? "bg-accent/15 text-accent"
+            : "bg-white/6 text-text-muted"
+        )}
+      >
+        {full.visibility === "public" ? "已公开" : "私有"}
+      </span>
+    ) : null;
+
   if (variant === "compact") {
     return (
       <Link
         href={href}
         className={cn(
-          "group flex h-16 items-stretch gap-2 rounded-md border border-border bg-surface/90 transition-none hover:-translate-y-0.5 hover:border-accent/40",
+          "group flex min-h-16 items-stretch gap-2 rounded-md border border-border bg-surface/90 transition-none hover:-translate-y-0.5 hover:border-accent/40",
           className
         )}
       >
@@ -77,8 +93,11 @@ export function AssetCard({
             <ProceduralPlaceholder seed={full.id} className="!h-12 !w-12" />
           )}
         </div>
-        <div className="min-w-0 flex-1 py-1">
-          <h3 className="font-display line-clamp-1 text-left text-sm text-text-primary">{full.name}</h3>
+        <div className="min-w-0 flex-1 py-1 pr-1">
+          <div className="flex items-start gap-1.5">
+            <h3 className="font-display min-w-0 flex-1 line-clamp-1 text-left text-sm text-text-primary">{full.name}</h3>
+            {visPill}
+          </div>
           <p className="line-clamp-1 text-left text-[11px] text-text-muted">{full.description}</p>
         </div>
       </Link>
@@ -94,6 +113,9 @@ export function AssetCard({
       )}
     >
       <div className={cn("relative w-full overflow-hidden rounded-t-md", gridHeights[gridSize])}>
+        {visPill && (
+          <div className="absolute left-2 top-2 z-10">{visPill}</div>
+        )}
         {coverUrl ? (
           <Image
             src={coverUrl}

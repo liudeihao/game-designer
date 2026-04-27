@@ -174,19 +174,48 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 		rows, err = s.pool.Query(ctx, qSQL, cursor, limit+1)
 	} else {
 		gf := r.URL.Query().Get("groupId")
+		vf := q.Get("visibility")
+		// "未分组" / 指定分组 仅指私库分组；已公开素材不在私库分组中，只在「全部」或「已公开」下列出。
+		visExtra := ""
+		if gf == "ungrouped" {
+			switch vf {
+			case "public":
+				visExtra = " AND a.visibility = 'public' AND a.group_id IS NULL"
+			case "private":
+				visExtra = " AND a.visibility = 'private' AND a.group_id IS NULL"
+			default:
+				visExtra = " AND a.visibility = 'private' AND a.group_id IS NULL"
+			}
+		} else if _, perr := uuid.Parse(gf); perr == nil && gf != "" {
+			switch vf {
+			case "public":
+				visExtra = " AND a.visibility = 'public' AND a.group_id = $2::uuid"
+			case "private":
+				visExtra = " AND a.visibility = 'private' AND a.group_id = $2::uuid"
+			default:
+				visExtra = " AND a.visibility = 'private' AND a.group_id = $2::uuid"
+			}
+		} else {
+			switch vf {
+			case "private":
+				visExtra = " AND a.visibility = 'private'"
+			case "public":
+				visExtra = " AND a.visibility = 'public'"
+			}
+		}
 		var qSQL string
 		if gf == "ungrouped" {
-			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted' AND a.group_id IS NULL
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + `
 			AND ($2::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $2::uuid))
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $3`
 			rows, err = s.pool.Query(ctx, qSQL, uid, cursor, limit+1)
 		} else if gu, perr := uuid.Parse(gf); perr == nil && gf != "" {
-			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted' AND a.group_id = $2::uuid
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + `
 			AND ($3::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $3::uuid))
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $4`
 			rows, err = s.pool.Query(ctx, qSQL, uid, gu, cursor, limit+1)
 		} else {
-			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + `
 			AND ($2::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $2::uuid))
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $3`
 			rows, err = s.pool.Query(ctx, qSQL, uid, cursor, limit+1)
@@ -331,7 +360,7 @@ func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var author uuid.UUID
 	var vis string
-	err = s.pool.QueryRow(ctx, `SELECT author_id, visibility FROM assets WHERE id = $1`, id).Scan(&author, &vis)
+	err = s.pool.QueryRow(ctx, `SELECT author_id, visibility::text FROM assets WHERE id = $1`, id).Scan(&author, &vis)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeErr(w, 404, "not found", "not_found")
@@ -344,17 +373,9 @@ func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, "forbidden", "forbidden")
 		return
 	}
-	if vis == "public" {
-		if p.Name != nil || p.Description != nil || p.Annotation != nil || p.CoverImageID != nil || p.GroupID != nil {
-			writeErr(w, 403, "public asset is immutable", "forbidden")
-			return
-		}
-		m, err := s.getAssetByID(ctx, id)
-		if err != nil {
-			writeErr(w, 500, err.Error(), "internal")
-			return
-		}
-		writeJSON(w, 200, m)
+	// 已公开素材不属于私库分组；元数据、封面可改。
+	if p.GroupID != nil && vis == "public" {
+		writeErr(w, 400, "public materials are not in private groups; fork to a private copy to organize", "bad_request")
 		return
 	}
 	_, _ = s.pool.Exec(ctx, `
@@ -372,7 +393,7 @@ func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
 			_, _ = s.pool.Exec(ctx, `UPDATE assets SET cover_image_id = $1, updated_at = now() WHERE id = $2`, cid, id)
 		}
 	}
-	if p.GroupID != nil {
+	if p.GroupID != nil && vis == "private" {
 		if *p.GroupID == "" {
 			_, _ = s.pool.Exec(ctx, `UPDATE assets SET group_id = null, updated_at = now() WHERE id = $1`, id)
 		} else if gid, perr := uuid.Parse(*p.GroupID); perr == nil {
@@ -417,7 +438,7 @@ func (s *Server) publishAsset(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, m)
 		return
 	}
-	_, err = s.pool.Exec(ctx, `UPDATE assets SET visibility = 'public', updated_at = now() WHERE id = $1`, id)
+	_, err = s.pool.Exec(ctx, `UPDATE assets SET visibility = 'public', group_id = null, updated_at = now() WHERE id = $1`, id)
 	if err != nil {
 		writeErr(w, 500, err.Error(), "internal")
 		return
@@ -455,6 +476,9 @@ func (s *Server) forkAsset(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 404, "cannot fork", "cannot_fork")
 			return
 		}
+		newName = name + " (COPY)"
+	} else if vis == "public" && pubAuthor == uid {
+		// 自己的公开件「复制到私库」与私库自复制语义一致
 		newName = name + " (COPY)"
 	}
 	var nid uuid.UUID

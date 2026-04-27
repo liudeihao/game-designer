@@ -19,6 +19,7 @@ export function AssetGrid({
   groupId,
   viewMode = "grid",
   gridSize = "md",
+  libraryVisibility = null,
 }: {
   scope: "public" | "private";
   className?: string;
@@ -28,11 +29,15 @@ export function AssetGrid({
   groupId?: string | null;
   viewMode?: LibraryViewMode;
   gridSize?: GridCardSize;
+  /** 我的库: 仅私有 / 仅已公开 / 未指定=全部 */
+  libraryVisibility?: "private" | "public" | null;
 }) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const groupKey = groupId ?? "all";
+  const visKey = libraryVisibility ?? "all";
+  const showOwnerLibBadge = scope === "private";
   const q = useInfiniteQuery({
-    queryKey: ["assets", scope, groupKey],
+    queryKey: ["assets", scope, groupKey, visKey],
     initialData:
       initialData != null
         ? {
@@ -42,7 +47,13 @@ export function AssetGrid({
         : undefined,
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) => {
-      return getAssets(scope, pageParam as string | null, 24, groupId ?? undefined);
+      return getAssets(
+        scope,
+        pageParam as string | null,
+        24,
+        groupId ?? undefined,
+        libraryVisibility ?? undefined
+      );
     },
     getNextPageParam: (last) => last.nextCursor,
   });
@@ -89,6 +100,7 @@ export function AssetGrid({
               href={`${itemHrefBase}/${a.id}`}
               variant={viewMode === "list" ? "compact" : "grid"}
               gridSize={viewMode === "grid" ? gridSize : "md"}
+              showOwnerLibraryBadge={showOwnerLibBadge}
             />
           </div>
         ))}

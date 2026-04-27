@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { ImageStrip } from "./ImageStrip";
 import { ForkBadge, GhostHint } from "./ForkBadge";
 import { ForkRelationPanel } from "./ForkRelationPanel";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ThemeSelect } from "@/components/ui/ThemeSelect";
 
 export function AssetDetailView({ id, initial }: { id: string; initial: Asset }) {
   const qc = useQueryClient();
@@ -48,13 +50,16 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
 
   const [editingText, setEditingText] = useState(false);
   const [save, setSave] = useState<"idle" | "saving" | "saved" | "err">("idle");
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
 
   const isOwner = me != null && isAssetFull(asset) && me.id === asset.authorId;
-  const canEdit = isOwner && asset.visibility === "private";
+  const canEditContent = isOwner && isAssetFull(asset);
+  const isPrivateAsset = isAssetFull(asset) && asset.visibility === "private";
 
   useEffect(() => {
-    if (!canEdit) setEditingText(false);
-  }, [canEdit]);
+    if (!canEditContent) setEditingText(false);
+  }, [canEditContent]);
 
   const dirty =
     isAssetFull(asset) &&
@@ -71,7 +76,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
   }, [asset]);
 
   const saveText = useCallback(async () => {
-    if (asset?.visibility === "deleted" || !isAssetFull(asset) || !canEdit) return;
+    if (asset?.visibility === "deleted" || !isAssetFull(asset) || !canEditContent) return;
     setSave("saving");
     try {
       await patchAsset(id, {
@@ -85,17 +90,20 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
     } catch {
       setSave("err");
     }
-  }, [id, name, description, annotation, asset, canEdit, qc]);
+  }, [id, name, description, annotation, asset, canEditContent, qc]);
 
   const cancelEdit = useCallback(() => {
-    if (dirty && !confirm("放弃未保存的修改？")) return;
+    if (dirty) {
+      setDiscardOpen(true);
+      return;
+    }
     resetFormFromAsset();
     setEditingText(false);
     setSave("idle");
   }, [dirty, resetFormFromAsset]);
 
   useEffect(() => {
-    if (!editingText || !canEdit) return;
+    if (!editingText || !canEditContent) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
@@ -104,7 +112,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [editingText, canEdit, saveText]);
+  }, [editingText, canEditContent, saveText]);
 
   if (!asset) return <p>未找到</p>;
 
@@ -122,25 +130,55 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
 
   const full = asset;
   const showPrivateActions = full.visibility === "private" && isOwner;
-  const showForkForPublicOther =
-    full.visibility === "public" && me != null && !isOwner;
+  const showForkForPublicOther = full.visibility === "public" && me != null && !isOwner;
 
   const runFork = async () => {
     const f = await forkAsset(id);
     window.location.href = `/library/assets/${f.id}`;
   };
 
+  const groupOptions: { value: string; label: string }[] = [
+    { value: "", label: "未分组" },
+    ...(groupList?.items.map((g) => ({ value: g.id, label: g.name })) ?? []),
+  ];
+
   return (
     <div className="grid min-h-screen grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[minmax(0,45%)_1fr] lg:px-8">
+      <ConfirmDialog
+        open={discardOpen}
+        onOpenChange={setDiscardOpen}
+        title="放弃未保存的修改？"
+        description="当前编辑尚未保存，确定要关闭吗？"
+        confirmLabel="放弃"
+        tone="danger"
+        onConfirm={() => {
+          resetFormFromAsset();
+          setEditingText(false);
+          setSave("idle");
+        }}
+      />
+      <ConfirmDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        title="将素材公开到探索？"
+        description="公开后将从私库分组中移出，并出现在「已公开」中（相当于分享/归档）。你仍可改展示用名称与描述。生图、分组与继续迭代请使用「复制到私库」。确定公开？"
+        confirmLabel="公开"
+        onConfirm={async () => {
+          await publishAsset(id);
+          void refetch();
+          void qc.invalidateQueries({ queryKey: ["assets"] });
+        }}
+      />
+
       <div className="space-y-4">
-        <nav className="text-ui-mono text-[11px] text-text-muted/80">
+        <nav className="text-ui-mono text-xs text-text-muted/80">
           <Link href="/library/assets" className="hover:text-accent">
             我的库
           </Link>{" "}
           / <span className="text-text-primary">{name}</span>
         </nav>
-        {canEdit && editingText && (
-          <p className="text-ui-mono min-h-4 text-[10px] text-text-muted/70">
+        {canEditContent && editingText && (
+          <p className="text-ui-mono min-h-4 text-xs text-text-muted/70">
             {save === "saving" && "正在保存…"}
             {save === "saved" && "已保存 · Ctrl+S 可再次保存"}
             {save === "err" && "保存失败"}
@@ -148,11 +186,29 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           </p>
         )}
         {full.visibility === "public" && isOwner && (
-          <p className="text-ui-mono text-[11px] text-text-muted/90">已公开 · 内容不可再修改，仅展示</p>
+          <div className="space-y-2 rounded border border-border/50 bg-surface/50 p-3">
+            <p className="text-ui-mono text-xs text-text-muted/90">
+              已公开 · 与探索区同步，相当于分享/归档；<span className="text-text-primary/80">不再属于私库分组</span>。
+              生图、分组与深度编辑请用下方「复制到私库」得到私有副本；此处仅可改展示用名称、描述、封面。
+            </p>
+            <button
+              type="button"
+              onClick={() => void runFork()}
+              className="text-ui-mono rounded border border-accent/45 bg-accent/10 px-3 py-1.5 text-sm text-accent hover:border-accent/60"
+            >
+              复制到私库
+            </button>
+            <p className="text-ui-mono text-xs text-text-muted/60">在私库中继续迭代后，可再次公开或保持私有。</p>
+          </div>
         )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <h1 className={cn("font-display min-w-0 flex-1 text-3xl text-text-primary", !canEdit && "cursor-default")}>
-            {canEdit && editingText ? (
+          <h1
+            className={cn(
+              "font-display min-w-0 flex-1 text-3xl text-text-primary",
+              !canEditContent && "cursor-default"
+            )}
+          >
+            {canEditContent && editingText ? (
               <input
                 className="w-full border-b border-border/60 bg-transparent pb-1 outline-none focus:border-accent/50"
                 value={name}
@@ -167,21 +223,21 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
               <span className="block">{full.name}</span>
             )}
           </h1>
-          {canEdit && !editingText && (
+          {canEditContent && !editingText && (
             <button
               type="button"
               onClick={() => {
                 setEditingText(true);
                 setSave("idle");
               }}
-              className="text-ui-mono inline-flex shrink-0 items-center gap-1.5 rounded border border-border px-2.5 py-1.5 text-[11px] text-text-muted hover:border-accent/40 hover:text-text-primary"
+              className="text-ui-mono inline-flex shrink-0 items-center gap-1.5 rounded border border-border px-2.5 py-1.5 text-xs text-text-muted hover:border-accent/40 hover:text-text-primary"
               title="编辑名称与描述"
             >
               <Pencil className="h-3.5 w-3.5" aria-hidden />
               编辑
             </button>
           )}
-          {canEdit && editingText && (
+          {canEditContent && editingText && (
             <div className="flex shrink-0 flex-wrap gap-2">
               <button
                 type="button"
@@ -202,29 +258,21 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           )}
         </div>
         <ForkBadge asset={full} />
-        {canEdit && groupList && (
-          <div className="text-ui-mono text-[12px]">
-            <label htmlFor="asset-group" className="text-[10px] text-text-muted">
-              分组
-            </label>
-            <select
-              id="asset-group"
-              className="mt-1 block w-full max-w-xs rounded border border-border/60 bg-surface/60 px-2 py-1.5 text-sm"
-              value={full.groupId ?? ""}
-              onChange={async (e) => {
-                const v = e.target.value;
-                await patchAsset(id, { groupId: v === "" ? null : v });
-                void refetch();
-                void qc.invalidateQueries({ queryKey: ["assets", "private"] });
-              }}
-            >
-              <option value="">未分组</option>
-              {groupList.items.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
+        {isOwner && groupList && isPrivateAsset && (
+          <div className="text-ui-mono text-sm">
+            <p className="text-xs text-text-muted">分组</p>
+            <div className="mt-1 max-w-xs">
+              <ThemeSelect
+                value={(full.groupId ?? "") as string}
+                onValueChange={async (v) => {
+                  await patchAsset(id, { groupId: v === "" ? null : v });
+                  void refetch();
+                  void qc.invalidateQueries({ queryKey: ["assets", "private"] });
+                }}
+                options={groupOptions}
+                aria-label="素材分组"
+              />
+            </div>
           </div>
         )}
         {showPrivateActions && (
@@ -232,12 +280,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={async () => {
-                  if (!confirm("公开后内容不可在公开区修改。确定？")) return;
-                  await publishAsset(id);
-                  void refetch();
-                  void qc.invalidateQueries({ queryKey: ["assets"] });
-                }}
+                onClick={() => setPublishOpen(true)}
                 className="text-ui-mono rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent"
               >
                 公开
@@ -251,7 +294,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
                 复制
               </button>
             </div>
-            <p className="text-ui-mono text-[10px] text-text-muted/80">「复制」在私库创建副本 (COPY)。</p>
+            <p className="text-ui-mono text-xs text-text-muted/80">「复制」在私库创建副本 (COPY)。</p>
           </div>
         )}
         {showForkForPublicOther && (
@@ -263,12 +306,12 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             >
               Fork 到私库
             </button>
-            <p className="text-ui-mono text-[10px] text-text-muted/80">Fork 后可在你的私库中编辑、生图。</p>
+            <p className="text-ui-mono text-xs text-text-muted/80">Fork 后可在你的私库中编辑、生图。</p>
           </div>
         )}
         <div>
-          <p className="text-ui-mono text-[10px] text-text-muted">描述</p>
-          {canEdit && editingText ? (
+          <p className="text-ui-mono text-xs text-text-muted">描述</p>
+          {canEditContent && editingText ? (
             <textarea
               className="mt-1 w-full min-h-32 bg-surface/60 p-2 text-sm text-text-primary outline-none"
               value={description}
@@ -281,12 +324,12 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             <p className="mt-1 text-sm text-text-primary/90">{full.description}</p>
           )}
         </div>
-        {canEdit && editingText && (
+        {canEditContent && editingText && (
           <div>
             <button
               type="button"
               onClick={() => setAnnOpen((o) => !o)}
-              className="text-ui-mono text-[11px] text-text-muted hover:text-text-primary"
+              className="text-ui-mono text-xs text-text-muted hover:text-text-primary"
             >
               注释 {annOpen ? "▼" : "▶"}（不参与生图）
             </button>
@@ -303,9 +346,9 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             )}
           </div>
         )}
-        {isOwner && full.visibility === "public" && full.annotation && (
+        {isOwner && !editingText && full.annotation && (
           <div>
-            <p className="text-ui-mono text-[10px] text-text-muted">注释（已冻结）</p>
+            <p className="text-ui-mono text-xs text-text-muted">注释</p>
             <p className="mt-1 text-sm text-text-muted/90">{full.annotation}</p>
           </div>
         )}
@@ -318,7 +361,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
           coverImageId={full.coverImageId}
           onRefresh={() => void refetch()}
           onSetCover={async (imageId) => {
-            if (!canEdit) return;
+            if (!isOwner) return;
             await patchAsset(id, { coverImageId: imageId });
             void refetch();
           }}
@@ -326,7 +369,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             const { postImage } = await import("@/lib/api");
             return postImage(id, extra);
           }}
-          canGenerate={canEdit}
+          canGenerate={isOwner && isPrivateAsset}
         />
       </div>
     </div>

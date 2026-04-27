@@ -57,13 +57,16 @@ export async function getAssets(
   scope: "public" | "private",
   cursor?: string | null,
   limit = 24,
-  groupId?: string | null
+  groupId?: string | null,
+  /** My library: filter by material visibility */
+  visibility?: "private" | "public" | null
 ) {
   const u = new URL("/api/assets", window.location.origin);
   u.searchParams.set("scope", scope);
   u.searchParams.set("limit", String(limit));
   if (cursor) u.searchParams.set("cursor", cursor);
   if (groupId) u.searchParams.set("groupId", groupId);
+  if (visibility) u.searchParams.set("visibility", visibility);
   const r = await fetch(u, { credentials: "include" });
   if (!r.ok) throw new Error("assets");
   return r.json() as Promise<PaginatedAssets>;

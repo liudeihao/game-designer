@@ -23,6 +23,7 @@ type ExportPrompt =
   | { kind: "one"; draft: DraftAsset }
   | { kind: "all" }
   | { kind: "batch" };
+import { useDiscardEmptySessionOnLeave } from "@/hooks/useDiscardEmptySessionOnLeave";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ThemeSelect } from "@/components/ui/ThemeSelect";
@@ -82,6 +83,17 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
 
   const messages = useMemo(() => session?.messages ?? [], [session]);
   const draftAssets = session?.draftAssets ?? [];
+
+  const isEmptySessionDiscardable = useCallback(() => {
+    if (!session) return false;
+    if (streaming) return false;
+    if ((session.messages ?? []).some((m) => m.role === "user")) return false;
+    if (session.stagingGroup?.draftStaging !== "shared" && (session.draftAssets?.length ?? 0) > 0) {
+      return false;
+    }
+    return true;
+  }, [session, streaming]);
+  useDiscardEmptySessionOnLeave(id, isEmptySessionDiscardable);
 
   const selectedDrafts: DraftAsset[] = useMemo(
     () => draftAssets.filter((d) => selectedIds.includes(d.tempId)),

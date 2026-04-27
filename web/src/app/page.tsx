@@ -10,7 +10,7 @@ export default function HomePage() {
       <div className="flex flex-wrap items-center justify-center gap-4">
         <Link
           href="/explore"
-          className="rounded border border-accent bg-accent/10 px-6 py-2 text-ui-mono text-sm text-accent hover:bg-accent/20"
+          className="gd-btn-dataflow relative rounded border border-accent bg-accent/10 px-6 py-2 text-ui-mono text-sm text-accent hover:bg-accent/20"
         >
           探索公开库
         </Link>

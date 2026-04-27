@@ -88,7 +88,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="text-ui-mono w-full rounded border border-accent bg-accent/15 py-2 text-sm text-accent hover:bg-accent/25 disabled:opacity-50"
+          className="gd-btn-dataflow text-ui-mono w-full rounded border border-accent bg-accent/15 py-2 text-sm text-accent hover:bg-accent/25 disabled:opacity-50"
         >
           {loading ? "…" : "注册并登录"}
         </button>

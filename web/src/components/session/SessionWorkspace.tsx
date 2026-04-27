@@ -53,7 +53,19 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
 
   return (
     <div className="grid h-[calc(100vh-0px)] grid-cols-1 gap-0 lg:grid-cols-[58%_42%]">
-      <div className="flex min-h-0 flex-col border-r border-divider">
+      <div className="gd-editor-panel relative flex min-h-0 flex-col border-r border-divider">
+        <div className="pointer-events-none absolute inset-0 z-0">
+          <span className="gd-editor-panel__blade" aria-hidden />
+          <span className="gd-editor-panel__corners" aria-hidden />
+        </div>
+        <p className="text-ui-mono pointer-events-none absolute right-1.5 top-1 z-[1] text-[7px] tracking-wider text-accent/25">
+          {(() => {
+            let h = 0;
+            for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+            return ((h >>> 0) & 0xffff).toString(16).padStart(4, "0");
+          })()}
+        </p>
+        <div className="relative z-[2] flex min-h-0 flex-1 flex-col">
         <p className="text-ui-mono shrink-0 p-2 text-center text-[11px] text-text-muted/70">{session.title}</p>
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-2 [scrollbar-width:thin]">
           {session.messages.map((m) => (
@@ -136,12 +148,13 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
             />
             <button
               type="submit"
-              className="text-ui-mono mb-0.5 rounded border border-border px-3 py-1 text-sm hover:border-accent/40"
+              className="gd-btn-dataflow text-ui-mono mb-0.5 rounded border border-border px-3 py-1 text-sm hover:border-accent/40"
               disabled={streaming}
             >
               发送
             </button>
           </form>
+        </div>
         </div>
       </div>
       <aside className="min-h-0 border-l border-divider p-3 lg:border-l-0">

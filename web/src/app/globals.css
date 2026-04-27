@@ -43,23 +43,24 @@ html[data-gd-font="lg"] {
   font-size: 18px;
 }
 
-body {
+html {
+  min-height: 100%;
+  /* Deep base + dim accent/violet glows (depth, not surface noise) + subtle dot grid (CAD / canvas feel) */
   background-color: var(--bg-base);
+  background-image:
+    radial-gradient(ellipse 90% 55% at 0% 0%, rgba(0, 255, 178, 0.09), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(123, 94, 167, 0.07), transparent 55%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: auto, auto, 22px 22px;
+  background-attachment: fixed;
+}
+
+body {
+  background: transparent;
   color: var(--text-primary);
   font-family: var(--font-inter), system-ui, sans-serif;
   min-height: 100vh;
   position: relative;
-}
-
-/* Subtle global grain */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.03;
-  z-index: 1000;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
 }
 
 @layer components {
@@ -70,5 +71,86 @@ body::before {
   }
   .text-ui-mono {
     font-family: var(--font-dm-mono), ui-monospace, monospace;
+  }
+
+  /* AI session column: L-shaped corner marks (decorative layer is real DOM, not ::before) */
+  .gd-editor-panel {
+    position: relative;
+  }
+  .gd-editor-panel__blade {
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 0;
+    height: 1px;
+    width: 38%;
+    max-width: 12rem;
+    background: linear-gradient(90deg, #00ffb2, rgba(0, 255, 178, 0.2), transparent);
+    pointer-events: none;
+  }
+  .gd-editor-panel__corners {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .gd-editor-panel__corners::before,
+  .gd-editor-panel__corners::after {
+    content: "";
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-color: rgba(0, 255, 178, 0.4);
+    border-style: solid;
+  }
+  .gd-editor-panel__corners::before {
+    left: 0;
+    top: 0;
+    border-width: 1px 0 0 1px;
+  }
+  .gd-editor-panel__corners::after {
+    right: 0;
+    bottom: 0;
+    border-width: 0 1px 1px 0;
+  }
+
+  /* Click feedback: quick accent sweep (data / energy) instead of white flash */
+  .gd-btn-dataflow {
+    position: relative;
+    overflow: hidden;
+  }
+  .gd-btn-dataflow::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -45%;
+    width: 40%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      rgba(0, 255, 178, 0.2) 45%,
+      rgba(0, 255, 178, 0.45) 50%,
+      rgba(0, 255, 178, 0.2) 55%,
+      transparent 100%
+    );
+    opacity: 0;
+    transform: skewX(-14deg);
+    pointer-events: none;
+  }
+  .gd-btn-dataflow:active::after {
+    animation: gd-dataflow-sweep 0.48s ease-out;
+  }
+}
+
+@keyframes gd-dataflow-sweep {
+  0% {
+    left: -45%;
+    opacity: 0.85;
+  }
+  100% {
+    left: 120%;
+    opacity: 0;
   }
 }

@@ -55,7 +55,7 @@ export function ConfirmDialog({
                 "rounded px-3 py-1.5 text-[12px]",
                 tone === "danger"
                   ? "border border-error-dim/40 bg-error-dim/20 text-text-primary hover:bg-error-dim/30"
-                  : "border border-accent/50 bg-accent/15 text-accent hover:bg-accent/25"
+                  : "gd-btn-dataflow border border-accent/50 bg-accent/15 text-accent hover:bg-accent/25"
               )}
               onClick={() => {
                 void (async () => {

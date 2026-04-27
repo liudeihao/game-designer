@@ -57,7 +57,7 @@ export default function NewAssetPage() {
         <button
           type="submit"
           disabled={saving}
-          className="text-ui-mono rounded bg-accent/20 px-4 py-2 text-sm text-accent hover:bg-accent/30 disabled:opacity-50"
+          className="gd-btn-dataflow text-ui-mono rounded bg-accent/20 px-4 py-2 text-sm text-accent hover:bg-accent/30 disabled:opacity-50"
         >
           {saving ? "创建中…" : "创建"}
         </button>

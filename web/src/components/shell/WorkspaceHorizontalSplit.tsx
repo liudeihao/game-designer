@@ -55,7 +55,11 @@ export function WorkspaceHorizontalSplit({
     <Group
       id={storageKey}
       orientation="horizontal"
-      className={cn("flex h-full min-h-0 min-w-0 overflow-hidden", className)}
+      className={cn(
+        // isolate + panel z-0 so the Separator (higher z) stays above later flex siblings for hit-testing
+        "isolate flex h-full min-h-0 min-w-0 overflow-hidden [&>[data-panel]]:relative [&>[data-panel]]:z-0",
+        className
+      )}
       defaultLayout={defaultLayout}
       onLayoutChange={onLayoutChange}
       onLayoutChanged={onLayoutChanged}
@@ -75,7 +79,7 @@ export function WorkspaceHorizontalSplit({
         className={cn(
           // Wider hit band (px); thin line via ::before — mirror WorkspaceVerticalSplit py + before pattern.
           // Do not set flex-shrink here; the library owns flex-shrink on Separator (see package docs).
-          "relative z-20 box-border cursor-col-resize self-stretch px-2 outline-none",
+          "relative z-30 box-border cursor-col-resize self-stretch px-2 outline-none",
           "bg-transparent before:pointer-events-none",
           "before:absolute before:bottom-0 before:left-1/2 before:top-0 before:w-px before:-translate-x-1/2 before:bg-divider before:content-['']",
           "hover:before:bg-accent/45 focus-visible:before:bg-accent/55"

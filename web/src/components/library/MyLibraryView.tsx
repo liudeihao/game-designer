@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Settings } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useLayoutEffect } from "react";
 import { AssetGrid } from "@/components/asset/AssetGrid";
 import { useUiPreferences } from "@/components/providers/UiPreferencesProvider";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -32,11 +32,22 @@ function buildLibraryHref(opts: { group?: string; vis?: "private" | "public" | "
 
 const LIBRARY_CARD_SIZES = ["none", "sm", "md", "lg"] as const satisfies readonly GridCardSize[];
 
+/** Tailwind `lg` default (keep in sync with breakpoints). */
+const LG_MIN_PX = 1024;
+
 export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   const sp = useSearchParams();
   const group = sp.get("group") || "";
   const { prefs, setPrefs } = useUiPreferences();
   const qc = useQueryClient();
+  const [sidebarWide, setSidebarWide] = useState(true);
+  useLayoutEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${LG_MIN_PX}px)`);
+    const sync = () => setSidebarWide(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const { data: groupData, refetch: refetchGroups } = useQuery({
     queryKey: ["asset-groups"],
     queryFn: listAssetGroups,
@@ -278,18 +289,21 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
           void refetchGroups();
         }}
       />
-      <div className="min-h-0 flex-1 lg:hidden">{main}</div>
-      <div className="hidden min-h-0 min-w-0 flex-1 lg:flex">
-        <WorkspaceHorizontalSplit
-          storageKey="layout:library-sidebar"
-          leftDefaultSize={17.5}
-          leftMinSize={14}
-          rightMinSize={40}
-          className="min-h-0 min-w-0 flex-1"
-          left={sidebar}
-          right={main}
-        />
-      </div>
+      {sidebarWide ? (
+        <div className="flex min-h-0 min-w-0 flex-1">
+          <WorkspaceHorizontalSplit
+            storageKey="layout:library-sidebar"
+            leftDefaultSize={17.5}
+            leftMinSize={14}
+            rightMinSize={40}
+            className="min-h-0 min-w-0 flex-1"
+            left={sidebar}
+            right={main}
+          />
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1">{main}</div>
+      )}
     </div>
   );
 }

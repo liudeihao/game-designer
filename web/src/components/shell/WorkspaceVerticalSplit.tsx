@@ -55,7 +55,10 @@ export function WorkspaceVerticalSplit({
     <Group
       id={storageKey}
       orientation="vertical"
-      className={cn("h-full min-h-0 min-w-0 overflow-hidden", className)}
+      className={cn(
+        "isolate h-full min-h-0 min-w-0 overflow-hidden [&>[data-panel]]:relative [&>[data-panel]]:z-0",
+        className
+      )}
       defaultLayout={defaultLayout}
       onLayoutChange={onLayoutChange}
       onLayoutChanged={onLayoutChanged}
@@ -74,7 +77,7 @@ export function WorkspaceVerticalSplit({
         title="拖动调整聊天记录区与输入区比例"
         className={cn(
           // Tall-enough hit band; thin line drawn with ::before (library owns flex-shrink on Separator).
-          "relative z-20 box-border w-full cursor-row-resize py-2 outline-none",
+          "relative z-30 box-border w-full cursor-row-resize py-2 outline-none",
           "bg-transparent before:pointer-events-none",
           "before:absolute before:left-0 before:right-0 before:top-1/2 before:h-px before:-translate-y-1/2 before:bg-divider before:content-['']",
           "hover:before:bg-accent/45 focus-visible:before:bg-accent/55"

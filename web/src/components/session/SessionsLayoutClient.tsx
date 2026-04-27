@@ -2,9 +2,13 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { useLayoutEffect, useState } from "react";
 import { SessionListSidebar } from "./SessionListSidebar";
 import type { SessionSummary } from "@/lib/types";
 import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
+
+/** Tailwind `lg` default (keep in sync with breakpoints). */
+const LG_MIN_PX = 1024;
 
 export function SessionsLayoutClient({
   children,
@@ -13,6 +17,15 @@ export function SessionsLayoutClient({
   children: ReactNode;
   initialSessionList?: SessionSummary[];
 }) {
+  const [sidebarWide, setSidebarWide] = useState(true);
+  useLayoutEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${LG_MIN_PX}px)`);
+    const sync = () => setSidebarWide(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   const main = (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
   );
@@ -26,18 +39,21 @@ export function SessionsLayoutClient({
           新会话
         </Link>
       </div>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:hidden">{main}</div>
-      <div className="hidden min-h-0 min-w-0 flex-1 lg:flex lg:h-full">
-        <WorkspaceHorizontalSplit
-          storageKey="layout:sessions-list-sidebar"
-          leftDefaultSize={17.5}
-          leftMinSize={14}
-          rightMinSize={40}
-          className="h-full min-h-0 min-w-0 flex-1"
-          left={<SessionListSidebar initialSessionList={initialSessionList} />}
-          right={main}
-        />
-      </div>
+      {sidebarWide ? (
+        <div className="flex min-h-0 min-w-0 flex-1 lg:h-full">
+          <WorkspaceHorizontalSplit
+            storageKey="layout:sessions-list-sidebar"
+            leftDefaultSize={17.5}
+            leftMinSize={14}
+            rightMinSize={40}
+            className="h-full min-h-0 min-w-0 flex-1"
+            left={<SessionListSidebar initialSessionList={initialSessionList} />}
+            right={main}
+          />
+        </div>
+      ) : (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{main}</div>
+      )}
     </div>
   );
 }

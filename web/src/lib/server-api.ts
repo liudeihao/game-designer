@@ -1,11 +1,31 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import type { PaginatedAssets, Asset } from "./types";
 
-export async function serverFetch(path: string) {
+/** Server-side calls to the Go API. Uses API_URL (direct) so RSC does not rely on Next rewrites. Forwards cookies. */
+function serverApiBase(): string {
+  const fromEnv = process.env.API_URL ?? process.env.INTERNAL_API_URL;
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  return "http://127.0.0.1:8080";
+}
+
+export async function serverFetch(path: string, init?: RequestInit) {
+  const base = serverApiBase();
+  const pathPart = path.startsWith("/") ? path : `/${path}`;
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
   const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("host") ?? "localhost:3000";
-  return fetch(`${proto}://${host}${path}`, { cache: "no-store" });
+  const forwarded = h.get("x-forwarded-for");
+  const requestHeaders = new Headers(init?.headers);
+  if (cookieHeader) requestHeaders.set("cookie", cookieHeader);
+  if (forwarded) requestHeaders.set("x-forwarded-for", forwarded);
+  return fetch(`${base}${pathPart}`, {
+    ...init,
+    cache: "no-store",
+    headers: requestHeaders,
+  });
 }
 
 export async function getExploreAssets(): Promise<PaginatedAssets> {

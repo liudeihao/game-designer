@@ -1,4 +1,4 @@
-import type { Asset, DraftAsset, Me, PaginatedAssets, ProjectDetail, SessionDetail } from "./types";
+import type { Asset, DraftAsset, Me, PaginatedAssets, ProjectDetail, SessionDetail, SessionSummary } from "./types";
 
 const json = (r: Response) => r.json().catch(() => ({}));
 
@@ -81,7 +81,7 @@ export async function postImage(id: string, extraPrompt: string | null) {
 export async function listSessions() {
   const r = await fetch("/api/sessions", { credentials: "include" });
   if (!r.ok) throw new Error("sessions");
-  return r.json() as Promise<SessionDetail[]>;
+  return r.json() as Promise<SessionSummary[]>;
 }
 
 export async function getSession(id: string) {

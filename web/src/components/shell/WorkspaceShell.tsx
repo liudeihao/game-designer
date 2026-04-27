@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Box, Compass, LayoutGrid, MessageSquare, User, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { DevLoginButton } from "@/components/dev/DevLoginButton";
 
 const nav: { href: string; icon: LucideIcon; label: string }[] = [
   { href: "/explore", icon: Compass, label: "探索" },
@@ -54,6 +55,7 @@ export function WorkspaceShell({ children, hideNav }: { children: React.ReactNod
       >
         {children}
       </motion.main>
+      <DevLoginButton />
     </div>
   );
 }

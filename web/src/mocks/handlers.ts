@@ -1,6 +1,5 @@
 /**
- * MSW handlers mirror /api/* routes; use the same base URL in tests.
- * Runtime mock is implemented via Next.js route handlers (src/app/api) + src/server/mock-store.
+ * MSW handlers for unit tests. Production uses Next rewrites → Go, or RSC with API_URL to Go.
  */
 import { http, HttpResponse } from "msw";
 

@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gen:openapi": "openapi-typescript ../openapi/openapi.yaml -o src/lib/openapi-types.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -34,6 +35,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.15",
     "msw": "^2.13.6",
+    "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

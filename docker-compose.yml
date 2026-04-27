@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: game_designer
+    ports:
+      - "5432:5432"
+    volumes:
+      - game_designer_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d game_designer"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  game_designer_pg:

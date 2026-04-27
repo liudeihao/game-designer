@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { serverFetch } from "@/lib/server-api";
-import type { SessionDetail } from "@/lib/types";
+import type { SessionSummary } from "@/lib/types";
 
 async function load() {
   const r = await serverFetch("/api/sessions");
   if (!r.ok) return [];
-  return r.json() as Promise<SessionDetail[]>;
+  return r.json() as Promise<SessionSummary[]>;
 }
 
 export default async function SessionsPage() {

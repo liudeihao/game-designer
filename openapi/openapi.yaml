@@ -6,7 +6,7 @@ info:
     HTTP contract for assets, sessions, projects, and auth. Session cookie (HttpOnly) is the auth mechanism; browser sends Cookie automatically.
 servers:
   - url: /api
-    description: Next.js rewrites to backend; MSW uses same paths under /api
+    description: Next.js rewrites /api to Go; RSC may call Go directly (API_URL). MSW in tests uses same /api paths.
 tags:
   - name: me
   - name: assets
@@ -378,7 +378,7 @@ components:
       properties:
         id: { type: string }
         assetId: { type: string }
-        url: { type: string, description: CDN template, append ?w= }
+        url: { type: string, description: "CDN template, append ?w=" }
         extraPrompt: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
         generationStatus:

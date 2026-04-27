@@ -1,0 +1,46 @@
+name: CI
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Test and build backend
+        working-directory: backend
+        run: |
+          go test ./...
+          go build -o /dev/null ./cmd/server
+      - name: oapi-gen check (types_gen.go matches spec)
+        working-directory: backend
+        run: |
+          go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest -generate types -package oapigen -o /tmp/types_gen.go ../openapi/openapi.yaml
+          cmp -s internal/oapigen/types_gen.go /tmp/types_gen.go || (echo "Regenerate: cd backend/internal/oapigen && go generate" && diff -u internal/oapigen/types_gen.go /tmp/types_gen.go | head -200 && exit 1)
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install and build
+        working-directory: web
+        run: |
+          npm ci --legacy-peer-deps
+          npx tsc --noEmit
+          npm run build
+      - name: OpenAPI types check
+        working-directory: web
+        run: |
+          npm run gen:openapi
+          git diff --exit-code -- src/lib/openapi-types.ts

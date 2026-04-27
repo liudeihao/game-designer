@@ -160,6 +160,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
         title="发布到「探索」公开库？"
         description="确认后，本条将进入全站「探索」页，任何用户都可以浏览。发布为不可逆：展示用名称、描述、封面与图像将冻结，不可再编辑；若需修改或仅自己生图，须先「复制到私库」得到新私稿。发布后会移出你的私库分组。确定发布？"
         confirmLabel="发布到探索"
+        pendingLabel="发布中…"
         onConfirm={async () => {
           await publishAsset(id);
           void refetch();
@@ -172,6 +173,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
         title="确认复制到私库？"
         description="确认后会在你的私库中新建一条仅自己可见的素材副本（新 ID、独立编辑历史），可单独改名称、描述、封面、分组与注释。原素材不会删除；若当前在「探索」中公开，公开页仍保留。复制完成后会跳转到新素材页。"
         confirmLabel="确认复制"
+        pendingLabel="复制中…"
         onConfirm={async () => {
           const f = await forkAsset(id);
           window.location.href = `/library/assets/${f.id}`;

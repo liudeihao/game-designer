@@ -1,6 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 type Tone = "default" | "danger";
@@ -11,6 +12,8 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = "确定",
+  /** Shown on the confirm button while `onConfirm` is running */
+  pendingLabel = "处理中…",
   cancelLabel = "取消",
   tone = "default",
   onConfirm,
@@ -20,12 +23,25 @@ export function ConfirmDialog({
   title: string;
   description?: string;
   confirmLabel?: string;
+  pendingLabel?: string;
   cancelLabel?: string;
   tone?: Tone;
   onConfirm: () => void | Promise<void>;
 }) {
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open) setSubmitting(false);
+  }, [open]);
+
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && submitting) return;
+        onOpenChange(next);
+      }}
+    >
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/70 data-[state=open]:animate-in data-[state=closed]:animate-out" />
         <Dialog.Content
@@ -33,6 +49,7 @@ export function ConfirmDialog({
             "text-ui-mono fixed left-1/2 top-1/2 z-[101] w-[min(100%,22rem)] -translate-x-1/2 -translate-y-1/2 rounded-md border border-border bg-bg-base p-5 shadow-xl outline-none",
             "data-[state=open]:animate-in data-[state=closed]:animate-out"
           )}
+          aria-busy={submitting}
         >
           <Dialog.Title className="font-display text-lg text-text-primary">{title}</Dialog.Title>
           {description && (
@@ -40,35 +57,46 @@ export function ConfirmDialog({
               {description}
             </Dialog.Description>
           )}
+          {submitting && (
+            <p className="mt-3 text-[12px] text-accent" role="status">
+              请稍候，正在处理…
+            </p>
+          )}
           <div className="mt-5 flex justify-end gap-2">
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="rounded border border-border px-3 py-1.5 text-[12px] text-text-muted hover:text-text-primary"
+                disabled={submitting}
+                className="rounded border border-border px-3 py-1.5 text-[12px] text-text-muted hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {cancelLabel}
               </button>
             </Dialog.Close>
             <button
               type="button"
+              disabled={submitting}
               className={cn(
-                "rounded px-3 py-1.5 text-[12px]",
+                "rounded px-3 py-1.5 text-[12px] disabled:cursor-not-allowed disabled:opacity-60",
                 tone === "danger"
                   ? "border border-error-dim/40 bg-error-dim/20 text-text-primary hover:bg-error-dim/30"
                   : "gd-btn-dataflow border border-accent/50 bg-accent/15 text-accent hover:bg-accent/25"
               )}
               onClick={() => {
+                if (submitting) return;
                 void (async () => {
+                  setSubmitting(true);
                   try {
                     await onConfirm();
                     onOpenChange(false);
                   } catch {
                     /* keep open or toast */
+                  } finally {
+                    setSubmitting(false);
                   }
                 })();
               }}
             >
-              {confirmLabel}
+              {submitting ? pendingLabel : confirmLabel}
             </button>
           </div>
         </Dialog.Content>

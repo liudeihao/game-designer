@@ -45,14 +45,12 @@ export async function getExploreAssets(): Promise<PaginatedAssets | null> {
 
 export async function getMyLibraryAssetsInitial(
   groupId?: string | null,
-  visibility?: "private" | "public" | null,
-  imageNo?: boolean
+  visibility?: "private" | "public" | null
 ): Promise<PaginatedAssets | null> {
   try {
     let path = "/api/assets?scope=private&limit=24";
     if (groupId) path += `&groupId=${encodeURIComponent(groupId)}`;
     if (visibility) path += `&visibility=${encodeURIComponent(visibility)}`;
-    if (imageNo) path += `&img=no`;
     const r = await serverFetch(path);
     if (!r.ok) return null;
     return (await r.json()) as PaginatedAssets;

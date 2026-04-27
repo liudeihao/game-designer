@@ -20,7 +20,6 @@ export function AssetGrid({
   viewMode = "grid",
   gridSize = "md",
   libraryVisibility = null,
-  libraryImageNo = false,
 }: {
   scope: "public" | "private";
   className?: string;
@@ -32,16 +31,13 @@ export function AssetGrid({
   gridSize?: GridCardSize;
   /** 我的库: 仅自己可见 / 探索中（全站） / 未指定=全部 */
   libraryVisibility?: "private" | "public" | null;
-  /** 我的库: 仅无任何 asset_images 记录的素材 */
-  libraryImageNo?: boolean;
 }) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const groupKey = groupId ?? "all";
   const visKey = libraryVisibility ?? "all";
-  const imgKey = libraryImageNo ? "no" : "all";
   const showOwnerLibBadge = scope === "private";
   const q = useInfiniteQuery({
-    queryKey: ["assets", scope, groupKey, visKey, imgKey],
+    queryKey: ["assets", scope, groupKey, visKey],
     initialData:
       initialData != null
         ? {
@@ -56,8 +52,7 @@ export function AssetGrid({
         pageParam as string | null,
         24,
         groupId ?? undefined,
-        libraryVisibility ?? undefined,
-        libraryImageNo || undefined
+        libraryVisibility ?? undefined
       );
     },
     getNextPageParam: (last) => last.nextCursor,
@@ -83,6 +78,7 @@ export function AssetGrid({
 
   /** 宫格：flex 流式换行（左→右、自上而下），非 CSS multi-column / 非多列报版式。 */
   const flowItemW: Record<GridCardSize, string> = {
+    none: "w-full max-w-56 sm:w-56",
     sm: "w-full max-w-32 sm:w-32",
     md: "w-full max-w-48 sm:w-48",
     lg: "w-full max-w-64 sm:w-64",
@@ -110,7 +106,7 @@ export function AssetGrid({
               asset={a}
               href={`${itemHrefBase}/${a.id}`}
               variant={viewMode === "list" ? "compact" : "grid"}
-              gridSize={viewMode === "grid" ? gridSize : "md"}
+              gridSize={viewMode === "list" ? (gridSize === "none" ? "none" : "md") : gridSize}
               showOwnerLibraryBadge={showOwnerLibBadge}
             />
           </div>

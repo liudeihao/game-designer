@@ -19,6 +19,7 @@ export default function NewAssetPage() {
         className="mt-8 space-y-4"
         onSubmit={async (e) => {
           e.preventDefault();
+          if (saving) return;
           setErr(null);
           setSaving(true);
           try {
@@ -41,6 +42,7 @@ export default function NewAssetPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            disabled={saving}
             placeholder="例如：NEBULA GATE"
           />
         </div>
@@ -51,9 +53,15 @@ export default function NewAssetPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
+            disabled={saving}
           />
         </div>
         {err && <p className="text-ui-mono text-[12px] text-error-dim">{err}</p>}
+        {saving && (
+          <p className="text-ui-mono text-[12px] text-accent" role="status">
+            正在创建素材，请稍候…
+          </p>
+        )}
         <button
           type="submit"
           disabled={saving}

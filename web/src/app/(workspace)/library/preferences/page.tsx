@@ -53,7 +53,7 @@ export default function LibraryPreferencesPage() {
       </nav>
       <h1 className="font-display mt-2 text-3xl text-text-primary">显示与字体</h1>
       <p className="text-ui-mono mt-1 text-[12px] text-text-muted/90">
-        以下设置仅保存在本机浏览器，可配合「我的库」工具条调整宫格正方形缩略图档位与视图。
+        以下设置仅保存在本机浏览器，可配合「我的库」工具条调整宫格缩略图尺寸（含无缩略图）与视图。
       </p>
 
       <div className="mt-8 space-y-8 border-t border-border/60 pt-8">
@@ -68,12 +68,13 @@ export default function LibraryPreferencesPage() {
           ]}
         />
         <ScaleRow
-          label="素材宫格缩略图（正方形，三档等比例）"
+          label="素材宫格缩略图"
           value={prefs.libraryCardSize}
           onChange={(v) => setPrefs({ libraryCardSize: v as LibraryCardSize })}
           options={[
-            { v: "sm", t: "紧凑" },
-            { v: "md", t: "标准" },
+            { v: "none", t: "无缩略图" },
+            { v: "sm", t: "小" },
+            { v: "md", t: "中" },
             { v: "lg", t: "大" },
           ]}
         />

@@ -6,7 +6,6 @@ import { getAssets } from "@/lib/api";
 import type { PaginatedAssets } from "@/lib/types";
 import { AssetCard, type GridCardSize } from "./AssetCard";
 import { cn } from "@/lib/utils";
-import type { LibraryViewMode } from "@/lib/ui-preferences";
 
 /** Base path for detail links, e.g. "/library/assets" → href is `${base}/${id}`. Must be a string (not a function) so the grid can be used from RSC. */
 const DEFAULT_ASSET_HREF_BASE = "/library/assets";
@@ -17,7 +16,6 @@ export function AssetGrid({
   itemHrefBase = DEFAULT_ASSET_HREF_BASE,
   initialData,
   groupId,
-  viewMode = "grid",
   gridSize = "md",
   libraryVisibility = null,
 }: {
@@ -27,7 +25,6 @@ export function AssetGrid({
   initialData?: PaginatedAssets;
   /** Filter private list: group uuid, "ungrouped", or omit for all */
   groupId?: string | null;
-  viewMode?: LibraryViewMode;
   gridSize?: GridCardSize;
   /** 我的库: 仅自己可见 / 探索中（全站） / 未指定=全部 */
   libraryVisibility?: "private" | "public" | null;
@@ -84,10 +81,7 @@ export function AssetGrid({
     lg: "w-full max-w-64 sm:w-64",
   };
 
-  const colClass =
-    viewMode === "list"
-      ? "flex flex-col gap-2"
-      : cn("flex flex-wrap content-start items-start justify-start gap-4");
+  const colClass = "flex flex-wrap content-start items-start justify-start gap-4";
 
   return (
     <div className={cn("w-full", className)}>
@@ -98,15 +92,12 @@ export function AssetGrid({
       )}
       <div className={colClass}>
         {items.map((a) => (
-          <div
-            key={a.id}
-            className={viewMode === "list" ? "" : cn("shrink-0", flowItemW[gridSize])}
-          >
+          <div key={a.id} className={cn("shrink-0", flowItemW[gridSize])}>
             <AssetCard
               asset={a}
               href={`${itemHrefBase}/${a.id}`}
-              variant={viewMode === "list" ? "compact" : "grid"}
-              gridSize={viewMode === "list" ? (gridSize === "none" ? "none" : "md") : gridSize}
+              variant="grid"
+              gridSize={gridSize}
               showOwnerLibraryBadge={showOwnerLibBadge}
             />
           </div>

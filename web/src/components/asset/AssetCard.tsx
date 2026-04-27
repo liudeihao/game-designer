@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { GitFork, Layers, Sparkles } from "lucide-react";
+import { Layers } from "lucide-react";
 import type { Asset } from "@/lib/types";
 import { isAssetFull } from "@/lib/guards";
 import { cn } from "@/lib/utils";
@@ -157,13 +157,6 @@ export function AssetCard({
             <Layers className="h-3.5 w-3.5 text-accent" aria-label="有衍生" />
           </div>
         )}
-        <div className="flex items-center justify-between border-t border-white/[0.06] px-3 py-2 text-[11px] text-ui-mono text-text-muted/80">
-          <span className="truncate">@{full.authorId.replace("user-", "")}</span>
-          <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-            <GitFork className="h-3.5 w-3.5" />
-            <Sparkles className="h-3.5 w-3.5 text-ai-violet" />
-          </div>
-        </div>
       </Link>
     );
   }
@@ -211,13 +204,6 @@ export function AssetCard({
           <Layers className="h-3.5 w-3.5 text-accent" aria-label="有衍生" />
         </div>
       )}
-      <div className="flex items-center justify-between border-t border-white/[0.06] px-3 py-2 text-[11px] text-ui-mono text-text-muted/80">
-        <span className="truncate">@{full.authorId.replace("user-", "")}</span>
-        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-          <GitFork className="h-3.5 w-3.5" />
-          <Sparkles className="h-3.5 w-3.5 text-ai-violet" />
-        </div>
-      </div>
     </Link>
   );
 }

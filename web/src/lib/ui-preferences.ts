@@ -4,18 +4,15 @@ const KEY = "gd-ui-prefs";
 
 export type FontScale = "sm" | "md" | "lg";
 export type LibraryCardSize = "none" | "sm" | "md" | "lg";
-export type LibraryViewMode = "grid" | "list";
 
 export type UiPreferences = {
   fontScale: FontScale;
   libraryCardSize: LibraryCardSize;
-  libraryViewMode: LibraryViewMode;
 };
 
 const defaults: UiPreferences = {
   fontScale: "md",
   libraryCardSize: "md",
-  libraryViewMode: "grid",
 };
 
 function parse(raw: string | null): UiPreferences {
@@ -31,7 +28,6 @@ function parse(raw: string | null): UiPreferences {
         j.libraryCardSize === "lg"
           ? j.libraryCardSize
           : defaults.libraryCardSize,
-      libraryViewMode: j.libraryViewMode === "list" ? "list" : defaults.libraryViewMode,
     };
   } catch {
     return { ...defaults };

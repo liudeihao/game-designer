@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { LayoutGrid, List, Plus, Settings } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { useState, useCallback } from "react";
 import { AssetGrid } from "@/components/asset/AssetGrid";
 import { useUiPreferences } from "@/components/providers/UiPreferencesProvider";
@@ -222,30 +222,6 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-display text-2xl">我的库</h1>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="text-ui-mono flex items-center gap-0.5 rounded border border-border/50 p-0.5">
-              <button
-                type="button"
-                title="宫格"
-                onClick={() => setPrefs({ libraryViewMode: "grid" })}
-                className={cn(
-                  "rounded p-1.5",
-                  prefs.libraryViewMode === "grid" ? "bg-surface text-accent" : "text-text-muted"
-                )}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                title="列表"
-                onClick={() => setPrefs({ libraryViewMode: "list" })}
-                className={cn(
-                  "rounded p-1.5",
-                  prefs.libraryViewMode === "list" ? "bg-surface text-accent" : "text-text-muted"
-                )}
-              >
-                <List className="h-4 w-4" />
-              </button>
-            </div>
             <div
               className="text-ui-mono flex items-center gap-1 text-[11px] text-text-muted"
               title="无：不显示缩略图；小/中/大：宫格下正方形封面尺寸"
@@ -292,7 +268,6 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
           initialData={initialData}
           groupId={group || null}
           libraryVisibility={libraryVisibility}
-          viewMode={prefs.libraryViewMode}
           gridSize={prefs.libraryCardSize}
         />
       </div>

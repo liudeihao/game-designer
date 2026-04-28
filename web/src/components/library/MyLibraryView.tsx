@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LayoutGrid, List, Plus, Search, Settings } from "lucide-react";
 import { useState, useCallback, useLayoutEffect, useMemo, useEffect } from "react";
 import { AssetGrid } from "@/components/asset/AssetGrid";
-import { AssetInspectorPanel } from "@/components/library/AssetInspectorPanel";
 import { LibraryStashBar } from "@/components/library/LibraryStash";
 import { useUiPreferences } from "@/components/providers/UiPreferencesProvider";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -32,7 +31,6 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   const sp = useSearchParams();
   const router = useRouter();
   const group = sp.get("group") || "";
-  const inspectorAssetId = sp.get("asset")?.trim() || null;
   const sortParam = sp.get("sort")?.trim() || "created_desc";
   const qParam = sp.get("q")?.trim() || "";
   const tagIdParam = sp.get("tagId")?.trim() || "";
@@ -114,24 +112,8 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
     router.replace(mergeLibraryHref(sp, patch));
   }, [searchDraft, sp, router, tagCloud]);
 
-  const openInspector = useCallback(
-    (id: string) => {
-      const p = new URLSearchParams(sp.toString());
-      p.set("asset", id);
-      router.replace(`/library/assets?${p.toString()}`);
-    },
-    [sp, router]
-  );
-
-  const closeInspector = useCallback(() => {
-    const p = new URLSearchParams(sp.toString());
-    p.delete("asset");
-    const qs = p.toString();
-    router.replace(qs ? `/library/assets?${qs}` : "/library/assets");
-  }, [sp, router]);
-
   const sidebar = (
-    <aside className="gd-scrollbar box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto border-r border-divider p-4">
+    <aside className="gd-scrollbar box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto p-4">
         <p className="text-ui-mono text-xs uppercase tracking-wider text-text-muted">范围</p>
         <ul className="mt-1 space-y-0.5 text-ui-mono text-sm text-text-primary">
           <li>
@@ -377,8 +359,6 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
         gridSize={prefs.libraryCardSize}
         ownerLibraryBulkDelete
         detailSearch={assetDetailSearch}
-        cardInteraction="inspector"
-        onInspectAsset={openInspector}
         viewMode={prefs.libraryViewMode ?? "grid"}
         assetListFilters={assetListFilters}
         stashDragPayload={(id, name) => JSON.stringify({ id, name })}
@@ -386,24 +366,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
     </>
   );
 
-  const main = inspectorAssetId ? (
-    <WorkspaceHorizontalSplit
-      storageKey="layout:library-inspector"
-      leftDefaultSize={67}
-      leftMinSize={36}
-      rightMinSize={22}
-      rightClassName="border-l border-divider bg-bg-base"
-      className="min-h-0 min-w-0 flex-1"
-      left={
-        <div className="gd-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto px-4 pb-28 pt-6 lg:px-8">
-          {mainScroll}
-        </div>
-      }
-      right={
-        <AssetInspectorPanel assetId={inspectorAssetId} onClose={closeInspector} className="min-w-[260px]" />
-      }
-    />
-  ) : (
+  const main = (
     <div className="gd-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto px-4 pb-28 pt-6 lg:px-8">
       {mainScroll}
     </div>

@@ -151,6 +151,7 @@ export function WorkspaceShell({
             className={cn(
               "flex min-h-0 min-w-0 flex-1 flex-col",
               // Library + sessions: viewport height is fixed here; scroll only inside sidebar / main panels.
+              pathname.startsWith("/explore") ||
               pathname.startsWith("/library/assets") ||
               pathname.startsWith("/library/sessions") ||
               (pathname.startsWith("/projects/") &&

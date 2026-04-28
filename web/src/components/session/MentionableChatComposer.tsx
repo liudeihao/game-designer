@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { ProjectLinkedAsset } from "@/lib/types";
 import {
@@ -39,27 +40,39 @@ export function MentionableChatComposer({ disabled, placeholder, mentionAssets, 
 
   /** Must use live `text` + `caret` from the textarea/event — React `input` state lags one frame behind. */
   const syncPicker = useCallback((text: string, caret: number) => {
-    const ta = taRef.current;
     const mq = getActiveMentionQuery(text, caret);
     if (mq) {
       setMentionStart(mq.start);
       setMentionQuery(mq.query);
       setPickerOpen(true);
       setHighlight(0);
-      if (ta) {
-        const r = ta.getBoundingClientRect();
-        setPickerPos({
-          top: r.bottom + 4,
-          left: r.left,
-          width: Math.min(320, Math.max(r.width, 240)),
-        });
-      }
     } else {
       setPickerOpen(false);
       setMentionStart(null);
       setMentionQuery("");
     }
   }, []);
+
+  useLayoutEffect(() => {
+    if (!pickerOpen) {
+      setPickerPos(null);
+      return;
+    }
+    const ta = taRef.current;
+    if (!ta) return;
+    const r = ta.getBoundingClientRect();
+    const maxH = 208;
+    let top = r.bottom + 4;
+    if (top + maxH > window.innerHeight - 8) {
+      top = Math.max(8, r.top - maxH - 4);
+    }
+    const width = Math.min(320, Math.max(r.width, 240));
+    setPickerPos({
+      top,
+      left: Math.max(8, Math.min(r.left, window.innerWidth - width - 8)),
+      width,
+    });
+  }, [pickerOpen, input]);
 
   const syncPickerFromDom = useCallback(() => {
     const ta = taRef.current;
@@ -163,71 +176,74 @@ export function MentionableChatComposer({ disabled, placeholder, mentionAssets, 
         </button>
       </form>
 
-      {pickerOpen && pickerPos ? (
-        <ul
-          ref={listRef}
-          id="gd-chat-mention-list"
-          role="listbox"
-          aria-label="引用素材"
-          className={cn(
-            "text-ui-mono fixed z-[300] max-h-52 overflow-y-auto rounded-lg border border-border bg-bg-base py-1 shadow-xl",
-            "gd-scrollbar"
-          )}
-          style={{
-            top: pickerPos.top,
-            left: pickerPos.left,
-            width: pickerPos.width,
-          }}
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          {mentionAssets.length === 0 ? (
-            <li className="px-3 py-2 text-xs leading-relaxed text-text-muted">
-              暂无引用素材。请先到左侧「引用素材」标签从「我的库」添加。
-            </li>
-          ) : filtered.length === 0 ? (
-            <li className="px-3 py-2 text-xs text-text-muted">没有匹配的素材</li>
-          ) : (
-            filtered.map((a, idx) => {
-              const ch = [...a.name.trim()][0] ?? "?";
-              return (
-                <li key={a.id} role="option" aria-selected={idx === highlight}>
-                  <button
-                    type="button"
-                    data-idx={idx}
-                    className={cn(
-                      "flex w-full items-start gap-2 px-2 py-1.5 text-left text-xs outline-none",
-                      idx === highlight ? "bg-accent/15 text-text-primary" : "text-text-primary/90"
-                    )}
-                    onMouseEnter={() => setHighlight(idx)}
-                    onClick={() => insertMention(a)}
-                  >
-                    {a.coverImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={a.coverImageUrl}
-                        alt=""
-                        className="mt-0.5 h-8 w-8 shrink-0 rounded object-cover"
-                      />
-                    ) : (
-                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded bg-accent/15 text-[11px] font-medium text-accent">
-                        {ch}
-                      </span>
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className="line-clamp-1 font-medium">{a.name}</span>
-                      {a.description.trim() ? (
-                        <span className="mt-0.5 line-clamp-1 text-[11px] text-text-muted">
-                          {a.description}
-                        </span>
-                      ) : null}
-                    </span>
-                  </button>
+      {pickerOpen && pickerPos && typeof document !== "undefined"
+        ? createPortal(
+            <ul
+              ref={listRef}
+              id="gd-chat-mention-list"
+              role="listbox"
+              aria-label="引用素材"
+              className={cn(
+                "text-ui-mono fixed z-[10000] max-h-52 overflow-y-auto rounded-lg border border-border bg-bg-base py-1 shadow-xl",
+                "gd-scrollbar"
+              )}
+              style={{
+                top: pickerPos.top,
+                left: pickerPos.left,
+                width: pickerPos.width,
+              }}
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              {mentionAssets.length === 0 ? (
+                <li className="px-3 py-2 text-xs leading-relaxed text-text-muted">
+                  暂无引用素材。请先到左侧「引用素材」标签从「我的库」添加。
                 </li>
-              );
-            })
-          )}
-        </ul>
-      ) : null}
+              ) : filtered.length === 0 ? (
+                <li className="px-3 py-2 text-xs text-text-muted">没有匹配的素材</li>
+              ) : (
+                filtered.map((a, idx) => {
+                  const ch = [...a.name.trim()][0] ?? "?";
+                  return (
+                    <li key={a.id} role="option" aria-selected={idx === highlight}>
+                      <button
+                        type="button"
+                        data-idx={idx}
+                        className={cn(
+                          "flex w-full items-start gap-2 px-2 py-1.5 text-left text-xs outline-none",
+                          idx === highlight ? "bg-accent/15 text-text-primary" : "text-text-primary/90"
+                        )}
+                        onMouseEnter={() => setHighlight(idx)}
+                        onClick={() => insertMention(a)}
+                      >
+                        {a.coverImageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={a.coverImageUrl}
+                            alt=""
+                            className="mt-0.5 h-8 w-8 shrink-0 rounded object-cover"
+                          />
+                        ) : (
+                          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded bg-accent/15 text-[11px] font-medium text-accent">
+                            {ch}
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="line-clamp-1 font-medium">{a.name}</span>
+                          {a.description.trim() ? (
+                            <span className="mt-0.5 line-clamp-1 text-[11px] text-text-muted">
+                              {a.description}
+                            </span>
+                          ) : null}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })
+              )}
+            </ul>,
+            document.body
+          )
+        : null}
     </>
   );
 }

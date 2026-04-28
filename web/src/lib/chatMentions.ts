@@ -40,8 +40,9 @@ export function getActiveMentionQuery(text: string, caret: number): MentionQuery
   const at = Math.max(atAscii, atWide);
   if (at === -1) return null;
   if (at > 0) {
-    const prev = before[at - 1];
-    if (prev !== undefined && !/\s/.test(prev)) return null;
+    const prev = before[at - 1]!;
+    /* Allow CJK / punctuation before @; only block ASCII alnum (e.g. email "a@b"). */
+    if (/[a-zA-Z0-9]/.test(prev)) return null;
   }
   const afterAt = before.slice(at + 1);
   if (afterAt.includes("\n")) return null;

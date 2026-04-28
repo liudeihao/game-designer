@@ -863,6 +863,7 @@ func (s *Server) getForks(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "direction required", "bad_request")
 		return
 	}
+	viewer, _ := s.sessionUserID(r)
 	nodes := []any{}
 	if dir == "upstream" {
 		var forkedFrom sql.NullString
@@ -876,7 +877,7 @@ func (s *Server) getForks(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, 200, map[string]any{"direction": dir, "nodes": nodes})
 			return
 		}
-		n, err := s.forkNode(ctx, pid)
+		n, err := s.forkNode(ctx, pid, viewer)
 		if err == nil && n != nil {
 			nodes = append(nodes, n)
 		}
@@ -887,7 +888,7 @@ func (s *Server) getForks(w http.ResponseWriter, r *http.Request) {
 			for rows.Next() {
 				var cid uuid.UUID
 				_ = rows.Scan(&cid)
-				n, _ := s.forkNode(ctx, cid)
+				n, _ := s.forkNode(ctx, cid, viewer)
 				if n != nil {
 					nodes = append(nodes, n)
 				}
@@ -897,34 +898,54 @@ func (s *Server) getForks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"direction": dir, "nodes": nodes})
 }
 
-func (s *Server) forkNode(ctx context.Context, id uuid.UUID) (map[string]any, error) {
-	row := s.pool.QueryRow(ctx, `SELECT name, visibility, forked_from_id::text, deleted_at FROM assets WHERE id = $1`, id)
+// forkNode shapes GET /assets/{id}/forks nodes; visibility matches fork graph (no name/cover for unreadable private).
+func (s *Server) forkNode(ctx context.Context, id uuid.UUID, viewer uuid.UUID) (map[string]any, error) {
 	var name, vis string
 	var forked sql.NullString
 	var del sql.NullTime
-	err := row.Scan(&name, &vis, &forked, &del)
+	var author uuid.UUID
+	var cover sql.NullString
+	err := s.pool.QueryRow(ctx, `
+		SELECT a.name, a.visibility::text, a.forked_from_id::text, a.deleted_at, a.author_id,
+			COALESCE(
+				(SELECT url FROM asset_images WHERE id = a.cover_image_id LIMIT 1),
+				(SELECT url FROM asset_images WHERE asset_id = a.id ORDER BY created_at ASC LIMIT 1)
+			)
+		FROM assets a WHERE a.id = $1
+	`, id).Scan(&name, &vis, &forked, &del, &author, &cover)
 	if err != nil {
 		return nil, err
+	}
+	fk := any(nil)
+	if forked.Valid {
+		fk = forked.String
 	}
 	if vis == "deleted" {
 		dt := any(nil)
 		if del.Valid {
 			dt = del.Time.Format(time.RFC3339)
 		}
-		fk := any(nil)
-		if forked.Valid {
-			fk = forked.String
-		}
 		return map[string]any{
 			"id": id.String(), "name": "", "visibility": "deleted", "forkedFromId": fk, "deletedAt": dt,
+			"coverImageUrl": nil,
 		}, nil
 	}
-	fk := any(nil)
-	if forked.Valid {
-		fk = forked.String
+	readable := vis == "public" || (viewer != uuid.Nil && viewer == author)
+	if !readable {
+		return map[string]any{
+			"id": id.String(), "name": "", "visibility": "private",
+			"forkedFromId": fk, "deletedAt": nil,
+			"coverImageUrl": nil,
+		}, nil
+	}
+	cov := any(nil)
+	if cover.Valid {
+		cov = cover.String
 	}
 	return map[string]any{
-		"id": id.String(), "name": name, "visibility": vis, "forkedFromId": fk, "deletedAt": nil,
+		"id": id.String(), "name": name, "visibility": vis,
+		"forkedFromId": fk, "deletedAt": nil,
+		"coverImageUrl": cov,
 	}, nil
 }
 

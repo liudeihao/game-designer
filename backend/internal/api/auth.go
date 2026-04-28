@@ -1,9 +1,12 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -33,9 +36,7 @@ type loginBody struct {
 	Password string `json:"password"`
 }
 
-type mePatchBody struct {
-	DisplayName *string `json:"displayName"`
-}
+const maxProfileMediaURL = 2048
 
 func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	var b registerBody
@@ -144,26 +145,106 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func parseOptionalProfileURL(raw json.RawMessage) (set bool, val any, err error) {
+	if len(raw) == 0 {
+		return false, nil, nil
+	}
+	if bytes.Equal(raw, []byte("null")) {
+		return true, nil, nil
+	}
+	var s string
+	if err := json.Unmarshal(raw, &s); err != nil {
+		return false, nil, err
+	}
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return true, nil, nil
+	}
+	if len(s) > maxProfileMediaURL {
+		return false, nil, errors.New("url too long")
+	}
+	low := strings.ToLower(s)
+	if !strings.HasPrefix(low, "https://") && !strings.HasPrefix(low, "http://") {
+		return false, nil, errors.New("avatarUrl and coverUrl must be http(s) URLs")
+	}
+	return true, s, nil
+}
+
 func (s *Server) patchMe(w http.ResponseWriter, r *http.Request) {
 	uid, _ := userID(r.Context())
-	var b mePatchBody
-	if err := readJSON(r, &b); err != nil {
+	var raw map[string]json.RawMessage
+	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 		writeErr(w, http.StatusBadRequest, "invalid json", "bad_request")
 		return
 	}
-	if b.DisplayName == nil {
-		writeErr(w, http.StatusBadRequest, "displayName is required (use empty string to clear)", "bad_request")
+	if len(raw) == 0 {
+		writeErr(w, http.StatusBadRequest, "at least one field required", "bad_request")
 		return
 	}
-	v := strings.TrimSpace(*b.DisplayName)
-	var disp any
-	if v == "" {
-		disp = nil
-	} else {
-		disp = v
+	var sets []string
+	var args []any
+	n := 1
+	if v, ok := raw["displayName"]; ok {
+		var disp any
+		if bytes.Equal(v, []byte("null")) {
+			disp = nil
+		} else {
+			var dn string
+			if err := json.Unmarshal(v, &dn); err != nil {
+				writeErr(w, http.StatusBadRequest, "displayName invalid", "bad_request")
+				return
+			}
+			dn = strings.TrimSpace(dn)
+			if dn == "" {
+				disp = nil
+			} else {
+				if utf8.RuneCountInString(dn) > 80 {
+					writeErr(w, http.StatusBadRequest, "displayName too long", "bad_request")
+					return
+				}
+				disp = dn
+			}
+		}
+		sets = append(sets, fmt.Sprintf("display_name = $%d", n))
+		args = append(args, disp)
+		n++
+	}
+	if v, ok := raw["avatarUrl"]; ok {
+		okURL, val, err := parseOptionalProfileURL(v)
+		if err != nil {
+			writeErr(w, http.StatusBadRequest, err.Error(), "bad_request")
+			return
+		}
+		if !okURL {
+			writeErr(w, http.StatusBadRequest, "avatarUrl invalid", "bad_request")
+			return
+		}
+		sets = append(sets, fmt.Sprintf("avatar_url = $%d", n))
+		args = append(args, val)
+		n++
+	}
+	if v, ok := raw["coverUrl"]; ok {
+		okURL, val, err := parseOptionalProfileURL(v)
+		if err != nil {
+			writeErr(w, http.StatusBadRequest, err.Error(), "bad_request")
+			return
+		}
+		if !okURL {
+			writeErr(w, http.StatusBadRequest, "coverUrl invalid", "bad_request")
+			return
+		}
+		sets = append(sets, fmt.Sprintf("cover_url = $%d", n))
+		args = append(args, val)
+		n++
+	}
+	if len(sets) == 0 {
+		writeErr(w, http.StatusBadRequest, "no recognized fields", "bad_request")
+		return
 	}
 	ctx := r.Context()
-	_, err := s.pool.Exec(ctx, `UPDATE users SET display_name = $1 WHERE id = $2`, disp, uid)
+	args = append(args, uid)
+	q := fmt.Sprintf("UPDATE users SET %s WHERE id = $%d", strings.Join(sets, ", "), n)
+	_, err := s.pool.Exec(ctx, q, args...)
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, err.Error(), "internal")
 		return
@@ -184,11 +265,16 @@ func (s *Server) getUserPublic(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	var id uuid.UUID
-	var displayName sql.NullString
+	var displayName, avatarURL, coverURL sql.NullString
 	var u string
-	err := s.pool.QueryRow(ctx,
-		`SELECT id, username, display_name FROM users WHERE username = $1`, name,
-	).Scan(&id, &u, &displayName)
+	var pubCount, forkSum, projCount int64
+	err := s.pool.QueryRow(ctx, `
+		SELECT u.id, u.username, u.display_name, u.avatar_url, u.cover_url,
+			(SELECT count(*)::bigint FROM assets a WHERE a.author_id = u.id AND a.visibility = 'public' AND a.deleted_at IS NULL),
+			(SELECT COALESCE(sum(a.fork_count), 0)::bigint FROM assets a WHERE a.author_id = u.id AND a.visibility = 'public' AND a.deleted_at IS NULL),
+			(SELECT count(*)::bigint FROM projects p WHERE p.user_id = u.id)
+		FROM users u WHERE u.username = $1`, name,
+	).Scan(&id, &u, &displayName, &avatarURL, &coverURL, &pubCount, &forkSum, &projCount)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeErr(w, http.StatusNotFound, "not found", "not_found")
@@ -201,9 +287,25 @@ func (s *Server) getUserPublic(w http.ResponseWriter, r *http.Request) {
 	if displayName.Valid {
 		dn = displayName.String
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	out := map[string]any{
 		"id": id.String(), "username": u, "displayName": dn,
-	})
+		"stats": map[string]any{
+			"publicAssets":  pubCount,
+			"forksReceived": forkSum,
+			"projects":      projCount,
+		},
+	}
+	if avatarURL.Valid {
+		out["avatarUrl"] = avatarURL.String
+	} else {
+		out["avatarUrl"] = nil
+	}
+	if coverURL.Valid {
+		out["coverUrl"] = coverURL.String
+	} else {
+		out["coverUrl"] = nil
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func isPGUnique(err error) bool {
@@ -235,8 +337,10 @@ func (s *Server) createSessionForUser(w http.ResponseWriter, ctx context.Context
 
 func (s *Server) meMap(ctx context.Context, id uuid.UUID) (map[string]any, error) {
 	var username string
-	var displayName sql.NullString
-	err := s.pool.QueryRow(ctx, `SELECT username, display_name FROM users WHERE id = $1`, id).Scan(&username, &displayName)
+	var displayName, avatarURL, coverURL sql.NullString
+	err := s.pool.QueryRow(ctx,
+		`SELECT username, display_name, avatar_url, cover_url FROM users WHERE id = $1`, id,
+	).Scan(&username, &displayName, &avatarURL, &coverURL)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +348,18 @@ func (s *Server) meMap(ctx context.Context, id uuid.UUID) (map[string]any, error
 	if displayName.Valid {
 		dn = displayName.String
 	}
-	return map[string]any{
+	out := map[string]any{
 		"id": id.String(), "username": username, "displayName": dn,
-	}, nil
+	}
+	if avatarURL.Valid {
+		out["avatarUrl"] = avatarURL.String
+	} else {
+		out["avatarUrl"] = nil
+	}
+	if coverURL.Valid {
+		out["coverUrl"] = coverURL.String
+	} else {
+		out["coverUrl"] = nil
+	}
+	return out, nil
 }

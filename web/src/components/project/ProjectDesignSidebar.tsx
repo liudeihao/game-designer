@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Check, MoreVertical, Search, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import {
   createProjectSession,
   deleteSession,
@@ -45,6 +45,27 @@ const sessionOverflowMenuClass =
 const tabBtn =
   "text-ui-mono flex-1 rounded-md px-2 py-1.5 text-xs outline-none transition focus-visible:ring-2 focus-visible:ring-accent/40";
 
+const sidebarTabStorageKey = (projectId: string) => `gd-project-design-sidebar-tab:${projectId}`;
+
+function readStoredSidebarTab(projectId: string): "sessions" | "assets" {
+  if (typeof window === "undefined") return "sessions";
+  try {
+    return sessionStorage.getItem(sidebarTabStorageKey(projectId)) === "assets"
+      ? "assets"
+      : "sessions";
+  } catch {
+    return "sessions";
+  }
+}
+
+function writeStoredSidebarTab(projectId: string, tab: "sessions" | "assets") {
+  try {
+    sessionStorage.setItem(sidebarTabStorageKey(projectId), tab);
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
 export function ProjectDesignSidebar({
   projectId,
   sessionId,
@@ -69,7 +90,9 @@ export function ProjectDesignSidebar({
     [project]
   );
 
-  const [sidebarTab, setSidebarTab] = useState<"sessions" | "assets">("sessions");
+  const [sidebarTab, setSidebarTab] = useState<"sessions" | "assets">(() =>
+    readStoredSidebarTab(projectId)
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [linkedQuery, setLinkedQuery] = useState("");
   const [linkBusy, setLinkBusy] = useState(false);
@@ -80,6 +103,15 @@ export function ProjectDesignSidebar({
 
   useEffect(() => {
     setPinnedSessionIds(readProjectPinnedSessionIds(projectId));
+  }, [projectId]);
+
+  useEffect(() => {
+    setSidebarTab(readStoredSidebarTab(projectId));
+  }, [projectId]);
+
+  const persistSidebarTab = useCallback((tab: "sessions" | "assets") => {
+    setSidebarTab(tab);
+    writeStoredSidebarTab(projectId, tab);
   }, [projectId]);
 
   const sortedThreads = useMemo(
@@ -177,7 +209,7 @@ export function ProjectDesignSidebar({
                 ? "border border-accent/30 bg-accent/10 text-accent"
                 : "border border-transparent text-text-muted hover:text-text-primary"
             )}
-            onClick={() => setSidebarTab("sessions")}
+            onClick={() => persistSidebarTab("sessions")}
           >
             会话
           </button>
@@ -191,7 +223,7 @@ export function ProjectDesignSidebar({
                 ? "border border-accent/30 bg-accent/10 text-accent"
                 : "border border-transparent text-text-muted hover:text-text-primary"
             )}
-            onClick={() => setSidebarTab("assets")}
+            onClick={() => persistSidebarTab("assets")}
           >
             引用素材
             {linked.length > 0 ? (

@@ -22,6 +22,9 @@ type Props = {
   bottomDefaultSize?: number;
   topMinSize?: number;
   bottomMinSize?: number;
+  /** Override drag handle hints (defaults: chat history vs composer). */
+  separatorAriaLabel?: string;
+  separatorTitle?: string;
   className?: string;
   topClassName?: string;
   bottomClassName?: string;
@@ -38,6 +41,8 @@ export function WorkspaceVerticalSplit({
   bottomDefaultSize,
   topMinSize = 18,
   bottomMinSize = 10,
+  separatorAriaLabel = "拖动调整上下区域高度",
+  separatorTitle = "拖动调整聊天记录区与输入区比例",
   className,
   topClassName,
   bottomClassName,
@@ -73,8 +78,8 @@ export function WorkspaceVerticalSplit({
         {top}
       </Panel>
       <Separator
-        aria-label="拖动调整上下区域高度"
-        title="拖动调整聊天记录区与输入区比例"
+        aria-label={separatorAriaLabel}
+        title={separatorTitle}
         className={cn(
           // Tall-enough hit band; thin line drawn with ::before (library owns flex-shrink on Separator).
           "relative z-30 box-border w-full cursor-row-resize py-2 outline-none",

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Check, ChevronDown, ChevronRight, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useEffect, useState, type KeyboardEvent } from "react";
+import { Check, ChevronDown, ChevronRight, MoreVertical, Pencil, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import {
   listSessions,
   listSessionStagingGroups,
@@ -18,6 +18,17 @@ import {
 import type { SessionStagingGroup, SessionSummary, StagingGroupDraft } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import {
+  sessionSidebarNavListClass,
+  sessionSidebarNewSessionLinkClass,
+  sessionSidebarSessionLinkClass,
+} from "@/components/session/sessionSidebarNavStyles";
+import {
+  readLibraryPinnedSessionIds,
+  sortSessionsByPinnedOrder,
+  togglePinnedId,
+  writeLibraryPinnedSessionIds,
+} from "@/components/session/sessionSidebarPinned";
 
 type InlineRename =
   | { kind: "group"; id: string; value: string }
@@ -50,6 +61,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupMode, setNewGroupMode] = useState<StagingGroupDraft>("independent");
   const [createGroupBusy, setCreateGroupBusy] = useState(false);
+  const [pinnedSessionIds, setPinnedSessionIds] = useState<string[]>([]);
 
   const isNew = pathname === "/library/sessions/new";
   const isArchive = pathname.startsWith("/library/sessions/archive");
@@ -70,6 +82,20 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
 
   const ungrouped = sessionRows.filter((s) => !s.stagingGroup?.id);
   const inGroup = (gid: string) => sessionRows.filter((s) => s.stagingGroup?.id === gid);
+
+  useEffect(() => {
+    setPinnedSessionIds(readLibraryPinnedSessionIds());
+  }, []);
+
+  const sortedUngrouped = useMemo(
+    () => sortSessionsByPinnedOrder(ungrouped, pinnedSessionIds),
+    [ungrouped, pinnedSessionIds]
+  );
+
+  const persistLibraryPins = (next: string[]) => {
+    setPinnedSessionIds(next);
+    writeLibraryPinnedSessionIds(next);
+  };
 
   useEffect(() => {
     if (!activeSessionId) return;
@@ -141,7 +167,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
   };
 
   const iconBtn =
-    "flex h-7 w-7 shrink-0 items-center justify-center rounded text-text-muted hover:bg-white/5 hover:text-text-primary disabled:opacity-40";
+    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-white/5 hover:text-text-primary disabled:opacity-40";
 
   /** Show row actions when this row is current route target, on hover, or when focus is inside (keyboard). */
   const rowActionsClass = (active: boolean) =>
@@ -150,23 +176,23 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
       active && "opacity-100"
     );
 
-  const renderSessionRow = (s: SessionSummary, compact: boolean) => {
+  const sessionOverflowMenuClass =
+    "text-ui-mono z-[200] min-w-[9.5rem] rounded-md border border-border bg-bg-base p-1 shadow-lg";
+
+  const renderSessionRow = (s: SessionSummary) => {
     const sessionEdit =
       inlineRename?.kind === "session" && inlineRename.id === s.id ? inlineRename : null;
     const editing = !!sessionEdit;
+    const rowActive = activeSessionId === s.id;
+    const isPinned = pinnedSessionIds.includes(s.id);
     return (
       <li key={s.id}>
-        <div
-          className={cn(
-            "group flex min-w-0 items-center gap-0.5 rounded",
-            compact ? "py-0.5 pl-0.5 pr-0" : "px-1 py-0.5"
-          )}
-        >
+        <div className="group flex min-w-0 items-center gap-0.5">
           {editing ? (
             <input
               autoFocus
               disabled={renameBusy}
-              className="text-ui-mono min-w-0 flex-1 rounded border border-accent/40 bg-surface/60 px-1.5 py-1 text-xs text-text-primary outline-none focus:border-accent"
+              className="text-ui-mono min-w-0 flex-1 rounded-xl border border-accent/40 bg-surface/60 px-3 py-2 text-[15px] text-text-primary outline-none focus:border-accent"
               value={sessionEdit.value}
               maxLength={200}
               aria-label="会话名称"
@@ -179,15 +205,9 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
             <Link
               href={`/library/sessions/${s.id}`}
               title={s.title}
-              className={cn(
-                "min-w-0 flex-1 truncate rounded px-1 py-1",
-                compact ? "pl-0.5" : "",
-                activeSessionId === s.id
-                  ? "bg-accent/10 text-accent"
-                  : "text-text-muted hover:text-text-primary"
-              )}
+              className={cn("font-display", sessionSidebarSessionLinkClass(rowActive))}
             >
-              {s.title}
+              <span className="min-w-0 truncate">{s.title}</span>
             </Link>
           )}
           {editing ? (
@@ -200,7 +220,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
                 disabled={renameBusy || !sessionEdit.value.trim()}
                 onClick={() => void commitSessionRename()}
               >
-                <Check className="h-3.5 w-3.5 text-accent" aria-hidden />
+                <Check className="h-4 w-4 text-accent" aria-hidden />
               </button>
               <button
                 type="button"
@@ -210,40 +230,55 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
                 disabled={renameBusy}
                 onClick={cancelInlineRename}
               >
-                <X className="h-3.5 w-3.5" aria-hidden />
+                <X className="h-4 w-4" aria-hidden />
               </button>
             </>
           ) : (
-            <span className={rowActionsClass(activeSessionId === s.id)}>
-              <button
-                type="button"
-                className={iconBtn}
-                title="重命名"
-                aria-label={`重命名「${s.title}」`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setInlineRename({ kind: "session", id: s.id, value: s.title });
-                }}
-              >
-                <Pencil className="h-3 w-3 opacity-80" aria-hidden />
-              </button>
-              <button
-                type="button"
-                className={cn(iconBtn, "hover:text-error-dim")}
-                title="删除会话"
-                aria-label={`删除会话「${s.title}」`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setSessionToDelete({
-                    id: s.id,
-                    title: s.title,
-                    draftCount: s.draftAssetCount,
-                  });
-                }}
-              >
-                <Trash2 className="h-3 w-3" aria-hidden />
-              </button>
-            </span>
+            <DropdownMenu.Root modal={false}>
+              <DropdownMenu.Trigger asChild>
+                <button
+                  type="button"
+                  className={cn(iconBtn, "text-text-muted/80 hover:text-text-primary")}
+                  aria-label={`「${s.title}」更多操作`}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-4 w-4" aria-hidden />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  className={sessionOverflowMenuClass}
+                  sideOffset={4}
+                  align="end"
+                  collisionPadding={8}
+                >
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-white/5"
+                    onSelect={() => persistLibraryPins(togglePinnedId(pinnedSessionIds, s.id))}
+                  >
+                    {isPinned ? "取消固定" : "固定"}
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-white/5"
+                    onSelect={() => setInlineRename({ kind: "session", id: s.id, value: s.title })}
+                  >
+                    重命名
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className="cursor-pointer rounded px-2 py-1.5 text-sm text-error-dim outline-none data-[highlighted]:bg-white/5"
+                    onSelect={() =>
+                      setSessionToDelete({
+                        id: s.id,
+                        title: s.title,
+                        draftCount: s.draftAssetCount,
+                      })
+                    }
+                  >
+                    删除
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
           )}
         </div>
       </li>
@@ -260,8 +295,8 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
       <li key={g.id}>
         <div
           className={cn(
-            "group flex items-center gap-0.5 rounded px-1 py-1",
-            groupRowActive && "bg-accent/[0.07]"
+            "group flex items-center gap-1 rounded-xl px-1 py-1.5",
+            groupRowActive && "bg-accent/[0.08] ring-1 ring-inset ring-accent/15"
           )}
         >
           <button
@@ -294,10 +329,10 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
             ) : (
               <Link
                 href={`/library/sessions/groups/${encodeURIComponent(g.id)}`}
-                className="block min-w-0 rounded px-0.5 py-0.5 hover:bg-white/[0.04]"
+                className="block min-w-0 rounded-lg px-1 py-0.5 hover:bg-white/[0.04]"
                 title="分组设置与组内会话"
               >
-                <p className="truncate text-xs font-medium text-text-primary/95">{g.name}</p>
+                <p className="truncate text-sm font-medium text-text-primary/95">{g.name}</p>
                 <p className="text-xs text-text-muted/85">
                   {g.draftStaging === "shared" ? "共享暂存" : "各会话独立暂存"} · {sessions.length}{" "}
                   个会话
@@ -355,11 +390,16 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
           )}
         </div>
         {open && (
-          <ul className="mb-1 ml-4 space-y-0.5 border-l border-border/50 py-0.5 pl-2 text-xs">
-            {sessions.length === 0 && (
-              <li className="py-0.5 text-xs text-text-muted/70">（暂无会话）</li>
+          <ul
+            className={cn(
+              "mb-1 ml-3 border-l border-border/50 py-1 pl-3",
+              sessionSidebarNavListClass
             )}
-            {sessions.map((s) => renderSessionRow(s, true))}
+          >
+            {sessions.length === 0 && (
+              <li className="py-1 text-sm text-text-muted/70">（暂无会话）</li>
+            )}
+            {sortSessionsByPinnedOrder(sessions, pinnedSessionIds).map((s) => renderSessionRow(s))}
           </ul>
         )}
       </li>
@@ -401,6 +441,9 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
           const sid = sessionToDelete.id;
           await deleteSession(sid);
           setSessionToDelete(null);
+          if (pinnedSessionIds.includes(sid)) {
+            persistLibraryPins(pinnedSessionIds.filter((id) => id !== sid));
+          }
           void qc.invalidateQueries({ queryKey: ["sessions"] });
           void qc.invalidateQueries({ queryKey: ["session-staging-groups"] });
           void qc.invalidateQueries({ queryKey: ["session-staging-group-drafts"] });
@@ -410,40 +453,42 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
           }
         }}
       />
-      <p className="text-ui-mono text-xs uppercase tracking-wider text-text-muted">会话</p>
-      <p className="text-ui-mono mt-0.5 text-xs leading-snug text-text-muted/75">
+      <p className="text-sm font-semibold text-text-muted">会话</p>
+      <p className="mt-1 text-xs leading-snug text-text-muted/80">
         未加入分组的会话列于此
       </p>
-      <ul className="gd-scrollbar mt-1 max-h-[min(42vh,22rem)] space-y-0.5 overflow-y-auto text-ui-mono text-sm text-text-primary">
+      <ul
+        className={cn(
+          "gd-scrollbar mt-2 max-h-[min(42vh,22rem)] overflow-y-auto text-text-primary",
+          sessionSidebarNavListClass
+        )}
+      >
         <li>
           <Link
             href="/library/sessions/new"
-            className={cn(
-              "inline-flex w-full items-center gap-1 rounded px-2 py-1.5",
-              isNew ? "bg-accent/10 text-accent" : "text-accent hover:bg-accent/10"
-            )}
+            className={cn("font-display", sessionSidebarNewSessionLinkClass(isNew))}
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
             新会话
           </Link>
         </li>
-        {ungrouped.map((s) => renderSessionRow(s, false))}
+        {sortedUngrouped.map((s) => renderSessionRow(s))}
         {ungrouped.length === 0 && (
-          <li className="px-2 py-1.5 text-xs text-text-muted/75">（暂无未分组会话）</li>
+          <li className="px-3 py-2 text-sm text-text-muted/75">（暂无未分组会话）</li>
         )}
       </ul>
 
-      <div className="mt-4 flex items-center justify-between gap-1 pr-0.5">
-        <p className="text-ui-mono text-xs uppercase tracking-wider text-text-muted">分组</p>
+      <div className="mt-5 flex items-center justify-between gap-1 pr-0.5">
+        <p className="text-sm font-semibold text-text-muted">分组</p>
         <DropdownMenu.Root modal={false} open={newGroupMenuOpen} onOpenChange={setNewGroupMenuOpen}>
           <DropdownMenu.Trigger asChild>
             <button
               type="button"
-              className={cn(iconBtn, "h-6 w-6")}
+              className={iconBtn}
               title="新建分组"
               aria-label="新建分组"
             >
-              <Plus className="h-3.5 w-3.5" aria-hidden />
+              <Plus className="h-4 w-4" aria-hidden />
             </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
@@ -518,7 +563,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
       </div>
-      <ul className="mt-1 space-y-0.5 text-ui-mono text-xs text-text-primary">
+      <ul className={cn("mt-2 text-text-primary", sessionSidebarNavListClass)}>
         {groupRows.map((g) => {
           const sessions = inGroup(g.id);
           const groupRowActive =
@@ -527,7 +572,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
           return renderGroupRow(g, sessions, groupRowActive);
         })}
         {groupRows.length === 0 && (
-          <li className="px-1 py-1 text-xs text-text-muted/80">暂无分组，点击右侧 + 创建。</li>
+          <li className="px-1 py-2 text-sm text-text-muted/80">暂无分组，点击右侧 + 创建。</li>
         )}
       </ul>
 

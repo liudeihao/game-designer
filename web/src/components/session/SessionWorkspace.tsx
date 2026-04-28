@@ -23,6 +23,7 @@ type ExportPrompt =
   | { kind: "batch" };
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { GdEditorPanel } from "@/components/shell/GdEditorPanel";
 import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
 import { WorkspaceVerticalSplit } from "@/components/shell/WorkspaceVerticalSplit";
 import { motion } from "framer-motion";
@@ -119,17 +120,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
 
   function makeSessionColumns(forSplit: boolean, s: SessionDetail): { editor: ReactNode; drafts: ReactNode } {
     const editor = (
-      <div
-        className={cn(
-          // h-full: keep vertical split (messages | composer) height so bottom panel never collapses to 0
-          // No border-r / box border: WorkspaceHorizontalSplit Separator already draws the divider vs drafts.
-          "gd-editor-panel relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
-        )}
-      >
-        <div className="pointer-events-none absolute inset-0 z-0">
-          <span className="gd-editor-panel__blade" aria-hidden />
-          <span className="gd-editor-panel__corners" aria-hidden />
-        </div>
+      <GdEditorPanel>
         <p className="text-ui-mono pointer-events-none absolute right-1.5 top-1 z-[1] text-xs tracking-wider text-accent/25">
           {(() => {
             let h = 0;
@@ -146,7 +137,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
           composerPlaceholder="和 AI 聊方向、灵感即可；右侧「视觉描述」再写进私库卡片的画面感。"
           onStreamingChange={setStreaming}
         />
-      </div>
+      </GdEditorPanel>
     );
     const drafts = (
           <aside

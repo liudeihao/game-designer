@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ThemeSelect } from "@/components/ui/ThemeSelect";
 import type { PaginatedAssets } from "@/lib/types";
 import type { AssetListFilters } from "@/lib/api";
-import { listAssetGroups, createAssetGroup, deleteAssetGroup, listAssetTags } from "@/lib/api";
+import { listAssetGroups, createAssetGroup, deleteAssetGroup } from "@/lib/api";
 import { mergeLibraryHref, parseToolbarTokens } from "@/lib/library-query";
 import { cn } from "@/lib/utils";
 import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
@@ -36,7 +36,6 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   const group = sp.get("group") || "";
   const sortParam = sp.get("sort")?.trim() || "created_desc";
   const qParam = sp.get("q")?.trim() || "";
-  const tagIdParam = sp.get("tagId")?.trim() || "";
   const hasImageParam = sp.get("hasImage") === "true";
   const linkToProject = sp.get("linkToProject")?.trim() || undefined;
   const assetDetailSearch = linkToProject
@@ -56,19 +55,13 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
     queryKey: ["asset-groups"],
     queryFn: listAssetGroups,
   });
-  const { data: tagCloud } = useQuery({
-    queryKey: ["asset-tags"],
-    queryFn: listAssetTags,
-  });
-
   const assetListFilters: AssetListFilters = useMemo(
     () => ({
       sort: sortParam,
       q: qParam || undefined,
-      tagId: tagIdParam || undefined,
       hasImage: hasImageParam ? true : undefined,
     }),
-    [sortParam, qParam, tagIdParam, hasImageParam]
+    [sortParam, qParam, hasImageParam]
   );
 
   const [searchDraft, setSearchDraft] = useState(qParam);
@@ -104,16 +97,12 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
     const parsed = parseToolbarTokens(searchDraft);
     const patch: Record<string, string | null | undefined> = {
       q: parsed.remainder || null,
+      tagId: null,
     };
-    if (parsed.tagHints.length > 0) {
-      const want = parsed.tagHints[0].toLowerCase();
-      const hit = tagCloud?.items?.find((t) => t.name.toLowerCase() === want);
-      patch.tagId = hit?.id ?? null;
-    }
     if (parsed.hasImage === true) patch.hasImage = "true";
     else if (parsed.hasImage === false) patch.hasImage = null;
     router.replace(mergeLibraryHref(sp, patch));
-  }, [searchDraft, sp, router, tagCloud]);
+  }, [searchDraft, sp, router]);
 
   const sidebar = (
     <aside className="gd-scrollbar box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto p-4">
@@ -191,23 +180,6 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
             ))}
           </ul>
         )}
-        <p className="text-ui-mono mt-4 text-xs uppercase tracking-wider text-text-muted">标签</p>
-        <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto text-ui-mono text-xs text-text-primary">
-          {(tagCloud?.items ?? []).slice(0, 24).map((t) => (
-            <li key={t.id}>
-              <Link
-                href={mergeLibraryHref(sp, { tagId: tagIdParam === t.id ? null : t.id })}
-                className={cn(
-                  "flex items-center justify-between gap-1 rounded px-2 py-1",
-                  tagIdParam === t.id ? "bg-accent/10 text-accent" : "hover:bg-surface/80"
-                )}
-              >
-                <span className="truncate">{t.name}</span>
-                <span className="shrink-0 text-xs text-text-muted">{t.assetCount}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
         <form
           className="mt-3 flex gap-1 border-t border-border/40 pt-3"
           onSubmit={(e) => {
@@ -251,7 +223,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
             <input
               value={searchDraft}
               onChange={(e) => setSearchDraft(e.target.value)}
-              placeholder="全文，或 type:image、tag:名称"
+              placeholder="全文，或 type:image"
               className="min-w-[10rem] flex-1 rounded border border-border/50 bg-bg-base/80 px-2 py-1.5 text-xs text-text-primary outline-none placeholder:text-text-muted/60"
             />
             <button
@@ -301,7 +273,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
         </div>
       )}
       <AssetGrid
-        key={`${group || "all"}-${visActive}-${sortParam}-${qParam}-${tagIdParam}-${hasImageParam}`}
+        key={`${group || "all"}-${visActive}-${sortParam}-${qParam}-${hasImageParam}`}
         scope="private"
         initialData={initialData}
         groupId={group || null}

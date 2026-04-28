@@ -284,9 +284,19 @@ export function AssetGrid({
                   />
                 </div>
                 {isAssetFull(a) && (
-                  <div className="text-ui-mono hidden w-40 shrink-0 flex-col justify-center text-xs text-text-muted sm:flex">
-                    <span>创建 {new Date(a.createdAt).toLocaleString()}</span>
-                    <span>更新 {new Date(a.updatedAt).toLocaleString()}</span>
+                  <div className="text-ui-mono hidden min-w-[13rem] shrink-0 flex-col justify-center gap-3 sm:flex">
+                    <div className="flex flex-col gap-1 leading-snug">
+                      <span className="text-[10px] uppercase tracking-wide text-text-muted/75">创建</span>
+                      <span className="tabular-nums text-text-muted">
+                        {new Date(a.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 leading-snug">
+                      <span className="text-[10px] uppercase tracking-wide text-text-muted/75">更新</span>
+                      <span className="tabular-nums text-text-muted">
+                        {new Date(a.updatedAt).toLocaleString()}
+                      </span>
+                    </div>
                   </div>
                 )}
                 {isAssetFull(a) && (

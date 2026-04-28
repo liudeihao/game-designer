@@ -6,8 +6,8 @@ import type { SessionDetail } from "@/lib/types";
 import { ChatThreadPanel } from "@/components/session/ChatThreadPanel";
 import { ProjectDesignSidebar } from "@/components/project/ProjectDesignSidebar";
 import { ProjectGddEditor } from "@/components/project/ProjectGddEditor";
+import { GdEditorPanel } from "@/components/shell/GdEditorPanel";
 import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
-import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 export function ProjectDesignWorkspace({
@@ -60,15 +60,7 @@ export function ProjectDesignWorkspace({
             leftClassName="min-h-0 min-w-0"
             rightClassName="min-h-0 min-w-0 overflow-hidden"
             left={
-              <div
-                className={cn(
-                  "gd-editor-panel relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
-                )}
-              >
-                <div className="pointer-events-none absolute inset-0 z-0">
-                  <span className="gd-editor-panel__blade" aria-hidden />
-                  <span className="gd-editor-panel__corners" aria-hidden />
-                </div>
+              <GdEditorPanel>
                 <ChatThreadPanel
                   sessionId={sessionId}
                   session={session}
@@ -80,7 +72,7 @@ export function ProjectDesignWorkspace({
                   onStreamingChange={setStreaming}
                   mentionableAssets={project?.linkedAssets ?? []}
                 />
-              </div>
+              </GdEditorPanel>
             }
             right={
               project ? (

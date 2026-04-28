@@ -211,16 +211,24 @@ body {
   .gd-editor-panel {
     position: relative;
   }
+  /* Top accent: short fade on the left (~12rem), bar spans to viewport edge via fixed + left/right */
   .gd-editor-panel__blade {
-    position: absolute;
-    left: 0;
-    top: 0;
-    z-index: 0;
     height: 1px;
-    width: 38%;
-    max-width: 12rem;
-    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 20%, transparent), transparent);
     pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      var(--accent) 0%,
+      color-mix(in srgb, var(--accent) 20%, transparent) 0 9.6rem,
+      transparent 12rem
+    );
+  }
+  .gd-editor-panel__blade--workspace-rail {
+    position: fixed;
+    z-index: 25;
+    left: 3rem;
+    right: 0;
+    top: 0;
+    /* `top` synced from JS to panel top; 0 avoids flash before hydrate */
   }
   .gd-editor-panel__corners {
     position: absolute;

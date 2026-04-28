@@ -8,7 +8,6 @@ type Props = {
     vis?: string;
     sort?: string;
     q?: string;
-    tagId?: string;
     hasImage?: string;
   }>;
 };
@@ -25,7 +24,6 @@ export default async function MyAssetsPage(props: Props) {
     visibility,
     sort: sp.sort,
     q: sp.q,
-    tagId: sp.tagId,
     hasImage: sp.hasImage === "true",
   });
   if (initial === null) {

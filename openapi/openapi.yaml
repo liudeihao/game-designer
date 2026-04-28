@@ -37,7 +37,7 @@ paths:
               schema: { $ref: "#/components/schemas/ErrorBody" }
     patch:
       tags: [me]
-      summary: Update profile (displayName only in v1)
+      summary: Update profile (partial; at least one field)
       requestBody:
         required: true
         content:
@@ -814,12 +814,25 @@ components:
         id: { type: string }
         username: { type: string }
         displayName: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true, description: "https URL; shown on public profile" }
+        coverUrl: { type: string, nullable: true, description: "https URL; profile header banner" }
       required: [id, username]
 
     MePatch:
       type: object
+      description: Partial update; send only fields to change. displayName null clears; avatarUrl/coverUrl null or empty clears.
       properties:
         displayName: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+        coverUrl: { type: string, nullable: true }
+
+    UserProfileStats:
+      type: object
+      properties:
+        publicAssets: { type: integer, minimum: 0 }
+        forksReceived: { type: integer, minimum: 0 }
+        projects: { type: integer, minimum: 0 }
+      required: [publicAssets, forksReceived, projects]
 
     RegisterRequest:
       type: object
@@ -839,10 +852,14 @@ components:
 
     UserPublic:
       type: object
+      description: "Embedded author rows omit avatarUrl, coverUrl, stats. Full GET /users/{username} includes them."
       properties:
         id: { type: string }
         username: { type: string }
         displayName: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+        coverUrl: { type: string, nullable: true }
+        stats: { $ref: "#/components/schemas/UserProfileStats" }
       required: [id, username]
 
     AssetVisibility:
@@ -955,6 +972,10 @@ components:
         visibility: { $ref: "#/components/schemas/AssetVisibility" }
         forkedFromId: { type: string, nullable: true }
         deletedAt: { type: string, format: date-time, nullable: true }
+        coverImageUrl:
+          type: string
+          nullable: true
+          description: Cover URL when the viewer may read the asset and an image exists; null for deleted, unreadable private, or no image
       required: [id, visibility, forkedFromId, deletedAt]
 
     ForkPage:

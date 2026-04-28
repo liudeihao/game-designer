@@ -1,15 +1,31 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { getAssets, linkProjectAsset, listAssetGroups } from "@/lib/api";
 import { isAssetFull } from "@/lib/guards";
 import type { AssetFull, ProjectLinkedAsset } from "@/lib/types";
+import { ProceduralPlaceholder } from "@/components/asset/ProceduralPlaceholder";
 import { ThemeSelect } from "@/components/ui/ThemeSelect";
 import { cn } from "@/lib/utils";
 
 type GroupFilter = "" | "ungrouped" | string;
+
+const thumbPx = 48;
+
+function assetListThumbUrl(asset: AssetFull): string | null {
+  const imgs = asset.images ?? [];
+  const cover = asset.coverImageId
+    ? imgs.find((i) => i.id === asset.coverImageId) ?? imgs[0]
+    : imgs[0];
+  if (!cover?.url?.trim()) return null;
+  const u = cover.url.trim();
+  if (u.includes("?")) return u;
+  if (u.includes("picsum")) return u;
+  return `${u}?w=${thumbPx * 2}`;
+}
 
 export function LinkProjectAssetsDialog({
   projectId,
@@ -108,10 +124,10 @@ export function LinkProjectAssetsDialog({
           <Dialog.Description className="sr-only">
             从「我的库」多选私有素材，名称与描述将纳入项目 AI 上下文。
           </Dialog.Description>
-          <div className="flex shrink-0 flex-col gap-2 border-b border-border/40 px-4 py-2">
+          <div className="flex shrink-0 flex-row items-center gap-2 border-b border-border/40 px-4 py-2">
             <input
               type="search"
-              className="text-ui-mono w-full rounded border border-border/70 bg-surface/40 px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent/50"
+              className="text-ui-mono min-w-0 flex-1 rounded border border-border/70 bg-surface/40 px-2 py-2 text-xs text-text-primary outline-none focus:border-accent/50"
               placeholder="搜索名称或描述…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -120,7 +136,7 @@ export function LinkProjectAssetsDialog({
             <ThemeSelect
               id="link-asset-group"
               aria-label="按素材库分组筛选"
-              className="max-w-none text-xs"
+              className="shrink-0 text-xs !w-[min(11rem,34vw)] py-1.5"
               value={groupFilter}
               options={groupOptions.map((o) => ({ value: o.value, label: o.label }))}
               onValueChange={(v) => setGroupFilter((v || "") as GroupFilter)}
@@ -136,6 +152,7 @@ export function LinkProjectAssetsDialog({
                 {items.map((a) => {
                   const isLinked = linkedSet.has(a.id);
                   const isSel = selected.has(a.id);
+                  const thumb = assetListThumbUrl(a);
                   return (
                     <li key={a.id}>
                       <button
@@ -143,7 +160,7 @@ export function LinkProjectAssetsDialog({
                         disabled={isLinked}
                         onClick={() => toggle(a.id)}
                         className={cn(
-                          "flex w-full items-start gap-2 rounded border px-2 py-2 text-left text-xs transition-colors",
+                          "flex w-full items-center gap-2 rounded border px-2 py-2 text-left text-xs transition-colors",
                           isLinked
                             ? "cursor-not-allowed border-border/30 bg-surface/20 text-text-muted"
                             : isSel
@@ -153,7 +170,7 @@ export function LinkProjectAssetsDialog({
                       >
                         <span
                           className={cn(
-                            "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-xs",
+                            "flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px]",
                             isLinked
                               ? "border-border/50 bg-surface/40"
                               : isSel
@@ -164,7 +181,21 @@ export function LinkProjectAssetsDialog({
                         >
                           {isLinked ? "✓" : isSel ? "✓" : ""}
                         </span>
-                        <span className="min-w-0 flex-1">
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-surface/50">
+                          {thumb ? (
+                            <Image
+                              src={thumb}
+                              alt=""
+                              width={thumbPx}
+                              height={thumbPx}
+                              className="h-full w-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <ProceduralPlaceholder seed={a.id} className="!h-12 !w-12" />
+                          )}
+                        </div>
+                        <span className="min-w-0 flex-1 text-left">
                           <span className="font-display text-sm text-text-primary">{a.name}</span>
                           <span className="mt-0.5 line-clamp-2 block text-xs text-text-muted">
                             {a.description}

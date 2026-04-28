@@ -200,13 +200,12 @@ export function AssetCard({
       <Link
         href={href}
         className={cn(
-          "group relative block w-full overflow-hidden rounded-md border border-border bg-surface transition-none hover:-translate-y-0.5 hover:border-[rgba(0,255,178,0.35)]",
+          "group relative block aspect-square w-full overflow-hidden rounded-md border border-border bg-surface transition-none hover:-translate-y-0.5 hover:border-[rgba(0,255,178,0.35)]",
           libraryBulkSelect?.checked && "ring-2 ring-accent/50"
         )}
       >
-      <div className="relative aspect-square w-full overflow-hidden rounded-t-md">
         {visPill && (
-          <div className={cn("absolute z-10 flex", coverPillPosition)}>{visPill}</div>
+          <div className={cn("absolute z-20 flex", coverPillPosition)}>{visPill}</div>
         )}
         {coverUrl ? (
           <Image
@@ -220,30 +219,28 @@ export function AssetCard({
         ) : (
           <ProceduralPlaceholder seed={full.id} className="absolute inset-0 h-full w-full" />
         )}
+        {/* Same gradient language as before (from-surface → transparent), extended for overlaid title/description */}
         <div
-          className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-surface to-transparent"
+          className="pointer-events-none absolute bottom-0 left-0 right-0 h-[48%] bg-gradient-to-t from-surface via-surface/80 to-transparent"
           aria-hidden
         />
-      </div>
-      <div className="p-3">
-        <h3 className={titleCls}>
-          {full.name}
-        </h3>
-        <p className={descCls}>
-          {full.description}
-        </p>
-      </div>
-      {isAssetFull(full) && full.forkCount > 0 && (
-        <div
-          className={cn(
-            "absolute flex h-7 w-7 items-center justify-center rounded-full bg-bg-base/80 opacity-0 transition-opacity group-hover:opacity-100",
-            libraryBulkSelect ? "bottom-2 right-2" : "right-2 top-2"
-          )}
-        >
-          <Layers className="h-3.5 w-3.5 text-accent" aria-label="有衍生" />
+        <div className="absolute bottom-0 left-0 right-0 z-[5] flex flex-col justify-end p-3 pt-10">
+          <h3 className={cn(titleCls, "drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]")}>{full.name}</h3>
+          <p className={cn(descCls, "text-text-muted/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]")}>
+            {full.description}
+          </p>
         </div>
-      )}
-    </Link>
+        {isAssetFull(full) && full.forkCount > 0 && (
+          <div
+            className={cn(
+              "absolute z-20 flex h-7 w-7 items-center justify-center rounded-full bg-bg-base/80 opacity-0 transition-opacity group-hover:opacity-100",
+              libraryBulkSelect ? "right-2 top-10" : "right-2 top-2"
+            )}
+          >
+            <Layers className="h-3.5 w-3.5 text-accent" aria-label="有衍生" />
+          </div>
+        )}
+      </Link>
     </div>
   );
 }

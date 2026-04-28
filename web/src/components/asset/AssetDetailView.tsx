@@ -25,6 +25,7 @@ import { ForkRelationPanel } from "./ForkRelationPanel";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
 import { ThemeSelect } from "@/components/ui/ThemeSelect";
+import { LinkAssetToProjectDialog } from "@/components/project/LinkAssetToProjectDialog";
 
 export function AssetDetailView({
   id,
@@ -76,6 +77,7 @@ export function AssetDetailView({
   const [publishOpen, setPublishOpen] = useState(false);
   const [forkOpen, setForkOpen] = useState(false);
   const [linkProjectBusy, setLinkProjectBusy] = useState(false);
+  const [linkAssetToProjectOpen, setLinkAssetToProjectOpen] = useState(false);
 
   const isOwner = me != null && isAssetFull(asset) && me.id === asset.authorId;
   const isPrivateAsset = isAssetFull(asset) && asset.visibility === "private";
@@ -245,7 +247,7 @@ export function AssetDetailView({
             <button
               type="button"
               onClick={() => setForkOpen(true)}
-              className="text-ui-mono rounded border border-accent/45 bg-accent/10 px-3 py-1.5 text-sm text-accent hover:border-accent/70 hover:bg-accent/20 hover:shadow-[0_0_16px_rgba(0,255,178,0.12)]"
+              className="text-ui-mono rounded border border-accent/45 bg-accent/10 px-3 py-1.5 text-sm text-accent hover:border-accent/70 hover:bg-accent/20 hover:shadow-[0_0_18px_var(--accent-glow-soft)]"
             >
               复制到私库
             </button>
@@ -296,7 +298,7 @@ export function AssetDetailView({
                 type="button"
                 onClick={() => void saveText()}
                 disabled={!dirty}
-                className="text-ui-mono rounded border border-accent/50 bg-accent/10 px-3 py-1.5 text-sm text-accent hover:border-accent/70 hover:bg-accent/20 hover:shadow-[0_0_12px_rgba(0,255,178,0.1)] disabled:opacity-40 disabled:hover:border-accent/50 disabled:hover:bg-accent/10 disabled:hover:shadow-none"
+                className="text-ui-mono rounded border border-accent/50 bg-accent/10 px-3 py-1.5 text-sm text-accent hover:border-accent/70 hover:bg-accent/20 hover:shadow-[0_0_16px_var(--accent-glow-soft)] disabled:opacity-40 disabled:hover:border-accent/50 disabled:hover:bg-accent/10 disabled:hover:shadow-none"
               >
                 保存
               </button>
@@ -330,11 +332,11 @@ export function AssetDetailView({
         )}
         {showPrivateActions && (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setPublishOpen(true)}
-                className="text-ui-mono rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent hover:border-accent/65 hover:bg-accent/18 hover:shadow-[0_0_16px_rgba(0,255,178,0.12)]"
+                className="text-ui-mono rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent hover:border-accent/65 hover:bg-accent/18 hover:shadow-[0_0_18px_var(--accent-glow-soft)]"
               >
                 发布到探索
               </button>
@@ -346,9 +348,17 @@ export function AssetDetailView({
               >
                 复制
               </button>
+              <button
+                type="button"
+                onClick={() => setLinkAssetToProjectOpen(true)}
+                className="text-ui-mono rounded border border-border bg-transparent px-3 py-1 text-sm text-text-primary/90 hover:border-accent/45 hover:bg-white/[0.05] hover:text-text-primary"
+                title="将本条加入某个项目的引用素材，供设计会话使用"
+              >
+                引用到项目…
+              </button>
             </div>
             <p className="text-ui-mono text-xs text-text-muted/80">
-              「发布到探索」后全站可见；「复制」仅在私库留一份仅自己可见的副本 (COPY)。
+              「发布到探索」后全站可见；「复制」仅在私库留一份仅自己可见的副本 (COPY)；「引用到项目」与项目设计页中的「引用素材」相同。
             </p>
           </div>
         )}
@@ -357,7 +367,7 @@ export function AssetDetailView({
             <button
               type="button"
               onClick={() => setForkOpen(true)}
-              className="text-ui-mono w-fit rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent hover:border-accent/65 hover:bg-accent/18 hover:shadow-[0_0_16px_rgba(0,255,178,0.12)]"
+              className="text-ui-mono w-fit rounded border border-accent/40 bg-accent/10 px-3 py-1 text-sm text-accent hover:border-accent/65 hover:bg-accent/18 hover:shadow-[0_0_18px_var(--accent-glow-soft)]"
             >
               Fork 到私库
             </button>
@@ -474,6 +484,11 @@ export function AssetDetailView({
           void refetch();
           void qc.invalidateQueries({ queryKey: ["assets"] });
         }}
+      />
+      <LinkAssetToProjectDialog
+        assetId={id}
+        open={linkAssetToProjectOpen}
+        onOpenChange={setLinkAssetToProjectOpen}
       />
       <ConfirmDialog
         open={forkOpen}

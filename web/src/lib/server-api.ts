@@ -43,6 +43,18 @@ export async function getExploreAssets(): Promise<PaginatedAssets | null> {
   }
 }
 
+/** Public assets by author (user profile page). */
+export async function getUserPublicAssets(username: string): Promise<PaginatedAssets | null> {
+  try {
+    const q = new URLSearchParams({ scope: "public", limit: "24", authorUsername: username });
+    const r = await serverFetch(`/api/assets?${q.toString()}`);
+    if (!r.ok) return null;
+    return (await r.json()) as PaginatedAssets;
+  } catch {
+    return null;
+  }
+}
+
 export async function getMyLibraryAssetsInitial(
   groupId?: string | null,
   visibility?: "private" | "public" | null

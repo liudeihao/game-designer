@@ -140,14 +140,37 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
     ...(groupList?.items.map((g) => ({ value: g.id, label: g.name })) ?? []),
   ];
 
+  const crumbExplore = full.visibility === "public" && !isOwner;
   const textColumn = (
     <div className="gd-scrollbar min-h-0 min-w-0 space-y-4 overflow-y-auto lg:pr-2">
         <nav className="text-ui-mono text-xs text-text-muted/80">
-          <Link href="/library/assets" className="hover:text-accent">
-            我的库
-          </Link>{" "}
-          / <span className="text-text-primary">{name}</span>
+          {crumbExplore ? (
+            <>
+              <Link href="/explore" className="hover:text-accent">
+                探索
+              </Link>{" "}
+              / <span className="text-text-primary">{name}</span>
+            </>
+          ) : (
+            <>
+              <Link href="/library/assets" className="hover:text-accent">
+                我的库
+              </Link>{" "}
+              / <span className="text-text-primary">{name}</span>
+            </>
+          )}
         </nav>
+        <div className="flex items-center gap-2 rounded border border-border/40 bg-surface/40 px-3 py-2">
+          <span className="text-ui-mono text-xs text-text-muted">发布者</span>
+          <Link
+            href={`/u/${full.author.username}`}
+            className="text-ui-mono text-sm text-accent hover:underline"
+          >
+            {full.author.displayName?.trim()
+              ? full.author.displayName
+              : `@${full.author.username}`}
+          </Link>
+        </div>
         {canEditContent && editingText && (
           <p className="text-ui-mono min-h-4 text-xs text-text-muted/70">
             {save === "saving" && "正在保存…"}

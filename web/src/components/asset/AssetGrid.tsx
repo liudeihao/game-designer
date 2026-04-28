@@ -21,6 +21,7 @@ export function AssetGrid({
   gridSize = "md",
   libraryVisibility = null,
   ownerLibraryBulkDelete = false,
+  authorUsername = null,
 }: {
   scope: "public" | "private";
   className?: string;
@@ -33,18 +34,21 @@ export function AssetGrid({
   libraryVisibility?: "private" | "public" | null;
   /** 仅私库列表：多选与批量删除（仅「仅自己可见」素材可删） */
   ownerLibraryBulkDelete?: boolean;
+  /** 公开列表：按作者 username 筛选（用户主页）；仅与 scope=public 共用 */
+  authorUsername?: string | null;
 }) {
   const qc = useQueryClient();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const groupKey = groupId ?? "all";
   const visKey = libraryVisibility ?? "all";
+  const authorKey = authorUsername ?? "";
   const showOwnerLibBadge = scope === "private";
   const showBulkToolbar = scope === "private" && ownerLibraryBulkDelete;
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const q = useInfiniteQuery({
-    queryKey: ["assets", scope, groupKey, visKey],
+    queryKey: ["assets", scope, groupKey, visKey, authorKey],
     initialData:
       initialData != null
         ? {
@@ -59,7 +63,8 @@ export function AssetGrid({
         pageParam as string | null,
         24,
         groupId ?? undefined,
-        libraryVisibility ?? undefined
+        libraryVisibility ?? undefined,
+        authorUsername ?? undefined
       );
     },
     getNextPageParam: (last) => last.nextCursor,

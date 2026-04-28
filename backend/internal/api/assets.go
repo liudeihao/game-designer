@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"game-designer/backend/internal/ai"
@@ -26,6 +27,8 @@ type assetRowData struct {
 	groupID          sql.NullString
 	deletedAt        sql.NullTime
 	createdAt, upAt  time.Time
+	authorUsername   string
+	authorDispName   sql.NullString
 }
 
 func (s *Server) scanAssetIter(ctx context.Context, rows pgx.Rows) (map[string]any, error) {
@@ -33,6 +36,7 @@ func (s *Server) scanAssetIter(ctx context.Context, rows pgx.Rows) (map[string]a
 	if err := rows.Scan(
 		&a.id, &a.authorID, &a.name, &a.desc, &a.ann, &a.vis, &a.forkedFrom, &a.forkCount,
 		&a.coverID, &a.groupID, &a.deletedAt, &a.createdAt, &a.upAt,
+		&a.authorUsername, &a.authorDispName,
 	); err != nil {
 		return nil, err
 	}
@@ -44,6 +48,7 @@ func (s *Server) scanAssetOne(ctx context.Context, row pgx.Row) (map[string]any,
 	if err := row.Scan(
 		&a.id, &a.authorID, &a.name, &a.desc, &a.ann, &a.vis, &a.forkedFrom, &a.forkCount,
 		&a.coverID, &a.groupID, &a.deletedAt, &a.createdAt, &a.upAt,
+		&a.authorUsername, &a.authorDispName,
 	); err != nil {
 		return nil, err
 	}
@@ -74,11 +79,18 @@ func (s *Server) assetDataToMap(ctx context.Context, a assetRowData) (map[string
 	if a.groupID.Valid {
 		gp = a.groupID.String
 	}
+	authDn := any(nil)
+	if a.authorDispName.Valid {
+		authDn = a.authorDispName.String
+	}
 	return map[string]any{
 		"id": a.id.String(), "name": a.name, "description": a.desc, "annotation": annV,
 		"authorId": a.authorID.String(), "createdAt": a.createdAt.Format(time.RFC3339),
 		"updatedAt": a.upAt.Format(time.RFC3339), "visibility": a.vis, "forkedFromId": forkV,
 		"forkCount": a.forkCount, "images": imgs, "coverImageId": cov, "groupId": gp, "deletedAt": nil,
+		"author": map[string]any{
+			"id": a.authorID.String(), "username": a.authorUsername, "displayName": authDn,
+		},
 	}, nil
 }
 
@@ -152,6 +164,11 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx := r.Context()
 	var uid uuid.UUID
+	authorUser := strings.TrimSpace(q.Get("authorUsername"))
+	if authorUser != "" && scope != "public" {
+		writeErr(w, 400, "authorUsername is only valid with scope=public", "bad_request")
+		return
+	}
 	if scope == "private" {
 		u, err := s.sessionUserID(r)
 		if err != nil || u == uuid.Nil {
@@ -167,16 +184,26 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 
 	sel := `
 		SELECT a.id, a.author_id, a.name, a.description, a.annotation, a.visibility, a.forked_from_id::text, a.fork_count,
-			a.cover_image_id::text, a.group_id::text, a.deleted_at, a.created_at, a.updated_at
+			a.cover_image_id::text, a.group_id::text, a.deleted_at, a.created_at, a.updated_at,
+			u.username, u.display_name
 		FROM assets a
+		INNER JOIN users u ON u.id = a.author_id
 		WHERE `
 	var rows pgx.Rows
 	var err error
 	if scope == "public" {
-		qSQL := sel + `a.visibility = 'public'` + imgExtra + `
+		authorExtra := ""
+		if authorUser != "" {
+			authorExtra = ` AND a.author_id = (SELECT id FROM users WHERE username = $3)`
+		}
+		qSQL := sel + `a.visibility = 'public'` + authorExtra + imgExtra + `
 			AND ($1::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $1::uuid))
 			ORDER BY a.created_at DESC, a.id DESC LIMIT $2`
-		rows, err = s.pool.Query(ctx, qSQL, cursor, limit+1)
+		if authorUser != "" {
+			rows, err = s.pool.Query(ctx, qSQL, cursor, limit+1, authorUser)
+		} else {
+			rows, err = s.pool.Query(ctx, qSQL, cursor, limit+1)
+		}
 	} else {
 		gf := r.URL.Query().Get("groupId")
 		vf := q.Get("visibility")
@@ -262,8 +289,11 @@ func (s *Server) getAsset(w http.ResponseWriter, r *http.Request) {
 	}
 	row := s.pool.QueryRow(ctx, `
 		SELECT a.id, a.author_id, a.name, a.description, a.annotation, a.visibility, a.forked_from_id::text, a.fork_count,
-			a.cover_image_id::text, a.group_id::text, a.deleted_at, a.created_at, a.updated_at
-		FROM assets a WHERE a.id = $1
+			a.cover_image_id::text, a.group_id::text, a.deleted_at, a.created_at, a.updated_at,
+			u.username, u.display_name
+		FROM assets a
+		INNER JOIN users u ON u.id = a.author_id
+		WHERE a.id = $1
 	`, id)
 	m, err := s.scanAssetOne(ctx, row)
 	if err != nil {
@@ -295,8 +325,11 @@ func (s *Server) getAsset(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getAssetByID(ctx context.Context, id uuid.UUID) (map[string]any, error) {
 	row := s.pool.QueryRow(ctx, `
 		SELECT a.id, a.author_id, a.name, a.description, a.annotation, a.visibility, a.forked_from_id::text, a.fork_count,
-			a.cover_image_id::text, a.group_id::text, a.deleted_at, a.created_at, a.updated_at
-		FROM assets a WHERE a.id = $1
+			a.cover_image_id::text, a.group_id::text, a.deleted_at, a.created_at, a.updated_at,
+			u.username, u.display_name
+		FROM assets a
+		INNER JOIN users u ON u.id = a.author_id
+		WHERE a.id = $1
 	`, id)
 	return s.scanAssetOne(ctx, row)
 }

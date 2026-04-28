@@ -17,6 +17,8 @@ export type AssetFull = {
   description: string;
   annotation: string | null;
   authorId: string;
+  /** Present for non-deleted assets from API (join users). */
+  author: UserPublic;
   createdAt: string;
   updatedAt: string;
   visibility: "private" | "public";

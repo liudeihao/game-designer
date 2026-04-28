@@ -150,6 +150,10 @@ paths:
             type: string
             enum: [no]
           description: Set to `no` to return only assets that have no `asset_images` rows (image-less). Omit to list all.
+        - name: authorUsername
+          in: query
+          schema: { type: string }
+          description: Only with `scope=public`. Filter to public assets whose author matches this username. Returns 400 if used with `scope=private`.
       responses:
         "200":
           description: Page of assets
@@ -778,11 +782,13 @@ components:
           items: { $ref: "#/components/schemas/AssetImage" }
         coverImageId: { type: string, nullable: true }
         deletedAt: { type: string, format: date-time, nullable: true }
+        author: { $ref: "#/components/schemas/UserPublic" }
       required:
         - id
         - name
         - description
         - authorId
+        - author
         - createdAt
         - updatedAt
         - visibility

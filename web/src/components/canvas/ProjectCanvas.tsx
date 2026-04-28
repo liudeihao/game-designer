@@ -45,7 +45,7 @@ function HydrateFromServer({ canvasDocument }: { canvasDocument: Record<string, 
 function InCanvasAssetPanel() {
   const editor = useEditor();
   const { data, isSuccess } = useQuery({
-    queryKey: ["assets", "private", "all"],
+    queryKey: ["assets", "private", "all", "all", ""],
     queryFn: () => getAssets("private", null, 100),
   });
   const place = useCallback(

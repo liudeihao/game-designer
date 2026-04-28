@@ -93,6 +93,42 @@ func (e ForkPageDirection) Valid() bool {
 	}
 }
 
+// Defines values for SessionStagingGroupDraftStaging.
+const (
+	SessionStagingGroupDraftStagingIndependent SessionStagingGroupDraftStaging = "independent"
+	SessionStagingGroupDraftStagingShared      SessionStagingGroupDraftStaging = "shared"
+)
+
+// Valid indicates whether the value is a known member of the SessionStagingGroupDraftStaging enum.
+func (e SessionStagingGroupDraftStaging) Valid() bool {
+	switch e {
+	case SessionStagingGroupDraftStagingIndependent:
+		return true
+	case SessionStagingGroupDraftStagingShared:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SessionStagingGroupRefDraftStaging.
+const (
+	SessionStagingGroupRefDraftStagingIndependent SessionStagingGroupRefDraftStaging = "independent"
+	SessionStagingGroupRefDraftStagingShared      SessionStagingGroupRefDraftStaging = "shared"
+)
+
+// Valid indicates whether the value is a known member of the SessionStagingGroupRefDraftStaging enum.
+func (e SessionStagingGroupRefDraftStaging) Valid() bool {
+	switch e {
+	case SessionStagingGroupRefDraftStagingIndependent:
+		return true
+	case SessionStagingGroupRefDraftStagingShared:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetAssetsParamsScope.
 const (
 	GetAssetsParamsScopePrivate GetAssetsParamsScope = "private"
@@ -132,6 +168,21 @@ func (e GetAssetsParamsSort) Valid() bool {
 	}
 }
 
+// Defines values for GetAssetsParamsImg.
+const (
+	No GetAssetsParamsImg = "no"
+)
+
+// Valid indicates whether the value is a known member of the GetAssetsParamsImg enum.
+func (e GetAssetsParamsImg) Valid() bool {
+	switch e {
+	case No:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetAssetsIdForksParamsDirection.
 const (
 	GetAssetsIdForksParamsDirectionDownstream GetAssetsIdForksParamsDirection = "downstream"
@@ -144,6 +195,42 @@ func (e GetAssetsIdForksParamsDirection) Valid() bool {
 	case GetAssetsIdForksParamsDirectionDownstream:
 		return true
 	case GetAssetsIdForksParamsDirectionUpstream:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PostSessionStagingGroupsJSONBodyDraftStaging.
+const (
+	PostSessionStagingGroupsJSONBodyDraftStagingIndependent PostSessionStagingGroupsJSONBodyDraftStaging = "independent"
+	PostSessionStagingGroupsJSONBodyDraftStagingShared      PostSessionStagingGroupsJSONBodyDraftStaging = "shared"
+)
+
+// Valid indicates whether the value is a known member of the PostSessionStagingGroupsJSONBodyDraftStaging enum.
+func (e PostSessionStagingGroupsJSONBodyDraftStaging) Valid() bool {
+	switch e {
+	case PostSessionStagingGroupsJSONBodyDraftStagingIndependent:
+		return true
+	case PostSessionStagingGroupsJSONBodyDraftStagingShared:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for PatchSessionStagingGroupsGroupIdJSONBodyDraftStaging.
+const (
+	PatchSessionStagingGroupsGroupIdJSONBodyDraftStagingIndependent PatchSessionStagingGroupsGroupIdJSONBodyDraftStaging = "independent"
+	PatchSessionStagingGroupsGroupIdJSONBodyDraftStagingShared      PatchSessionStagingGroupsGroupIdJSONBodyDraftStaging = "shared"
+)
+
+// Valid indicates whether the value is a known member of the PatchSessionStagingGroupsGroupIdJSONBodyDraftStaging enum.
+func (e PatchSessionStagingGroupsGroupIdJSONBodyDraftStaging) Valid() bool {
+	switch e {
+	case PatchSessionStagingGroupsGroupIdJSONBodyDraftStagingIndependent:
+		return true
+	case PatchSessionStagingGroupsGroupIdJSONBodyDraftStagingShared:
 		return true
 	default:
 		return false
@@ -177,6 +264,7 @@ type AssetDeletedGhost struct {
 // AssetFull defines model for AssetFull.
 type AssetFull struct {
 	Annotation   *string         `json:"annotation,omitempty"`
+	Author       UserPublic      `json:"author"`
 	AuthorId     string          `json:"authorId"`
 	CoverImageId *string         `json:"coverImageId"`
 	CreatedAt    time.Time       `json:"createdAt"`
@@ -233,7 +321,11 @@ type DraftAsset struct {
 	Description string `json:"description"`
 	Done        bool   `json:"done"`
 	Name        string `json:"name"`
-	TempId      string `json:"tempId"`
+
+	// OwnerSessionId Present when draftStaging is independent — session that owns this row (for PATCH/DELETE paths)
+	OwnerSessionId    *string `json:"ownerSessionId,omitempty"`
+	OwnerSessionTitle *string `json:"ownerSessionTitle,omitempty"`
+	TempId            string  `json:"tempId"`
 }
 
 // ErrorBody defines model for ErrorBody.
@@ -326,16 +418,44 @@ type SessionDetail struct {
 	DraftAssets     *[]DraftAsset  `json:"draftAssets,omitempty"`
 	Id              string         `json:"id"`
 	Messages        *[]ChatMessage `json:"messages,omitempty"`
-	Title           string         `json:"title"`
-	UpdatedAt       time.Time      `json:"updatedAt"`
+
+	// StagingGroup Staging group attached to a chat session (independent = per-session drafts, shared = one pool per group)
+	StagingGroup *SessionStagingGroupRef `json:"stagingGroup,omitempty"`
+	Title        string                  `json:"title"`
+	UpdatedAt    time.Time               `json:"updatedAt"`
 }
+
+// SessionStagingGroup defines model for SessionStagingGroup.
+type SessionStagingGroup struct {
+	CreatedAt    time.Time                       `json:"createdAt"`
+	DraftStaging SessionStagingGroupDraftStaging `json:"draftStaging"`
+	Id           string                          `json:"id"`
+	Name         string                          `json:"name"`
+	Position     int                             `json:"position"`
+}
+
+// SessionStagingGroupDraftStaging defines model for SessionStagingGroup.DraftStaging.
+type SessionStagingGroupDraftStaging string
+
+// SessionStagingGroupRef Staging group attached to a chat session (independent = per-session drafts, shared = one pool per group)
+type SessionStagingGroupRef struct {
+	DraftStaging SessionStagingGroupRefDraftStaging `json:"draftStaging"`
+	Id           string                             `json:"id"`
+	Name         string                             `json:"name"`
+}
+
+// SessionStagingGroupRefDraftStaging defines model for SessionStagingGroupRef.DraftStaging.
+type SessionStagingGroupRefDraftStaging string
 
 // SessionSummary defines model for SessionSummary.
 type SessionSummary struct {
-	DraftAssetCount int       `json:"draftAssetCount"`
-	Id              string    `json:"id"`
-	Title           string    `json:"title"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	DraftAssetCount int    `json:"draftAssetCount"`
+	Id              string `json:"id"`
+
+	// StagingGroup Staging group attached to a chat session (independent = per-session drafts, shared = one pool per group)
+	StagingGroup *SessionStagingGroupRef `json:"stagingGroup,omitempty"`
+	Title        string                  `json:"title"`
+	UpdatedAt    time.Time               `json:"updatedAt"`
 }
 
 // UserPublic defines model for UserPublic.
@@ -347,6 +467,9 @@ type UserPublic struct {
 
 // AssetId defines model for AssetId.
 type AssetId = string
+
+// DraftTempId defines model for DraftTempId.
+type DraftTempId = string
 
 // ProjectId defines model for ProjectId.
 type ProjectId = string
@@ -373,6 +496,12 @@ type GetAssetsParams struct {
 	Cursor *string              `form:"cursor,omitempty" json:"cursor,omitempty"`
 	Limit  *int                 `form:"limit,omitempty" json:"limit,omitempty"`
 	Sort   *GetAssetsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+
+	// Img Set to `no` to return only assets that have no `asset_images` rows (image-less). Omit to list all.
+	Img *GetAssetsParamsImg `form:"img,omitempty" json:"img,omitempty"`
+
+	// AuthorUsername Only with `scope=public`. Filter to public assets whose author matches this username. Returns 400 if used with `scope=private`.
+	AuthorUsername *string `form:"authorUsername,omitempty" json:"authorUsername,omitempty"`
 }
 
 // GetAssetsParamsScope defines parameters for GetAssets.
@@ -380,6 +509,9 @@ type GetAssetsParamsScope string
 
 // GetAssetsParamsSort defines parameters for GetAssets.
 type GetAssetsParamsSort string
+
+// GetAssetsParamsImg defines parameters for GetAssets.
+type GetAssetsParamsImg string
 
 // GetAssetsIdForksParams defines parameters for GetAssetsIdForks.
 type GetAssetsIdForksParams struct {
@@ -400,14 +532,53 @@ type PostProjectsJSONBody struct {
 	Name string `json:"name"`
 }
 
+// PostSessionStagingGroupsJSONBody defines parameters for PostSessionStagingGroups.
+type PostSessionStagingGroupsJSONBody struct {
+	DraftStaging *PostSessionStagingGroupsJSONBodyDraftStaging `json:"draftStaging,omitempty"`
+	Name         string                                        `json:"name"`
+}
+
+// PostSessionStagingGroupsJSONBodyDraftStaging defines parameters for PostSessionStagingGroups.
+type PostSessionStagingGroupsJSONBodyDraftStaging string
+
+// PatchSessionStagingGroupsGroupIdJSONBody defines parameters for PatchSessionStagingGroupsGroupId.
+type PatchSessionStagingGroupsGroupIdJSONBody struct {
+	DraftStaging *PatchSessionStagingGroupsGroupIdJSONBodyDraftStaging `json:"draftStaging,omitempty"`
+	Name         *string                                               `json:"name,omitempty"`
+}
+
+// PatchSessionStagingGroupsGroupIdJSONBodyDraftStaging defines parameters for PatchSessionStagingGroupsGroupId.
+type PatchSessionStagingGroupsGroupIdJSONBodyDraftStaging string
+
 // PostSessionsJSONBody defines parameters for PostSessions.
 type PostSessionsJSONBody struct {
-	Title *string `json:"title,omitempty"`
+	// StagingGroupId optional session staging group to attach
+	StagingGroupId *string `json:"stagingGroupId,omitempty"`
+	Title          *string `json:"title,omitempty"`
+}
+
+// PatchSessionsSessionIdJSONBody defines parameters for PatchSessionsSessionId.
+type PatchSessionsSessionIdJSONBody struct {
+	// StagingGroupId set null to remove from group
+	StagingGroupId *string `json:"stagingGroupId,omitempty"`
+	Title          *string `json:"title,omitempty"`
 }
 
 // PostSessionsSessionIdChatJSONBody defines parameters for PostSessionsSessionIdChat.
 type PostSessionsSessionIdChatJSONBody struct {
 	Message string `json:"message"`
+}
+
+// PostSessionsSessionIdDraftsJSONBody defines parameters for PostSessionsSessionIdDrafts.
+type PostSessionsSessionIdDraftsJSONBody struct {
+	Description string `json:"description"`
+	Name        string `json:"name"`
+}
+
+// PatchSessionsSessionIdDraftsTempIdJSONBody defines parameters for PatchSessionsSessionIdDraftsTempId.
+type PatchSessionsSessionIdDraftsTempIdJSONBody struct {
+	Description string `json:"description"`
+	Name        string `json:"name"`
 }
 
 // PostAssetsJSONRequestBody defines body for PostAssets for application/json ContentType.
@@ -434,11 +605,26 @@ type PostProjectsJSONRequestBody PostProjectsJSONBody
 // PatchProjectsProjectIdJSONRequestBody defines body for PatchProjectsProjectId for application/json ContentType.
 type PatchProjectsProjectIdJSONRequestBody = ProjectPatch
 
+// PostSessionStagingGroupsJSONRequestBody defines body for PostSessionStagingGroups for application/json ContentType.
+type PostSessionStagingGroupsJSONRequestBody PostSessionStagingGroupsJSONBody
+
+// PatchSessionStagingGroupsGroupIdJSONRequestBody defines body for PatchSessionStagingGroupsGroupId for application/json ContentType.
+type PatchSessionStagingGroupsGroupIdJSONRequestBody PatchSessionStagingGroupsGroupIdJSONBody
+
 // PostSessionsJSONRequestBody defines body for PostSessions for application/json ContentType.
 type PostSessionsJSONRequestBody PostSessionsJSONBody
 
+// PatchSessionsSessionIdJSONRequestBody defines body for PatchSessionsSessionId for application/json ContentType.
+type PatchSessionsSessionIdJSONRequestBody PatchSessionsSessionIdJSONBody
+
 // PostSessionsSessionIdChatJSONRequestBody defines body for PostSessionsSessionIdChat for application/json ContentType.
 type PostSessionsSessionIdChatJSONRequestBody PostSessionsSessionIdChatJSONBody
+
+// PostSessionsSessionIdDraftsJSONRequestBody defines body for PostSessionsSessionIdDrafts for application/json ContentType.
+type PostSessionsSessionIdDraftsJSONRequestBody PostSessionsSessionIdDraftsJSONBody
+
+// PatchSessionsSessionIdDraftsTempIdJSONRequestBody defines body for PatchSessionsSessionIdDraftsTempId for application/json ContentType.
+type PatchSessionsSessionIdDraftsTempIdJSONRequestBody PatchSessionsSessionIdDraftsTempIdJSONBody
 
 // AsAssetFull returns the union data inside the Asset as a AssetFull
 func (t Asset) AsAssetFull() (AssetFull, error) {

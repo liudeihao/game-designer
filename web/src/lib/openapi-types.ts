@@ -252,6 +252,10 @@ export interface paths {
                     cursor?: string | null;
                     limit?: number;
                     sort?: "createdAt_desc" | "createdAt_asc" | "updatedAt_desc";
+                    /** @description Set to `no` to return only assets that have no `asset_images` rows (image-less). Omit to list all. */
+                    img?: "no";
+                    /** @description Only with `scope=public`. Filter to public assets whose author matches this username. Returns 400 if used with `scope=private`. */
+                    authorUsername?: string;
                 };
                 header?: never;
                 path?: never;
@@ -335,10 +339,41 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
+        /** Soft-delete a private asset (owner only); public assets rejected */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["AssetId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Asset marked deleted (ghost); removed from library lists */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Public or invalid state */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorBody"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
         options?: never;
         head?: never;
-        /** Update editable fields */
+        /** Update editable fields (private assets only; public = read-only) */
         patch: {
             parameters: {
                 query?: never;
@@ -360,6 +395,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["Asset"];
+                    };
+                };
+                /** @description Public asset — content frozen after publish */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorBody"];
                     };
                 };
                 403: components["responses"]["Forbidden"];
@@ -462,7 +506,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Request image generation for asset */
+        /** Request image generation for private asset only (public = read-only) */
         post: {
             parameters: {
                 query?: never;
@@ -489,11 +533,67 @@ export interface paths {
                         "application/json": components["schemas"]["AssetImage"];
                     };
                 };
+                /** @description Public asset — no new images after publish */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorBody"];
+                    };
+                };
                 403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/assets/{id}/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove one image from a private asset (public = read-only; cover_id cleared if needed) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: components["parameters"]["AssetId"];
+                    imageId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Image removed */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorBody"];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -580,6 +680,8 @@ export interface paths {
                 content: {
                     "application/json": {
                         title?: string;
+                        /** @description optional session staging group to attach */
+                        stagingGroupId?: string;
                     };
                 };
             };
@@ -598,6 +700,179 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/session-staging-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List session staging groups (independent vs shared draft pool) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SessionStagingGroup"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create session staging group */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        /**
+                         * @default independent
+                         * @enum {string}
+                         */
+                        draftStaging?: "independent" | "shared";
+                    };
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SessionStagingGroup"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/session-staging-groups/{groupId}/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        /** List all staging draft rows for this group (shared pool or union of per-session rows) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    groupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DraftAsset"][];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/session-staging-groups/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete group (sessions unlinked; group-scoped drafts removed) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    groupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Update name or draft staging mode (mode change requires empty staging in conflict paths) */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    groupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        /** @enum {string} */
+                        draftStaging?: "independent" | "shared";
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SessionStagingGroup"];
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/sessions/{sessionId}": {
@@ -654,7 +929,37 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update title and/or assign session to a staging group */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: components["parameters"]["SessionId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        title?: string;
+                        /** @description set null to remove from group */
+                        stagingGroupId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SessionDetail"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
         trace?: never;
     };
     "/sessions/{sessionId}/chat": {
@@ -693,6 +998,165 @@ export interface paths {
                         "text/event-stream": string;
                     };
                 };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{sessionId}/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a user-authored draft (name + description) to session staging; not auto-created by chat stream */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: components["parameters"]["SessionId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        description: string;
+                    };
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DraftAsset"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{sessionId}/drafts/{tempId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a draft from session staging */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: components["parameters"]["SessionId"];
+                    tempId: components["parameters"]["DraftTempId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Removed */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Update a staged draft (name + description) */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: components["parameters"]["SessionId"];
+                    tempId: components["parameters"]["DraftTempId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        description: string;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DraftAsset"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        trace?: never;
+    };
+    "/sessions/{sessionId}/drafts/{tempId}/export-to-library": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export one staged draft to private library and remove it from staging (atomic)
+         * @description Uses draft name/description from the staging row. For shared group staging, `sessionId` must be any chat session in that group (same as PATCH/DELETE draft).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sessionId: components["parameters"]["SessionId"];
+                    tempId: components["parameters"]["DraftTempId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created private asset; draft row deleted */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Asset"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
             };
         };
         delete?: never;
@@ -893,6 +1357,7 @@ export interface components {
             coverImageId: string | null;
             /** Format: date-time */
             deletedAt: string | null;
+            author: components["schemas"]["UserPublic"];
         };
         /** @description When visibility=deleted, only these fields are returned */
         AssetDeletedGhost: {
@@ -939,12 +1404,29 @@ export interface components {
             direction: "upstream" | "downstream";
             nodes: components["schemas"]["ForkNode"][];
         };
+        /** @description Staging group attached to a chat session (independent = per-session drafts, shared = one pool per group) */
+        SessionStagingGroupRef: {
+            id: string;
+            name: string;
+            /** @enum {string} */
+            draftStaging: "independent" | "shared";
+        };
+        SessionStagingGroup: {
+            id: string;
+            name: string;
+            position: number;
+            /** @enum {string} */
+            draftStaging: "independent" | "shared";
+            /** Format: date-time */
+            createdAt: string;
+        };
         SessionSummary: {
             id: string;
             title: string;
             /** Format: date-time */
             updatedAt: string;
             draftAssetCount: number;
+            stagingGroup?: components["schemas"]["SessionStagingGroupRef"];
         };
         SessionDetail: components["schemas"]["SessionSummary"] & {
             messages?: components["schemas"]["ChatMessage"][];
@@ -964,6 +1446,9 @@ export interface components {
             description: string;
             /** @default false */
             done: boolean;
+            /** @description Present when draftStaging is independent — session that owns this row (for PATCH/DELETE paths) */
+            ownerSessionId?: string;
+            ownerSessionTitle?: string;
         };
         ProjectSummary: {
             id: string;
@@ -1025,6 +1510,7 @@ export interface components {
     parameters: {
         AssetId: string;
         SessionId: string;
+        DraftTempId: string;
         ProjectId: string;
     };
     requestBodies: never;

@@ -26,6 +26,8 @@ export function ForkAssetNode({ data }: NodeProps) {
         : `${n.coverImageUrl}${n.coverImageUrl.includes("picsum") ? "" : "?w=240"}`
       : null;
   const showExpand = !hidden && !deleted && n.forkCount > childCount;
+  /** No Link: others' private placeholders and deleted ghosts (avoid navigating to id-only ghost views from the graph). */
+  const noDetailLink = hidden || deleted;
 
   const titleText = deleted ? "已删除" : hidden ? "不可见" : n.name || `素材 ${n.id.slice(0, 8)}…`;
 
@@ -50,16 +52,26 @@ export function ForkAssetNode({ data }: NodeProps) {
         aria-hidden
       />
       <div className="absolute bottom-0 left-0 right-0 z-[5] flex flex-col justify-end p-2.5 pt-8">
-        <Link
-          href={`/library/assets/${encodeURIComponent(n.id)}`}
-          className={cn(
-            "font-display line-clamp-2 text-left text-[13px] leading-tight text-text-primary drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]",
-            !hidden && !deleted && "text-accent/95 hover:underline"
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {titleText}
-        </Link>
+        {noDetailLink ? (
+          <span
+            className="font-display line-clamp-2 cursor-default text-left text-[13px] leading-tight text-text-muted/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
+            title={
+              deleted
+                ? "已删除素材仅在图中保留节点；若直接打开链接会看到简要说明而非完整详情"
+                : "无权查看该私有素材，无法打开详情"
+            }
+          >
+            {titleText}
+          </span>
+        ) : (
+          <Link
+            href={`/library/assets/${encodeURIComponent(n.id)}`}
+            className="font-display line-clamp-2 text-left text-[13px] leading-tight text-accent/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {titleText}
+          </Link>
+        )}
         <div className="mt-1 flex flex-wrap items-center gap-1">
           {n.visibility === "public" && (
             <span className="text-ui-mono rounded bg-accent/20 px-1 py-px text-[9px] uppercase tracking-wide text-accent drop-shadow-sm">

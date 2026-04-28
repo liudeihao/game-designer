@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import type { Asset } from "@/lib/types";
 import { isAssetFull } from "@/lib/guards";
@@ -16,6 +18,7 @@ import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontal
 import { ThemeSelect } from "@/components/ui/ThemeSelect";
 
 export function AssetDetailView({ id, initial }: { id: string; initial: Asset }) {
+  const router = useRouter();
   const qc = useQueryClient();
   const { data: me } = useQuery({
     queryKey: ["me"],
@@ -413,6 +416,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
         pendingLabel="发布中…"
         onConfirm={async () => {
           await publishAsset(id);
+          toast.success("已发布到探索");
           void refetch();
           void qc.invalidateQueries({ queryKey: ["assets"] });
         }}
@@ -426,7 +430,8 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
         pendingLabel="复制中…"
         onConfirm={async () => {
           const f = await forkAsset(id);
-          window.location.href = `/library/assets/${f.id}`;
+          toast.success("已复制到私库");
+          router.push(`/library/assets/${f.id}`);
         }}
       />
       <div className="flex min-h-0 flex-1 flex-col gap-6 lg:hidden">

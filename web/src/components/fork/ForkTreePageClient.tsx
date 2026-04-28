@@ -216,6 +216,7 @@ function ForkFlowBody({ focusAssetId }: { focusAssetId: string }) {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             nodeTypes={nodeTypes}
+            defaultEdgeOptions={{ type: "smoothstep" }}
             nodesDraggable={false}
             nodesConnectable={false}
             minZoom={0.06}

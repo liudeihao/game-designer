@@ -1,15 +1,16 @@
 import dagre from "dagre";
 import type { Edge, Node } from "@xyflow/react";
 
-export const FORK_NODE_WIDTH = 220;
-export const FORK_NODE_HEIGHT = 108;
+/** Square tiles aligned with grid AssetCard proportions (fixed edge for dagre). */
+export const FORK_NODE_WIDTH = 168;
+export const FORK_NODE_HEIGHT = 168;
 
-/** Top-bottom tree layout; dagre uses node center, React Flow uses top-left. */
+/** Left-to-right tree; dagre uses node center, React Flow uses top-left. */
 export function layoutForkNodes(nodes: Node[], edges: Edge[]): Node[] {
   if (nodes.length === 0) return nodes;
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: "TB", nodesep: 44, ranksep: 72, marginx: 24, marginy: 24 });
+  g.setGraph({ rankdir: "LR", nodesep: 36, ranksep: 56, marginx: 28, marginy: 28 });
   for (const n of nodes) {
     g.setNode(n.id, { width: FORK_NODE_WIDTH, height: FORK_NODE_HEIGHT });
   }

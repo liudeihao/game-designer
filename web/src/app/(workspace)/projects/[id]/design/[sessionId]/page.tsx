@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProjectDesignWorkspace } from "@/components/project/ProjectDesignWorkspace";
+import { BackNavLink } from "@/components/ui/BackNavLink";
 import { BackendUnavailable } from "@/components/system/BackendUnavailable";
 import { serverFetch } from "@/lib/server-api";
 import type { SessionDetail } from "@/lib/types";
@@ -16,9 +16,9 @@ export default async function ProjectDesignSessionPage(props: Props) {
     return (
       <div className="p-6">
         <BackendUnavailable title="无法加载设计会话" />
-        <Link href={`/projects/${id}/design`} className="text-ui-mono mt-4 inline-block text-accent">
-          ← 返回
-        </Link>
+        <BackNavLink href={`/projects/${id}/design`} className="mt-4">
+          返回设计
+        </BackNavLink>
       </div>
     );
   }

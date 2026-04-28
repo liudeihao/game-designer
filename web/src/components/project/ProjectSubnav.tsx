@@ -2,11 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ProjectSubnav({ projectId, projectName }: { projectId: string; projectName: string }) {
   const pathname = usePathname();
   const base = `/projects/${projectId}`;
+  const onCanvasOrSettings =
+    pathname === `${base}/canvas` ||
+    pathname === `${base}/settings` ||
+    pathname.startsWith(`${base}/settings/`);
+  const backHref = onCanvasOrSettings ? `${base}/design` : "/projects";
+  const backLabel = onCanvasOrSettings ? "返回设计" : "返回项目列表";
   const tabs: { href: string; label: string; match: (p: string) => boolean }[] = [
     {
       href: `${base}/design`,
@@ -19,11 +26,12 @@ export function ProjectSubnav({ projectId, projectName }: { projectId: string; p
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border/60 bg-bg-base/80 px-4 py-2">
       <Link
-        href="/projects"
-        className="text-ui-mono text-xs text-text-muted hover:text-accent"
-        title="返回项目列表"
+        href={backHref}
+        className="text-text-muted hover:text-accent flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-white/5"
+        title={backLabel}
+        aria-label={backLabel}
       >
-        ← 项目
+        <ArrowLeft className="h-4 w-4" aria-hidden />
       </Link>
       <span className="text-border/60">|</span>
       <h2 className="font-display min-w-0 max-w-[12rem] truncate text-sm text-text-primary sm:max-w-xs">

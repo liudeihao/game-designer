@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackNavLink } from "@/components/ui/BackNavLink";
 import { ProjectSettingsForm } from "@/components/project/ProjectSettingsForm";
 import { BackendUnavailable } from "@/components/system/BackendUnavailable";
 import { serverFetch } from "@/lib/server-api";
@@ -16,9 +16,9 @@ export default async function ProjectSettingsPage(props: Props) {
     return (
       <div className="px-6 py-8">
         <BackendUnavailable title="无法加载项目" />
-        <Link href="/projects" className="text-ui-mono mt-4 inline-block text-accent">
-          ← 返回项目列表
-        </Link>
+        <BackNavLink href="/projects" className="mt-4">
+          返回项目列表
+        </BackNavLink>
       </div>
     );
   }
@@ -27,9 +27,9 @@ export default async function ProjectSettingsPage(props: Props) {
     return (
       <div className="px-6 py-8">
         <BackendUnavailable title="无法加载项目" />
-        <Link href="/projects" className="text-ui-mono mt-4 inline-block text-accent">
-          ← 返回项目列表
-        </Link>
+        <BackNavLink href="/projects" className="mt-4">
+          返回项目列表
+        </BackNavLink>
       </div>
     );
   }

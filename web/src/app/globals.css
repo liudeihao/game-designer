@@ -21,7 +21,8 @@ html[data-gd-theme="dark"] {
   --spectral-mid: rgba(167, 139, 250, 0.16);
   --spectral-dim: rgba(167, 139, 250, 0.08);
   --divider: rgba(255, 255, 255, 0.06);
-  --error-dim: #8b3a3a;
+  /* Destructive / errors — must read on near-black (older #8b3a3a was too dim in menus). */
+  --error-dim: #f87171;
   /* Warm amber — counts, secondary CTAs, warmth vs cool accent. */
   --ember: #f0be5c;
   --ember-dim: rgba(240, 190, 92, 0.14);

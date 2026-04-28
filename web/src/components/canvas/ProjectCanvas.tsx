@@ -209,7 +209,7 @@ function InCanvasAssetPanel({ linkedAssets }: { linkedAssets: ProjectLinkedAsset
   );
 
   return (
-    <div className="gd-scrollbar text-ui-mono max-h-[70vh] w-60 overflow-y-auto rounded border border-border bg-bg-base/95 p-2 text-xs text-text-primary shadow-lg">
+    <div className="gd-scrollbar text-ui-mono max-h-[min(78vh,calc(100dvh-4.5rem))] w-[min(20rem,calc(100vw-1rem))] overflow-y-auto rounded border border-border bg-bg-base/95 p-2 text-xs text-text-primary shadow-lg backdrop-blur-sm">
       <p className="text-[10px] uppercase leading-tight text-text-muted">项目引用素材 · 拖入画布或点击</p>
       {linkedAssets.length === 0 ? (
         <p className="mt-2 text-[11px] leading-snug text-text-muted">
@@ -242,7 +242,7 @@ function InCanvasAssetPanel({ linkedAssets }: { linkedAssets: ProjectLinkedAsset
                     const p = editor.screenToPage({ x: e.clientX, y: e.clientY });
                     placeAt(a, { x: p.x, y: p.y });
                   }}
-                  className="flex w-full cursor-grab items-center gap-2 rounded border border-border/60 bg-bg-elevated/40 p-1.5 text-left transition-colors hover:border-accent/40 active:cursor-grabbing"
+                  className="flex w-full cursor-grab items-start gap-2 rounded border border-border/60 bg-bg-elevated/40 p-1.5 text-left transition-colors hover:border-accent/40 active:cursor-grabbing"
                   onClick={() => placeAt(a, defaultPagePoint())}
                 >
                   {a.coverImageUrl ? (
@@ -250,18 +250,25 @@ function InCanvasAssetPanel({ linkedAssets }: { linkedAssets: ProjectLinkedAsset
                     <img
                       src={a.coverImageUrl}
                       alt=""
-                      className="h-11 w-11 shrink-0 rounded object-cover"
+                      className="h-12 w-12 shrink-0 rounded object-cover"
                       draggable={false}
                     />
                   ) : (
                     <span
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-accent/15 text-sm font-medium text-accent"
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-accent/15 text-sm font-medium text-accent"
                       aria-hidden
                     >
                       {ch}
                     </span>
                   )}
-                  <span className="min-w-0 flex-1 truncate text-[11px] text-text-primary">{a.name}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="line-clamp-2 text-[11px] font-medium text-text-primary">{a.name}</span>
+                    {a.description.trim() ? (
+                      <span className="mt-0.5 line-clamp-2 block text-[10px] leading-snug text-text-muted">
+                        {a.description}
+                      </span>
+                    ) : null}
+                  </span>
                 </button>
               </li>
             );
@@ -320,7 +327,7 @@ function CanvasInner({
     <>
       <HydrateFromServer canvasDocument={canvasDocument} />
       <PersistenceBridge projectId={projectId} />
-      <div className="pointer-events-none absolute left-2 top-14 z-[200]">
+      <div className="pointer-events-none absolute right-2 top-14 z-[200]">
         <div className="pointer-events-auto">
           <InCanvasAssetPanel linkedAssets={linkedAssets} />
         </div>

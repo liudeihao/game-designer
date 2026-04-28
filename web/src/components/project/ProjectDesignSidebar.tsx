@@ -33,6 +33,13 @@ import {
 const iconBtn =
   "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-white/5 hover:text-text-primary disabled:opacity-40";
 
+function linkedThumbLabel(name: string): string {
+  const s = name.trim();
+  if (!s) return "?";
+  const ch = [...s][0];
+  return ch ?? "?";
+}
+
 const sessionOverflowMenuClass =
   "text-ui-mono z-[200] min-w-[9.5rem] rounded-md border border-border bg-bg-base p-1 shadow-lg";
 
@@ -289,30 +296,63 @@ export function ProjectDesignSidebar({
               {linked.length === 0 ? (
                 <p className="py-2 text-center text-sm text-text-muted">暂无引用</p>
               ) : (
-                linked.map((a) => (
-                  <div
-                    key={a.id}
-                    className="rounded-xl border border-border/50 bg-surface/30 px-3 py-2 text-sm"
-                  >
-                    <p className="font-display line-clamp-2 text-text-primary">{a.name}</p>
-                    <button
-                      type="button"
-                      disabled={linkBusy}
-                      className="text-ui-mono mt-1 text-xs text-text-muted hover:text-error-dim"
-                      onClick={async () => {
-                        setLinkBusy(true);
-                        try {
-                          await unlinkProjectAsset(projectId, a.id);
-                          void qc.invalidateQueries({ queryKey: ["project", projectId] });
-                        } finally {
-                          setLinkBusy(false);
-                        }
-                      }}
+                linked.map((a) => {
+                  const ch = linkedThumbLabel(a.name);
+                  return (
+                    <div
+                      key={a.id}
+                      className="rounded-xl border border-border/50 bg-surface/30 p-2 text-sm"
                     >
-                      移除
-                    </button>
-                  </div>
-                ))
+                      <div className="flex gap-2">
+                        <Link
+                          href={`/library/assets/${encodeURIComponent(a.id)}`}
+                          className="flex min-w-0 flex-1 gap-2 rounded-lg outline-none ring-accent/0 transition hover:bg-white/[0.04] focus-visible:ring-2"
+                          title="在「我的库」中查看"
+                        >
+                          {a.coverImageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- signed thumbnail URL
+                            <img
+                              src={a.coverImageUrl}
+                              alt=""
+                              className="h-12 w-12 shrink-0 rounded-md object-cover"
+                            />
+                          ) : (
+                            <span
+                              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-accent/15 text-sm font-medium text-accent"
+                              aria-hidden
+                            >
+                              {ch}
+                            </span>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="font-display line-clamp-2 text-[13px] text-text-primary">{a.name}</p>
+                            {a.description.trim() ? (
+                              <p className="text-ui-mono mt-0.5 line-clamp-2 text-[11px] leading-snug text-text-muted">
+                                {a.description}
+                              </p>
+                            ) : null}
+                          </div>
+                        </Link>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={linkBusy}
+                        className="text-ui-mono mt-1.5 text-xs text-text-muted hover:text-error-dim"
+                        onClick={async () => {
+                          setLinkBusy(true);
+                          try {
+                            await unlinkProjectAsset(projectId, a.id);
+                            void qc.invalidateQueries({ queryKey: ["project", projectId] });
+                          } finally {
+                            setLinkBusy(false);
+                          }
+                        }}
+                      >
+                        从项目移除
+                      </button>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

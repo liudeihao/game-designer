@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BackNavLink } from "@/components/ui/BackNavLink";
 import { patchProject } from "@/lib/api";
 
 export function ProjectSettingsForm({
@@ -70,9 +71,9 @@ export function ProjectSettingsForm({
         >
           进入画布
         </Link>
-        <Link href="/projects" className="text-ui-mono inline-flex items-center text-sm text-text-muted hover:text-accent">
-          ← 返回项目列表
-        </Link>
+        <BackNavLink href="/projects" className="text-sm text-text-muted hover:text-accent hover:no-underline">
+          项目列表
+        </BackNavLink>
       </div>
     </form>
   );

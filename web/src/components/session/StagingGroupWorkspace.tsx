@@ -278,7 +278,7 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
           rightMinSize={22}
           className="h-full min-h-0 min-w-0 flex-1"
           left={
-            <div className="gd-scrollbar h-full min-h-0 overflow-y-auto border-divider lg:border-r">
+            <div className="gd-scrollbar h-full min-h-0 overflow-y-auto">
               {leftColumn}
             </div>
           }

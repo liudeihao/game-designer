@@ -89,7 +89,7 @@ export function ProjectDesignWorkspace({
                   initialMarkdown={project.designDocument ?? ""}
                 />
               ) : (
-                <div className="flex h-full min-h-0 flex-col items-center justify-center border-l border-border/60 bg-bg-base/40 px-4 text-center text-ui-mono text-xs text-text-muted">
+                <div className="flex h-full min-h-0 flex-col items-center justify-center bg-bg-base/40 px-4 text-center text-ui-mono text-xs text-text-muted">
                   加载设计文档…
                 </div>
               )

@@ -43,7 +43,7 @@ export function ProjectGddEditor({
   }, [text, projectId, qc]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col border-l border-border/60 bg-bg-base/50">
+    <div className="flex h-full min-h-0 flex-col bg-bg-base/50">
       <div className="shrink-0 border-b border-border/50 px-3 py-2">
         <h3 className="text-ui-mono text-xs uppercase tracking-wide text-text-muted">游戏设计文档</h3>
         <p className="text-ui-mono mt-0.5 text-xs leading-relaxed text-text-muted/85">

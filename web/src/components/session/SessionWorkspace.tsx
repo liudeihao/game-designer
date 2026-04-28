@@ -122,8 +122,8 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
       <div
         className={cn(
           // h-full: keep vertical split (messages | composer) height so bottom panel never collapses to 0
-          "gd-editor-panel relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden border-divider",
-          !forSplit && "border-r"
+          // No border-r / box border: WorkspaceHorizontalSplit Separator already draws the divider vs drafts.
+          "gd-editor-panel relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
         )}
       >
         <div className="pointer-events-none absolute inset-0 z-0">

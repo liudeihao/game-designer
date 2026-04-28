@@ -115,7 +115,7 @@ export function ChatThreadPanel({
         </div>
       }
       bottom={
-        <div className="box-border flex h-full min-h-0 flex-col border-t border-border/60 bg-bg-base/40 px-3 py-2">
+        <div className="box-border flex h-full min-h-0 flex-col bg-bg-base/40 px-3 py-2">
           <form
             className="flex min-h-[3.25rem] flex-1 gap-2"
             onSubmit={async (e) => {

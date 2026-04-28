@@ -10,6 +10,7 @@
     "gen:openapi": "openapi-typescript ../openapi/openapi.yaml -o src/lib/openapi-types.ts"
   },
   "dependencies": {
+    "@fontsource-variable/noto-sans-sc": "^5.2.10",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-separator": "^1.1.8",

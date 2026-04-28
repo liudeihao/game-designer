@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Bebas_Neue, DM_Mono, Inter } from "next/font/google";
+/** Self-hosted CJK; Inter only ships Latin, so zh-CN fallback was system-only (looks “wrong” at small sizes). */
+import "@fontsource-variable/noto-sans-sc";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/AppProviders";
 

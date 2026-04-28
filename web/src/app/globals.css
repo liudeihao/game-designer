@@ -88,7 +88,8 @@ html[data-gd-theme="light"] {
   --color-ember-dim: var(--ember-dim);
   --color-divider: var(--divider);
   --color-error-dim: var(--error-dim);
-  --font-sans: var(--font-inter);
+  /* Inter handles Latin from next/font; "Noto Sans SC Variable" loaded from fontsource (@import in layout). */
+  --font-sans: var(--font-inter), "Noto Sans SC Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-dm-mono);
   --font-display: var(--font-bebas);
 }
@@ -125,7 +126,8 @@ html {
 body {
   background: transparent;
   color: var(--text-primary);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-inter), "Noto Sans SC Variable", ui-sans-serif, system-ui, "PingFang SC",
+    "Microsoft YaHei UI", sans-serif;
   min-height: 100vh;
   position: relative;
 }
@@ -151,7 +153,8 @@ body {
     text-transform: uppercase;
   }
   .text-ui-mono {
-    font-family: var(--font-dm-mono), ui-monospace, monospace;
+    /* DM Mono: Latin/monospace glyphs; Han from Noto so small labels aren’t Simsun/console mix. */
+    font-family: var(--font-dm-mono), "Noto Sans SC Variable", ui-monospace, monospace;
   }
 
   /**

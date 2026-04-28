@@ -352,7 +352,15 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             <p className="mt-1 text-sm text-text-muted/90">{full.annotation}</p>
           </div>
         )}
-        <ForkRelationPanel assetId={id} />
+        <div className="space-y-3 border-t border-border/60 pt-3">
+          <ForkRelationPanel assetId={id} className="border-t-0 pt-0" />
+          <Link
+            href={`/library/assets/${encodeURIComponent(id)}/fork`}
+            className="text-ui-mono inline-block text-[11px] text-accent/90 hover:underline"
+          >
+            查看完整 fork 图 →
+          </Link>
+        </div>
     </div>
   );
 
@@ -382,7 +390,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
   );
 
   return (
-    <div className="flex min-h-screen w-full flex-col px-4 py-6 lg:min-h-0 lg:flex-1 lg:px-8">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col px-4 py-6 lg:px-8">
       <ConfirmDialog
         open={discardOpen}
         onOpenChange={setDiscardOpen}

@@ -94,14 +94,11 @@ export function WorkspaceShell({
         >
           <div
             className={cn(
-              "gd-scrollbar flex min-h-0 min-w-0 flex-1 flex-col",
-              // Session detail / group workspace fill the viewport; scroll only inside panels.
-              // List, new, and archive routes stay scrollable at the shell.
-              pathname.startsWith("/library/sessions/") &&
-                !pathname.startsWith("/library/sessions/new") &&
-                !pathname.startsWith("/library/sessions/archive")
+              "flex min-h-0 min-w-0 flex-1 flex-col",
+              // Library + sessions: viewport height is fixed here; scroll only inside sidebar / main panels.
+              pathname.startsWith("/library/assets") || pathname.startsWith("/library/sessions")
                 ? "overflow-hidden"
-                : "overflow-y-auto"
+                : "gd-scrollbar overflow-y-auto"
             )}
           >
             {children}

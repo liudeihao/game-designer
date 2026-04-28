@@ -337,6 +337,31 @@ type ErrorBody struct {
 	Error string `json:"error"`
 }
 
+// ForkGraph defines model for ForkGraph.
+type ForkGraph struct {
+	FocusAssetId string          `json:"focusAssetId"`
+	Nodes        []ForkGraphNode `json:"nodes"`
+
+	// Truncated true if maxNodes or childLimit cut off results
+	Truncated bool `json:"truncated"`
+}
+
+// ForkGraphNode defines model for ForkGraphNode.
+type ForkGraphNode struct {
+	// CoverImageUrl Cover image URL if visible; null for deleted/hidden or no image
+	CoverImageUrl *string    `json:"coverImageUrl"`
+	DeletedAt     *time.Time `json:"deletedAt"`
+
+	// ForkCount direct fork children count in DB; 0 when node is hidden stub
+	ForkCount    int     `json:"forkCount"`
+	ForkedFromId *string `json:"forkedFromId"`
+	Id           string  `json:"id"`
+
+	// Name empty when ghost upstream
+	Name       *string         `json:"name,omitempty"`
+	Visibility AssetVisibility `json:"visibility"`
+}
+
 // ForkNode defines model for ForkNode.
 type ForkNode struct {
 	DeletedAt    *time.Time `json:"deletedAt"`
@@ -512,6 +537,19 @@ type GetAssetsParamsSort string
 
 // GetAssetsParamsImg defines parameters for GetAssets.
 type GetAssetsParamsImg string
+
+// GetAssetsIdForkGraphParams defines parameters for GetAssetsIdForkGraph.
+type GetAssetsIdForkGraphParams struct {
+	MaxUpstream     *int `form:"maxUpstream,omitempty" json:"maxUpstream,omitempty"`
+	DownstreamDepth *int `form:"downstreamDepth,omitempty" json:"downstreamDepth,omitempty"`
+	MaxNodes        *int `form:"maxNodes,omitempty" json:"maxNodes,omitempty"`
+
+	// ExpandFrom If set, return direct children of this asset only (lazy expand); focus id in path is still the page focus for cache keys
+	ExpandFrom *openapi_types.UUID `form:"expandFrom,omitempty" json:"expandFrom,omitempty"`
+
+	// ChildLimit Max children returned per expandFrom request
+	ChildLimit *int `form:"childLimit,omitempty" json:"childLimit,omitempty"`
+}
 
 // GetAssetsIdForksParams defines parameters for GetAssetsIdForks.
 type GetAssetsIdForksParams struct {

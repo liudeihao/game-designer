@@ -12,7 +12,8 @@ export default function NewAssetPage() {
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   return (
-    <div className="mx-auto max-w-lg px-4 py-10">
+    <div className="gd-scrollbar flex min-h-0 w-full flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto max-w-lg px-4 py-10">
       <h1 className="font-display text-2xl">新建素材</h1>
       <p className="text-ui-mono mt-2 text-[12px] text-text-muted">写下第一个概念的名称与描述</p>
       <form
@@ -70,6 +71,7 @@ export default function NewAssetPage() {
           {saving ? "创建中…" : "创建"}
         </button>
       </form>
+      </div>
     </div>
   );
 }

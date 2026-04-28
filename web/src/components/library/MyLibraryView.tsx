@@ -246,7 +246,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   );
 
   return (
-    <div className="flex min-h-0 min-h-screen w-full flex-1 flex-col">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col">
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}

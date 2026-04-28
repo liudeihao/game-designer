@@ -78,6 +78,18 @@ export type ForkNode = {
 
 export type ForkPage = { direction: "upstream" | "downstream"; nodes: ForkNode[] };
 
+/** Fork graph page node (GET /assets/{id}/fork-graph). */
+export type ForkGraphNode = ForkNode & {
+  forkCount: number;
+  coverImageUrl: string | null;
+};
+
+export type ForkGraph = {
+  focusAssetId: string;
+  nodes: ForkGraphNode[];
+  truncated: boolean;
+};
+
 /** 会话分组（与素材库的 asset group 不同）：控制多个 AI 会话是否共用同一套暂存区。 */
 export type StagingGroupDraft = "independent" | "shared";
 

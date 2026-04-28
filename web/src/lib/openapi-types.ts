@@ -640,6 +640,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/assets/{id}/fork-graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bounded fork subgraph for graph view (focus asset must be readable like GET /assets/{id}) */
+        get: {
+            parameters: {
+                query?: {
+                    maxUpstream?: number;
+                    downstreamDepth?: number;
+                    maxNodes?: number;
+                    /** @description If set, return direct children of this asset only (lazy expand); focus id in path is still the page focus for cache keys */
+                    expandFrom?: string;
+                    /** @description Max children returned per expandFrom request */
+                    childLimit?: number;
+                };
+                header?: never;
+                path: {
+                    id: components["parameters"]["AssetId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ForkGraph"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sessions": {
         parameters: {
             query?: never;
@@ -1403,6 +1449,18 @@ export interface components {
             /** @enum {string} */
             direction: "upstream" | "downstream";
             nodes: components["schemas"]["ForkNode"][];
+        };
+        ForkGraphNode: components["schemas"]["ForkNode"] & {
+            /** @description direct fork children count in DB; 0 when node is hidden stub */
+            forkCount: number;
+            /** @description Cover image URL if visible; null for deleted/hidden or no image */
+            coverImageUrl: string | null;
+        };
+        ForkGraph: {
+            focusAssetId: string;
+            nodes: components["schemas"]["ForkGraphNode"][];
+            /** @description true if maxNodes or childLimit cut off results */
+            truncated: boolean;
         };
         /** @description Staging group attached to a chat session (independent = per-session drafts, shared = one pool per group) */
         SessionStagingGroupRef: {

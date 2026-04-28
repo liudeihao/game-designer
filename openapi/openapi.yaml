@@ -338,6 +338,37 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /assets/{id}/fork-graph:
+    get:
+      tags: [forks]
+      summary: Bounded fork subgraph for graph view (focus asset must be readable like GET /assets/{id})
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+        - name: maxUpstream
+          in: query
+          schema: { type: integer, default: 64, minimum: 1, maximum: 128 }
+        - name: downstreamDepth
+          in: query
+          schema: { type: integer, default: 2, minimum: 0, maximum: 12 }
+        - name: maxNodes
+          in: query
+          schema: { type: integer, default: 200, minimum: 1, maximum: 500 }
+        - name: expandFrom
+          in: query
+          description: If set, return direct children of this asset only (lazy expand); focus id in path is still the page focus for cache keys
+          schema: { type: string, format: uuid }
+        - name: childLimit
+          in: query
+          description: Max children returned per expandFrom request
+          schema: { type: integer, default: 48, minimum: 1, maximum: 96 }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ForkGraph" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /sessions:
     get:
       tags: [sessions]
@@ -856,6 +887,28 @@ components:
           type: array
           items: { $ref: "#/components/schemas/ForkNode" }
       required: [direction, nodes]
+
+    ForkGraphNode:
+      allOf:
+        - $ref: "#/components/schemas/ForkNode"
+        - type: object
+          properties:
+            forkCount: { type: integer, description: direct fork children count in DB; 0 when node is hidden stub }
+            coverImageUrl:
+              type: string
+              nullable: true
+              description: Cover image URL if visible; null for deleted/hidden or no image
+          required: [forkCount, coverImageUrl]
+
+    ForkGraph:
+      type: object
+      properties:
+        focusAssetId: { type: string }
+        nodes:
+          type: array
+          items: { $ref: "#/components/schemas/ForkGraphNode" }
+        truncated: { type: boolean, description: true if maxNodes or childLimit cut off results }
+      required: [focusAssetId, nodes, truncated]
 
     SessionStagingGroupRef:
       type: object

@@ -60,6 +60,7 @@ func (s *Server) Router() http.Handler {
 			r.With(s.requireUser).Post("/", s.createAsset)
 			// subpaths before /{id} to avoid route shadowing
 			r.Get("/{id}/forks", s.getForks)
+			r.Get("/{id}/fork-graph", s.getForkGraph)
 			r.With(s.requireUser).Post("/{id}/publish", s.publishAsset)
 			r.With(s.requireUser).Post("/{id}/fork", s.forkAsset)
 			r.With(s.requireUser).Delete("/{id}/images/{imageId}", s.deleteAssetImage)

@@ -166,6 +166,28 @@ export async function getForks(id: string, direction: "upstream" | "downstream")
   return r.json() as Promise<{ direction: string; nodes: import("./types").ForkNode[] }>;
 }
 
+export async function getForkGraph(
+  id: string,
+  opts?: {
+    signal?: AbortSignal;
+    maxUpstream?: number;
+    downstreamDepth?: number;
+    maxNodes?: number;
+    expandFrom?: string;
+    childLimit?: number;
+  }
+) {
+  const u = new URL(`/api/assets/${encodeURIComponent(id)}/fork-graph`, window.location.origin);
+  if (opts?.maxUpstream != null) u.searchParams.set("maxUpstream", String(opts.maxUpstream));
+  if (opts?.downstreamDepth != null) u.searchParams.set("downstreamDepth", String(opts.downstreamDepth));
+  if (opts?.maxNodes != null) u.searchParams.set("maxNodes", String(opts.maxNodes));
+  if (opts?.expandFrom) u.searchParams.set("expandFrom", opts.expandFrom);
+  if (opts?.childLimit != null) u.searchParams.set("childLimit", String(opts.childLimit));
+  const r = await fetch(u, { credentials: "include", signal: opts?.signal });
+  if (!r.ok) throw new Error("fork-graph");
+  return r.json() as Promise<import("./types").ForkGraph>;
+}
+
 export async function postImage(id: string, extraPrompt: string | null) {
   const r = await fetch(`/api/assets/${id}/images`, {
     method: "POST",

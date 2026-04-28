@@ -737,8 +737,12 @@ func (s *Server) forkNode(ctx context.Context, id uuid.UUID) (map[string]any, er
 		if del.Valid {
 			dt = del.Time.Format(time.RFC3339)
 		}
+		fk := any(nil)
+		if forked.Valid {
+			fk = forked.String
+		}
 		return map[string]any{
-			"id": id.String(), "name": "", "visibility": "deleted", "forkedFromId": nil, "deletedAt": dt,
+			"id": id.String(), "name": "", "visibility": "deleted", "forkedFromId": fk, "deletedAt": dt,
 		}, nil
 	}
 	fk := any(nil)
@@ -748,6 +752,278 @@ func (s *Server) forkNode(ctx context.Context, id uuid.UUID) (map[string]any, er
 	return map[string]any{
 		"id": id.String(), "name": name, "visibility": vis, "forkedFromId": fk, "deletedAt": nil,
 	}, nil
+}
+
+func clampInt(s string, def, min, max int) int {
+	if s == "" {
+		return def
+	}
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		return def
+	}
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}
+
+// assetReadableForForkGraph mirrors GET /assets/{id} visibility for non-deleted; deleted ghosts are readable by id.
+func (s *Server) assetReadableForForkGraph(ctx context.Context, id uuid.UUID, viewer uuid.UUID) bool {
+	var vis string
+	var author uuid.UUID
+	err := s.pool.QueryRow(ctx, `SELECT visibility::text, author_id FROM assets WHERE id = $1`, id).Scan(&vis, &author)
+	if err != nil {
+		return false
+	}
+	switch vis {
+	case "deleted":
+		return true
+	case "public":
+		return true
+	case "private":
+		return viewer != uuid.Nil && viewer == author
+	default:
+		return false
+	}
+}
+
+func (s *Server) forkGraphNodeJSON(ctx context.Context, id uuid.UUID, viewer uuid.UUID) (map[string]any, error) {
+	var name, vis string
+	var forked sql.NullString
+	var del sql.NullTime
+	var fc int
+	var author uuid.UUID
+	var cover sql.NullString
+	err := s.pool.QueryRow(ctx, `
+		SELECT a.name, a.visibility::text, a.forked_from_id::text, a.deleted_at, a.fork_count, a.author_id,
+			COALESCE(
+				(SELECT url FROM asset_images WHERE id = a.cover_image_id LIMIT 1),
+				(SELECT url FROM asset_images WHERE asset_id = a.id ORDER BY created_at ASC LIMIT 1)
+			)
+		FROM assets a WHERE a.id = $1
+	`, id).Scan(&name, &vis, &forked, &del, &fc, &author, &cover)
+	if err != nil {
+		return nil, err
+	}
+	fk := any(nil)
+	if forked.Valid {
+		fk = forked.String
+	}
+	if vis == "deleted" {
+		dt := any(nil)
+		if del.Valid {
+			dt = del.Time.Format(time.RFC3339)
+		}
+		return map[string]any{
+			"id": id.String(), "name": "", "visibility": "deleted",
+			"forkedFromId": fk, "deletedAt": dt,
+			"forkCount": 0, "coverImageUrl": nil,
+		}, nil
+	}
+	readable := vis == "public" || (viewer != uuid.Nil && viewer == author)
+	if !readable {
+		return map[string]any{
+			"id": id.String(), "name": "", "visibility": "private",
+			"forkedFromId": fk, "deletedAt": nil,
+			"forkCount": 0, "coverImageUrl": nil,
+		}, nil
+	}
+	cov := any(nil)
+	if cover.Valid {
+		cov = cover.String
+	}
+	return map[string]any{
+		"id": id.String(), "name": name, "visibility": vis,
+		"forkedFromId": fk, "deletedAt": nil,
+		"forkCount": fc, "coverImageUrl": cov,
+	}, nil
+}
+
+func (s *Server) getForkGraph(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	focusID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeErr(w, 400, "bad id", "bad_request")
+		return
+	}
+	viewer, _ := s.sessionUserID(r)
+	if !s.assetReadableForForkGraph(ctx, focusID, viewer) {
+		writeErr(w, 404, "not found", "not_found")
+		return
+	}
+	q := r.URL.Query()
+	maxUp := clampInt(q.Get("maxUpstream"), 64, 1, 128)
+	downDepthLimit := clampInt(q.Get("downstreamDepth"), 2, 0, 12)
+	maxNodes := clampInt(q.Get("maxNodes"), 200, 1, 500)
+	childLimit := clampInt(q.Get("childLimit"), 48, 1, 96)
+	expandFromStr := strings.TrimSpace(q.Get("expandFrom"))
+
+	if expandFromStr != "" {
+		s.forkGraphExpandFrom(w, r, focusID, expandFromStr, viewer, childLimit)
+		return
+	}
+
+	truncated := false
+	ordered := make([]uuid.UUID, 0, maxNodes)
+	seen := make(map[uuid.UUID]struct{})
+
+	cur := focusID
+	upChain := make([]uuid.UUID, 0, maxUp)
+	stepGuard := make(map[uuid.UUID]struct{})
+	for len(upChain) < maxUp {
+		if _, dup := stepGuard[cur]; dup {
+			break
+		}
+		stepGuard[cur] = struct{}{}
+		upChain = append(upChain, cur)
+		var parent sql.NullString
+		err := s.pool.QueryRow(ctx, `SELECT forked_from_id::text FROM assets WHERE id = $1`, cur).Scan(&parent)
+		if err != nil || !parent.Valid {
+			break
+		}
+		pid, perr := uuid.Parse(parent.String)
+		if perr != nil {
+			break
+		}
+		cur = pid
+	}
+	if len(upChain) == maxUp {
+		leaf := upChain[len(upChain)-1]
+		var moreParent sql.NullString
+		_ = s.pool.QueryRow(ctx, `SELECT forked_from_id::text FROM assets WHERE id = $1`, leaf).Scan(&moreParent)
+		if moreParent.Valid {
+			truncated = true
+		}
+	}
+	for i := len(upChain) - 1; i >= 0; i-- {
+		id := upChain[i]
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		if len(ordered) >= maxNodes {
+			truncated = true
+			break
+		}
+		seen[id] = struct{}{}
+		ordered = append(ordered, id)
+	}
+
+	type qn struct {
+		id    uuid.UUID
+		depth int
+	}
+	queue := []qn{{focusID, 0}}
+	for qi := 0; qi < len(queue); qi++ {
+		if len(ordered) >= maxNodes {
+			truncated = true
+			break
+		}
+		item := queue[qi]
+		if item.depth >= downDepthLimit {
+			continue
+		}
+		rows, err := s.pool.Query(ctx, `
+			SELECT id FROM assets WHERE forked_from_id = $1 ORDER BY created_at ASC, id ASC
+		`, item.id)
+		if err != nil {
+			writeErr(w, 500, err.Error(), "internal")
+			return
+		}
+		for rows.Next() {
+			if len(ordered) >= maxNodes {
+				truncated = true
+				break
+			}
+			var cid uuid.UUID
+			if err := rows.Scan(&cid); err != nil {
+				rows.Close()
+				writeErr(w, 500, err.Error(), "internal")
+				return
+			}
+			if _, ok := seen[cid]; ok {
+				continue
+			}
+			seen[cid] = struct{}{}
+			ordered = append(ordered, cid)
+			queue = append(queue, qn{cid, item.depth + 1})
+		}
+		rows.Close()
+		if truncated {
+			break
+		}
+	}
+
+	nodes := make([]any, 0, len(ordered))
+	for _, id := range ordered {
+		m, err := s.forkGraphNodeJSON(ctx, id, viewer)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				continue
+			}
+			writeErr(w, 500, err.Error(), "internal")
+			return
+		}
+		nodes = append(nodes, m)
+	}
+	writeJSON(w, 200, map[string]any{
+		"focusAssetId": focusID.String(),
+		"nodes":        nodes,
+		"truncated":    truncated,
+	})
+}
+
+func (s *Server) forkGraphExpandFrom(w http.ResponseWriter, r *http.Request, focusID uuid.UUID, expandFromStr string, viewer uuid.UUID, childLimit int) {
+	ctx := r.Context()
+	parentID, err := uuid.Parse(expandFromStr)
+	if err != nil {
+		writeErr(w, 400, "bad expandFrom", "bad_request")
+		return
+	}
+	if !s.assetReadableForForkGraph(ctx, parentID, viewer) {
+		writeErr(w, 404, "not found", "not_found")
+		return
+	}
+	var total int
+	err = s.pool.QueryRow(ctx, `SELECT count(*)::int FROM assets WHERE forked_from_id = $1`, parentID).Scan(&total)
+	if err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT id FROM assets WHERE forked_from_id = $1 ORDER BY created_at ASC, id ASC LIMIT $2
+	`, parentID, childLimit)
+	if err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
+	defer rows.Close()
+	var ids []uuid.UUID
+	for rows.Next() {
+		var cid uuid.UUID
+		if err := rows.Scan(&cid); err != nil {
+			writeErr(w, 500, err.Error(), "internal")
+			return
+		}
+		ids = append(ids, cid)
+	}
+	truncated := total > len(ids)
+	nodes := make([]any, 0, len(ids))
+	for _, id := range ids {
+		m, err := s.forkGraphNodeJSON(ctx, id, viewer)
+		if err != nil {
+			continue
+		}
+		nodes = append(nodes, m)
+	}
+	writeJSON(w, 200, map[string]any{
+		"focusAssetId": focusID.String(),
+		"nodes":        nodes,
+		"truncated":    truncated,
+	})
 }
 
 var _ = (*pgxpool.Pool)(nil)

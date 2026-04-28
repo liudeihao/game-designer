@@ -207,7 +207,7 @@ export function AssetCard({
           {...dragProps}
           onClick={(e) => cancelInspectorNavigation(e, cardInteraction === "inspector" ? onInspectorActivate : undefined)}
           className={cn(
-            "group relative block w-full overflow-hidden rounded-md border border-border bg-surface/95 transition-none hover:-translate-y-0.5 hover:border-[rgba(0,255,178,0.35)]",
+            "group relative block w-full overflow-hidden rounded-md border border-border bg-surface/95 transition-none hover:-translate-y-0.5 hover:border-accent/35",
             libraryBulkSelect?.checked && "ring-2 ring-accent/50"
           )}
         >
@@ -236,7 +236,7 @@ export function AssetCard({
         {...dragProps}
         onClick={(e) => cancelInspectorNavigation(e, cardInteraction === "inspector" ? onInspectorActivate : undefined)}
         className={cn(
-          "group relative block aspect-square w-full overflow-hidden rounded-md border border-border bg-surface transition-none hover:-translate-y-0.5 hover:border-[rgba(0,255,178,0.35)]",
+          "group relative block aspect-square w-full overflow-hidden rounded-md border border-border bg-surface transition-none hover:-translate-y-0.5 hover:border-accent/35",
           libraryBulkSelect?.checked && "ring-2 ring-accent/50"
         )}
       >

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { ProfileMediaSettings } from "@/components/user/ProfileMediaSettings";
 import { useUiPreferences } from "@/components/providers/UiPreferencesProvider";
-import type { ColorScheme, FontScale, LibraryCardSize } from "@/lib/ui-preferences";
+import type { ColorScheme, FontScale, LibraryCardSize, LibraryViewMode } from "@/lib/ui-preferences";
 import { cn } from "@/lib/utils";
 
 function ScaleRow({
@@ -53,10 +54,19 @@ export default function LibraryPreferencesPage() {
       </nav>
       <h1 className="font-display mt-2 text-3xl text-text-primary">显示与外观</h1>
       <p className="text-ui-mono mt-1 text-xs text-text-muted/90">
-        以下设置仅保存在本机浏览器，可配合「我的库」工具条调整宫格缩略图尺寸（含无缩略图）。
+        以下设置仅保存在本机浏览器，含「我的库」宫格/列表与缩略图尺寸。
       </p>
 
       <div className="mt-8 space-y-8 border-t border-border/60 pt-8">
+        <div>
+          <h2 className="font-display text-lg text-text-primary">个人主页</h2>
+          <p className="text-ui-mono mt-1 text-xs text-text-muted/90">
+            封面与头像显示在公开主页 <span className="text-text-muted">/u/你的用户名</span>
+          </p>
+          <div className="mt-5 rounded border border-border/50 bg-surface/20 p-4">
+            <ProfileMediaSettings />
+          </div>
+        </div>
         <ScaleRow
           label="配色"
           value={prefs.colorScheme}
@@ -74,6 +84,15 @@ export default function LibraryPreferencesPage() {
             { v: "sm", t: "小" },
             { v: "md", t: "中" },
             { v: "lg", t: "大" },
+          ]}
+        />
+        <ScaleRow
+          label="我的库布局"
+          value={prefs.libraryViewMode ?? "grid"}
+          onChange={(v) => setPrefs({ libraryViewMode: v as LibraryViewMode })}
+          options={[
+            { v: "grid", t: "宫格" },
+            { v: "list", t: "列表" },
           ]}
         />
         <ScaleRow

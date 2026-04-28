@@ -33,10 +33,9 @@ func main() {
 	switch strings.ToLower(strings.TrimSpace(cfg.AIDriver)) {
 	case "mock", "":
 		reg = ai.NewMockRegistry()
-	case "openai", "eino":
-		// "eino" kept as alias for older .env files; implementation is openai-go only.
+	case "openai":
 		if strings.TrimSpace(cfg.AIAPIKey) == "" {
-			log.Printf("AI_DRIVER=%s but AI_API_KEY is empty; using mock", cfg.AIDriver)
+			log.Printf("AI_DRIVER=openai but AI_API_KEY is empty; using mock")
 			reg = ai.NewMockRegistry()
 		} else {
 			chat, err := ai.NewOpenAIChat(cfg.AIAPIKey, cfg.AIBaseURL, cfg.AIChatModel, cfg.AIHTTPTimeout)

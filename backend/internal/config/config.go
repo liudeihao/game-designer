@@ -9,7 +9,7 @@ type Config struct {
 	DatabaseURL string
 	HTTPAddr    string
 	DevLogin    bool
-	AIDriver    string // "mock" | "openai" (alias "eino" for legacy .env)
+	AIDriver    string // "mock" | "openai"
 	// OpenAI API (official openai-go); server-side only.
 	AIAPIKey      string
 	AIBaseURL     string // optional; empty = default OpenAI host

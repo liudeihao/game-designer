@@ -33,32 +33,40 @@ html[data-gd-theme="dark"] {
   --accent-sweep-dim: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
+/*
+ * Light theme: not a copy of dark — lower chroma on large areas, higher contrast on text,
+ * and distinct sky / spectral / ember so UI reads clearly on near-white (not neon-on-black).
+ */
 html[data-gd-theme="light"] {
-  --bg-base: #eef1f8;
+  --bg-base: #eef2f8;
   --surface: #ffffff;
-  --text-primary: #1a2332;
-  --text-muted: rgba(26, 35, 50, 0.55);
-  --accent: #00c896;
-  --accent-mid: rgba(0, 200, 150, 0.14);
-  --accent-dim: rgba(0, 200, 150, 0.08);
-  --border: rgba(0, 200, 150, 0.22);
-  --sky: #2563eb;
-  --sky-mid: rgba(37, 99, 235, 0.1);
-  --sky-dim: rgba(37, 99, 235, 0.06);
-  --ai-violet: #684f8c;
-  --spectral-mid: rgba(104, 79, 140, 0.12);
-  --spectral-dim: rgba(104, 79, 140, 0.06);
-  --divider: rgba(26, 35, 50, 0.08);
+  --text-primary: #15202b;
+  --text-muted: rgba(21, 32, 43, 0.55);
+  /* Deeper teal than dark neon so borders and buttons hold on white. */
+  --accent: #00a77a;
+  --accent-mid: rgba(0, 167, 122, 0.12);
+  --accent-dim: rgba(0, 167, 122, 0.07);
+  --border: rgba(0, 120, 95, 0.18);
+  /* Royal blue — distinct from mint on paper; slightly deeper than dark’s sky for contrast. */
+  --sky: #1d4ed8;
+  --sky-mid: rgba(29, 78, 216, 0.1);
+  --sky-dim: rgba(29, 78, 216, 0.05);
+  /* Brighter violet than dark (which uses soft glow); reads as “AI / fork” on white. */
+  --ai-violet: #7c3aed;
+  --spectral-mid: rgba(124, 58, 237, 0.1);
+  --spectral-dim: rgba(124, 58, 237, 0.05);
+  --divider: rgba(21, 32, 43, 0.09);
   --error-dim: #b91c1c;
-  --ember: #c27b16;
-  --ember-dim: rgba(194, 123, 22, 0.12);
-  --bg-glow-accent: rgba(0, 200, 150, 0.07);
-  --bg-glow-violet: rgba(104, 79, 140, 0.06);
-  --bg-glow-sky: rgba(37, 99, 235, 0.07);
-  --bg-dot: rgba(26, 36, 52, 0.07);
-  --accent-border-strong: color-mix(in srgb, var(--accent) 38%, transparent);
-  --accent-sweep-mid: color-mix(in srgb, var(--accent) 42%, transparent);
-  --accent-sweep-dim: color-mix(in srgb, var(--accent) 18%, transparent);
+  /* Warm amber tuned for dark text pairing on light surfaces. */
+  --ember: #c2410c;
+  --ember-dim: rgba(194, 65, 12, 0.1);
+  --bg-glow-accent: rgba(0, 167, 122, 0.06);
+  --bg-glow-violet: rgba(124, 58, 237, 0.06);
+  --bg-glow-sky: rgba(29, 78, 216, 0.07);
+  --bg-dot: rgba(21, 32, 43, 0.055);
+  --accent-border-strong: color-mix(in srgb, var(--accent) 36%, transparent);
+  --accent-sweep-mid: color-mix(in srgb, var(--accent) 40%, transparent);
+  --accent-sweep-dim: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 @theme inline {

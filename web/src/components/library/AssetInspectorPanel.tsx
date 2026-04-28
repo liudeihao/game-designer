@@ -94,7 +94,7 @@ export function AssetInspectorPanel({
             <>
               <button
                 type="button"
-                className="text-ui-mono inline-flex items-center gap-1 rounded border border-border/60 px-2 py-1 text-[11px] text-text-muted hover:border-accent/35 hover:text-accent"
+                className="text-ui-mono inline-flex items-center gap-1 rounded border border-border/60 px-2 py-1 text-xs text-text-muted hover:border-accent/35 hover:text-accent"
                 title="加入底部暂存"
                 onClick={() => full && stashAddEntry(full.id, full.name)}
               >
@@ -103,7 +103,7 @@ export function AssetInspectorPanel({
               </button>
               <Link
                 href={`/library/assets/${encodeURIComponent(assetId)}`}
-                className="text-ui-mono inline-flex items-center gap-1 rounded border border-border/60 px-2 py-1 text-[11px] text-text-muted hover:border-accent/35 hover:text-accent"
+                className="text-ui-mono inline-flex items-center gap-1 rounded border border-border/60 px-2 py-1 text-xs text-text-muted hover:border-accent/35 hover:text-accent"
                 title="在新语境打开完整详情页"
               >
                 <ExternalLink className="h-3 w-3" />
@@ -124,16 +124,16 @@ export function AssetInspectorPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         {assetQ.isLoading && (
-          <p className="text-ui-mono text-[12px] text-text-muted">加载素材…</p>
+          <p className="text-ui-mono text-xs text-text-muted">加载素材…</p>
         )}
         {assetQ.isError && (
-          <p className="text-ui-mono text-[12px] text-error-dim/90">无法加载素材。</p>
+          <p className="text-ui-mono text-xs text-error-dim/90">无法加载素材。</p>
         )}
         {!assetQ.isLoading && assetQ.data === null && (
-          <p className="text-ui-mono text-[12px] text-text-muted">未找到素材。</p>
+          <p className="text-ui-mono text-xs text-text-muted">未找到素材。</p>
         )}
         {asset?.visibility === "deleted" && (
-          <p className="text-ui-mono text-[12px] text-text-muted">该素材已删除，无法展示详情。</p>
+          <p className="text-ui-mono text-xs text-text-muted">该素材已删除，无法展示详情。</p>
         )}
 
         {full && (
@@ -157,7 +157,7 @@ export function AssetInspectorPanel({
               })()}
             </div>
 
-            <div className="text-ui-mono mb-3 flex flex-wrap gap-2 text-[11px]">
+            <div className="text-ui-mono mb-3 flex flex-wrap gap-2 text-xs">
               <span
                 className={cn(
                   "rounded px-1.5 py-0.5",
@@ -182,10 +182,10 @@ export function AssetInspectorPanel({
               const promptBlock = promptForAsset(full);
               return promptBlock ? (
                 <section className="mb-4">
-                  <p className="text-ui-mono mb-1 text-[10px] uppercase tracking-wide text-text-muted">
+                  <p className="text-ui-mono mb-1 text-xs uppercase tracking-wide text-text-muted">
                     {promptBlock.label}
                   </p>
-                  <p className="gd-scrollbar max-h-40 overflow-y-auto whitespace-pre-wrap rounded border border-border/40 bg-surface/50 p-2 text-[12px] leading-relaxed text-text-primary">
+                  <p className="gd-scrollbar max-h-40 overflow-y-auto whitespace-pre-wrap rounded border border-border/40 bg-surface/50 p-2 text-xs leading-relaxed text-text-primary">
                     {promptBlock.text}
                   </p>
                 </section>
@@ -194,15 +194,15 @@ export function AssetInspectorPanel({
 
             {full.annotation?.trim() && (
               <section className="mb-4">
-                <p className="text-ui-mono mb-1 text-[10px] uppercase tracking-wide text-text-muted">
+                <p className="text-ui-mono mb-1 text-xs uppercase tracking-wide text-text-muted">
                   备注
                 </p>
-                <p className="whitespace-pre-wrap text-[12px] text-text-muted">{full.annotation.trim()}</p>
+                <p className="whitespace-pre-wrap text-xs text-text-muted">{full.annotation.trim()}</p>
               </section>
             )}
 
             <section className="mb-4">
-              <p className="text-ui-mono mb-1 text-[10px] uppercase tracking-wide text-text-muted">标签</p>
+              <p className="text-ui-mono mb-1 text-xs uppercase tracking-wide text-text-muted">标签</p>
               {canEditTags ? (
                 <>
                   <textarea
@@ -210,11 +210,11 @@ export function AssetInspectorPanel({
                     onChange={(e) => setTagDraft(e.target.value)}
                     rows={2}
                     placeholder="逗号分隔，如 角色, 场景"
-                    className="w-full resize-y rounded border border-border/50 bg-surface/50 px-2 py-1.5 text-[12px] text-text-primary outline-none placeholder:text-text-muted/50"
+                    className="w-full resize-y rounded border border-border/50 bg-surface/50 px-2 py-1.5 text-xs text-text-primary outline-none placeholder:text-text-muted/50"
                   />
                   <button
                     type="button"
-                    className="text-ui-mono mt-1 rounded border border-accent/35 px-2 py-1 text-[11px] text-accent hover:bg-accent/10"
+                    className="text-ui-mono mt-1 rounded border border-accent/35 px-2 py-1 text-xs text-accent hover:bg-accent/10"
                     onClick={() => void saveTags()}
                   >
                     保存标签
@@ -223,10 +223,10 @@ export function AssetInspectorPanel({
               ) : (
                 <div className="flex flex-wrap gap-1">
                   {(full.tags ?? []).length === 0 ? (
-                    <span className="text-[11px] text-text-muted">—</span>
+                    <span className="text-xs text-text-muted">—</span>
                   ) : (
                     full.tags!.map((t) => (
-                      <span key={t} className="rounded bg-white/8 px-1.5 py-0.5 text-[11px] text-text-muted">
+                      <span key={t} className="rounded bg-white/8 px-1.5 py-0.5 text-xs text-text-muted">
                         {t}
                       </span>
                     ))
@@ -238,15 +238,15 @@ export function AssetInspectorPanel({
             <section className="mb-4">
               <div className="mb-2 flex items-center gap-1.5">
                 <GitFork className="h-3.5 w-3.5 text-text-muted" />
-                <p className="text-ui-mono text-[10px] uppercase tracking-wide text-text-muted">
+                <p className="text-ui-mono text-xs uppercase tracking-wide text-text-muted">
                   Fork 关系（缩略）
                 </p>
               </div>
               {forkQ.isLoading && (
-                <p className="text-[11px] text-text-muted">加载关系…</p>
+                <p className="text-xs text-text-muted">加载关系…</p>
               )}
               {forkQ.isError && (
-                <p className="text-[11px] text-text-muted">无法加载 Fork 图。</p>
+                <p className="text-xs text-text-muted">无法加载 Fork 图。</p>
               )}
               {forkQ.data && (
                 <>
@@ -256,7 +256,7 @@ export function AssetInspectorPanel({
                         <Link
                           href={`/library/assets/${encodeURIComponent(n.id)}`}
                           className={cn(
-                            "text-ui-mono line-clamp-1 block rounded px-1 py-0.5 text-[11px] hover:bg-accent/10",
+                            "text-ui-mono line-clamp-1 block rounded px-1 py-0.5 text-xs hover:bg-accent/10",
                             n.id === forkQ.data.focusAssetId ? "text-accent" : "text-text-primary"
                           )}
                         >
@@ -271,7 +271,7 @@ export function AssetInspectorPanel({
                   {forkQ.data.truncated && (
                     <Link
                       href={`/library/assets/${encodeURIComponent(assetId)}/fork`}
-                      className="mt-2 inline-block text-[11px] text-accent hover:underline"
+                      className="mt-2 inline-block text-xs text-accent hover:underline"
                     >
                       在 Fork 页面查看完整关系 →
                     </Link>

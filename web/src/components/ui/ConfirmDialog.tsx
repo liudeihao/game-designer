@@ -64,15 +64,15 @@ export function ConfirmDialog({
         >
           <Dialog.Title className="font-display text-lg text-text-primary">{title}</Dialog.Title>
           {description !== undefined && description !== "" && (
-            <Dialog.Description className="mt-2 text-[13px] leading-relaxed text-text-muted">
+            <Dialog.Description className="mt-2 text-sm leading-relaxed text-text-muted">
               {description}
             </Dialog.Description>
           )}
           {children != null && children !== false && (
-            <div className="mt-3 text-[13px] leading-relaxed text-text-muted">{children}</div>
+            <div className="mt-3 text-sm leading-relaxed text-text-muted">{children}</div>
           )}
           {submitting && footer === "default" && (
-            <p className="mt-3 text-[12px] text-accent" role="status">
+            <p className="mt-3 text-xs text-accent" role="status">
               请稍候，正在处理…
             </p>
           )}
@@ -80,7 +80,7 @@ export function ConfirmDialog({
             {footer === "close-only" ? (
               <button
                 type="button"
-                className="rounded border border-border px-3 py-1.5 text-[12px] text-text-primary hover:border-accent/40"
+                className="rounded border border-border px-3 py-1.5 text-xs text-text-primary hover:border-accent/40"
                 onClick={() => onOpenChange(false)}
               >
                 {closeOnlyLabel}
@@ -91,7 +91,7 @@ export function ConfirmDialog({
                   <button
                     type="button"
                     disabled={submitting}
-                    className="rounded border border-border px-3 py-1.5 text-[12px] text-text-muted hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded border border-border px-3 py-1.5 text-xs text-text-muted hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {cancelLabel}
                   </button>
@@ -100,7 +100,7 @@ export function ConfirmDialog({
                   type="button"
                   disabled={submitting}
                   className={cn(
-                    "rounded px-3 py-1.5 text-[12px] disabled:cursor-not-allowed disabled:opacity-60",
+                    "rounded px-3 py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-60",
                     tone === "danger"
                       ? "border border-error-dim/40 bg-error-dim/20 text-text-primary hover:bg-error-dim/30"
                       : "gd-btn-dataflow border border-accent/50 bg-accent/15 text-accent hover:bg-accent/25"

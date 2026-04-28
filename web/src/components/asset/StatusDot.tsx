@@ -17,7 +17,7 @@ export function StatusDot({
           status === "fail" && "bg-[#6b4a4a]"
         )}
       />
-      <span className="text-ui-mono text-[11px] text-text-muted">{label}</span>
+      <span className="text-ui-mono text-xs text-text-muted">{label}</span>
     </span>
   );
 }

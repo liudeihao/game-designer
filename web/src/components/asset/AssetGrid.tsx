@@ -176,7 +176,7 @@ export function AssetGrid({
     <div className={cn("w-full", className)}>
       {showBulkToolbar && (
         <>
-          <div className="text-ui-mono mb-3 flex flex-wrap items-center gap-2 text-[12px]">
+          <div className="text-ui-mono mb-3 flex flex-wrap items-center gap-2 text-xs">
             <button
               type="button"
               className={cn(
@@ -246,7 +246,7 @@ export function AssetGrid({
         </>
       )}
       {showQueryErr && (
-        <p className="text-ui-mono mb-3 rounded border border-error-dim/20 bg-surface/60 px-3 py-2 text-center text-[12px] text-text-muted">
+        <p className="text-ui-mono mb-3 rounded border border-error-dim/20 bg-surface/60 px-3 py-2 text-center text-xs text-text-muted">
           无法刷新列表。请检查网络或后端是否可用。
         </p>
       )}
@@ -284,13 +284,13 @@ export function AssetGrid({
                   />
                 </div>
                 {isAssetFull(a) && (
-                  <div className="text-ui-mono hidden w-40 shrink-0 flex-col justify-center text-[10px] text-text-muted sm:flex">
+                  <div className="text-ui-mono hidden w-40 shrink-0 flex-col justify-center text-xs text-text-muted sm:flex">
                     <span>创建 {new Date(a.createdAt).toLocaleString()}</span>
                     <span>更新 {new Date(a.updatedAt).toLocaleString()}</span>
                   </div>
                 )}
                 {isAssetFull(a) && (
-                  <div className="text-ui-mono hidden w-28 shrink-0 items-center text-[10px] text-text-muted md:flex">
+                  <div className="text-ui-mono hidden w-28 shrink-0 items-center text-xs text-text-muted md:flex">
                     fork {a.forkCount}
                   </div>
                 )}
@@ -301,7 +301,7 @@ export function AssetGrid({
       )}
       <div ref={sentinelRef} className="h-8" />
       {q.isFetching && !q.isFetchingNextPage && (
-        <p className="text-ui-mono text-center text-[12px] text-text-muted">加载中…</p>
+        <p className="text-ui-mono text-center text-xs text-text-muted">加载中…</p>
       )}
     </div>
   );

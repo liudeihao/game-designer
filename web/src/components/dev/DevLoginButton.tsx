@@ -6,7 +6,7 @@ export function DevLoginButton() {
   const [st, setSt] = useState<"idle" | "ok" | "err">("idle");
   if (process.env.NEXT_PUBLIC_DEV_LOGIN !== "1") return null;
   return (
-    <div className="text-ui-mono pointer-events-auto fixed bottom-2 right-2 z-50 flex items-center gap-2 rounded border border-border/80 bg-bg-base/90 px-2 py-1 text-[10px] text-text-muted">
+    <div className="text-ui-mono pointer-events-auto fixed bottom-2 right-2 z-50 flex items-center gap-2 rounded border border-border/80 bg-bg-base/90 px-2 py-1 text-xs text-text-muted">
       <span>dev</span>
       <button
         type="button"

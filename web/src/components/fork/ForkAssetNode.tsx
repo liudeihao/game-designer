@@ -54,7 +54,7 @@ export function ForkAssetNode({ data }: NodeProps) {
       <div className="absolute bottom-0 left-0 right-0 z-[5] flex flex-col justify-end p-2.5 pt-8">
         {noDetailLink ? (
           <span
-            className="font-display line-clamp-2 cursor-default text-left text-[13px] leading-tight text-text-muted/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
+            className="font-display line-clamp-2 cursor-default text-left text-sm leading-tight text-text-muted/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
             title={
               deleted
                 ? "已删除素材仅在图中保留节点；若直接打开链接会看到简要说明而非完整详情"
@@ -66,7 +66,7 @@ export function ForkAssetNode({ data }: NodeProps) {
         ) : (
           <Link
             href={`/library/assets/${encodeURIComponent(n.id)}`}
-            className="font-display line-clamp-2 text-left text-[13px] leading-tight text-accent/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] hover:underline"
+            className="font-display line-clamp-2 text-left text-sm leading-tight text-accent/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] hover:underline"
             onClick={(e) => e.stopPropagation()}
           >
             {titleText}
@@ -74,17 +74,17 @@ export function ForkAssetNode({ data }: NodeProps) {
         )}
         <div className="mt-1 flex flex-wrap items-center gap-1">
           {n.visibility === "public" && (
-            <span className="text-ui-mono rounded bg-accent/20 px-1 py-px text-[9px] uppercase tracking-wide text-accent drop-shadow-sm">
+            <span className="text-ui-mono rounded bg-accent/20 px-1 py-px text-xs uppercase tracking-wide text-accent drop-shadow-sm">
               全站
             </span>
           )}
           {n.visibility === "private" && (
-            <span className="text-ui-mono rounded bg-black/35 px-1 py-px text-[9px] uppercase tracking-wide text-text-muted drop-shadow-sm">
+            <span className="text-ui-mono rounded bg-black/35 px-1 py-px text-xs uppercase tracking-wide text-text-muted drop-shadow-sm">
               {hidden ? "私·无权" : "私"}
             </span>
           )}
           {n.visibility === "deleted" && (
-            <span className="text-ui-mono rounded bg-white/10 px-1 py-px text-[9px] text-text-muted">已删</span>
+            <span className="text-ui-mono rounded bg-white/10 px-1 py-px text-xs text-text-muted">已删</span>
           )}
         </div>
         {showExpand && (
@@ -95,7 +95,7 @@ export function ForkAssetNode({ data }: NodeProps) {
               e.stopPropagation();
               onExpand();
             }}
-            className="text-ui-mono mt-1 w-full truncate text-left text-[10px] text-accent/95 hover:underline disabled:opacity-50"
+            className="text-ui-mono mt-1 w-full truncate text-left text-xs text-accent/95 hover:underline disabled:opacity-50"
           >
             {expanding ? "加载中…" : `+ 子分支 (${n.forkCount - childCount})`}
           </button>

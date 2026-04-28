@@ -45,14 +45,14 @@ export function ProjectGddEditor({
   return (
     <div className="flex h-full min-h-0 flex-col border-l border-border/60 bg-bg-base/50">
       <div className="shrink-0 border-b border-border/50 px-3 py-2">
-        <h3 className="text-ui-mono text-[10px] uppercase tracking-wide text-text-muted">游戏设计文档</h3>
-        <p className="text-ui-mono mt-0.5 text-[10px] leading-relaxed text-text-muted/85">
+        <h3 className="text-ui-mono text-xs uppercase tracking-wide text-text-muted">游戏设计文档</h3>
+        <p className="text-ui-mono mt-0.5 text-xs leading-relaxed text-text-muted/85">
           Markdown。可与 AI 讨论同步整理；后续支持由 AI 直接更新本节。
         </p>
       </div>
       <textarea
         className={cn(
-          "text-ui-mono gd-scrollbar min-h-0 flex-1 resize-none bg-transparent px-3 py-2 text-[13px] leading-relaxed text-text-primary",
+          "text-ui-mono gd-scrollbar min-h-0 flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-relaxed text-text-primary",
           "placeholder:text-text-muted/50 focus:outline-none"
         )}
         placeholder="# 核心玩法&#10;&#10;- …"

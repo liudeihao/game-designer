@@ -88,7 +88,7 @@ export function ImageStrip({
                 />
               )}
               {isCover && (
-                <span className="pointer-events-none absolute left-2 top-2 z-10 rounded bg-accent/25 px-1.5 py-0.5 text-ui-mono text-[10px] tracking-wide text-accent">
+                <span className="pointer-events-none absolute left-2 top-2 z-10 rounded bg-accent/25 px-1.5 py-0.5 text-ui-mono text-xs tracking-wide text-accent">
                   封面
                 </span>
               )}
@@ -98,7 +98,7 @@ export function ImageStrip({
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
-                  <p className="text-ui-mono mb-1.5 text-[9px] uppercase tracking-[0.12em] text-text-muted/90">操作</p>
+                  <p className="text-ui-mono mb-1.5 text-xs uppercase tracking-[0.12em] text-text-muted/90">操作</p>
                   <div className="flex flex-col gap-1.5">
                     {canSetCover && (
                       <button

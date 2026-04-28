@@ -18,7 +18,7 @@ function ScaleRow({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-ui-mono text-[11px] text-text-muted">{label}</p>
+      <p className="text-ui-mono text-xs text-text-muted">{label}</p>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
           <button
@@ -45,14 +45,14 @@ export default function LibraryPreferencesPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
-      <nav className="text-ui-mono text-[11px] text-text-muted/80">
+      <nav className="text-ui-mono text-xs text-text-muted/80">
         <Link href="/library/assets" className="hover:text-accent">
           我的库
         </Link>{" "}
         / <span className="text-text-primary">显示设置</span>
       </nav>
       <h1 className="font-display mt-2 text-3xl text-text-primary">显示与外观</h1>
-      <p className="text-ui-mono mt-1 text-[12px] text-text-muted/90">
+      <p className="text-ui-mono mt-1 text-xs text-text-muted/90">
         以下设置仅保存在本机浏览器，可配合「我的库」工具条调整宫格缩略图尺寸（含无缩略图）。
       </p>
 

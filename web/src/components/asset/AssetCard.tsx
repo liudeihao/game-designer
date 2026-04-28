@@ -106,7 +106,7 @@ export function AssetCard({
     showOwnerLibraryBadge && isAssetFull(full) ? (
       <span
         className={cn(
-          "text-ui-mono shrink-0 rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wide",
+          "text-ui-mono shrink-0 rounded px-1.5 py-0.5 text-xs uppercase tracking-wide",
           full.visibility === "public"
             ? "bg-accent/15 text-accent"
             : "bg-white/6 text-text-muted"
@@ -180,7 +180,7 @@ export function AssetCard({
             <h3 className="font-display min-w-0 flex-1 line-clamp-1 text-left text-sm text-text-primary">{full.name}</h3>
             {visPill}
           </div>
-          <p className="line-clamp-1 text-left text-[11px] text-text-muted">{full.description}</p>
+          <p className="line-clamp-1 text-left text-xs text-text-muted">{full.description}</p>
         </div>
       </Link>
     );
@@ -194,8 +194,7 @@ export function AssetCard({
   );
   const descCls = cn(
     "mt-1 line-clamp-2 leading-relaxed text-text-muted",
-    (gridSize === "none" || gridSize === "sm") && "text-[11px]",
-    gridSize === "md" && "text-[12px]",
+    (gridSize === "none" || gridSize === "sm" || gridSize === "md") && "text-xs",
     gridSize === "lg" && "text-sm"
   );
 

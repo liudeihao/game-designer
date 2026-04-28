@@ -74,10 +74,10 @@ function InCanvasAssetPanel() {
     [editor]
   );
 
-  if (!isSuccess) return <div className="text-ui-mono p-2 text-[11px] text-text-muted">加载素材…</div>;
+  if (!isSuccess) return <div className="text-ui-mono p-2 text-xs text-text-muted">加载素材…</div>;
   return (
-    <div className="gd-scrollbar text-ui-mono max-h-[60vh] w-64 overflow-y-auto rounded border border-border bg-bg-base/95 p-2 text-[11px] text-text-primary shadow-lg">
-      <p className="text-[10px] uppercase text-text-muted">私人库 · 点击放置（形状 meta.assetId）</p>
+    <div className="gd-scrollbar text-ui-mono max-h-[60vh] w-64 overflow-y-auto rounded border border-border bg-bg-base/95 p-2 text-xs text-text-primary shadow-lg">
+      <p className="text-xs uppercase text-text-muted">私人库 · 点击放置（形状 meta.assetId）</p>
       <ul className="mt-2 space-y-1">
         {data.items.map((a) => {
           if (!isAssetFull(a)) return null;

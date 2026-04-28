@@ -166,7 +166,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
             <input
               autoFocus
               disabled={renameBusy}
-              className="text-ui-mono min-w-0 flex-1 rounded border border-accent/40 bg-surface/60 px-1.5 py-1 text-[12px] text-text-primary outline-none focus:border-accent"
+              className="text-ui-mono min-w-0 flex-1 rounded border border-accent/40 bg-surface/60 px-1.5 py-1 text-xs text-text-primary outline-none focus:border-accent"
               value={sessionEdit.value}
               maxLength={200}
               aria-label="会话名称"
@@ -282,7 +282,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
               <input
                 autoFocus
                 disabled={renameBusy}
-                className="text-ui-mono w-full rounded border border-accent/40 bg-surface/60 px-1.5 py-1 text-[12px] font-medium text-text-primary outline-none focus:border-accent"
+                className="text-ui-mono w-full rounded border border-accent/40 bg-surface/60 px-1.5 py-1 text-xs font-medium text-text-primary outline-none focus:border-accent"
                 value={groupEdit.value}
                 maxLength={120}
                 aria-label="分组名称"
@@ -297,8 +297,8 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
                 className="block min-w-0 rounded px-0.5 py-0.5 hover:bg-white/[0.04]"
                 title="分组设置与组内会话"
               >
-                <p className="truncate text-[12px] font-medium text-text-primary/95">{g.name}</p>
-                <p className="text-[9px] text-text-muted/85">
+                <p className="truncate text-xs font-medium text-text-primary/95">{g.name}</p>
+                <p className="text-xs text-text-muted/85">
                   {g.draftStaging === "shared" ? "共享暂存" : "各会话独立暂存"} · {sessions.length}{" "}
                   个会话
                 </p>
@@ -355,9 +355,9 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
           )}
         </div>
         {open && (
-          <ul className="mb-1 ml-4 space-y-0.5 border-l border-border/50 py-0.5 pl-2 text-[12px]">
+          <ul className="mb-1 ml-4 space-y-0.5 border-l border-border/50 py-0.5 pl-2 text-xs">
             {sessions.length === 0 && (
-              <li className="py-0.5 text-[10px] text-text-muted/70">（暂无会话）</li>
+              <li className="py-0.5 text-xs text-text-muted/70">（暂无会话）</li>
             )}
             {sessions.map((s) => renderSessionRow(s, true))}
           </ul>
@@ -410,11 +410,11 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
           }
         }}
       />
-      <p className="text-ui-mono text-[10px] uppercase tracking-wider text-text-muted">会话</p>
-      <p className="text-ui-mono mt-0.5 text-[9px] leading-snug text-text-muted/75">
+      <p className="text-ui-mono text-xs uppercase tracking-wider text-text-muted">会话</p>
+      <p className="text-ui-mono mt-0.5 text-xs leading-snug text-text-muted/75">
         未加入分组的会话列于此
       </p>
-      <ul className="gd-scrollbar mt-1 max-h-[min(42vh,22rem)] space-y-0.5 overflow-y-auto text-ui-mono text-[13px] text-text-primary">
+      <ul className="gd-scrollbar mt-1 max-h-[min(42vh,22rem)] space-y-0.5 overflow-y-auto text-ui-mono text-sm text-text-primary">
         <li>
           <Link
             href="/library/sessions/new"
@@ -429,12 +429,12 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
         </li>
         {ungrouped.map((s) => renderSessionRow(s, false))}
         {ungrouped.length === 0 && (
-          <li className="px-2 py-1.5 text-[11px] text-text-muted/75">（暂无未分组会话）</li>
+          <li className="px-2 py-1.5 text-xs text-text-muted/75">（暂无未分组会话）</li>
         )}
       </ul>
 
       <div className="mt-4 flex items-center justify-between gap-1 pr-0.5">
-        <p className="text-ui-mono text-[10px] uppercase tracking-wider text-text-muted">分组</p>
+        <p className="text-ui-mono text-xs uppercase tracking-wider text-text-muted">分组</p>
         <DropdownMenu.Root modal={false} open={newGroupMenuOpen} onOpenChange={setNewGroupMenuOpen}>
           <DropdownMenu.Trigger asChild>
             <button
@@ -452,9 +452,9 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
               sideOffset={6}
               align="end"
             >
-              <p className="px-0.5 text-[10px] text-text-muted">名称与暂存模式</p>
+              <p className="px-0.5 text-xs text-text-muted">名称与暂存模式</p>
               <input
-                className="mt-1 w-full rounded border border-border/60 bg-surface/40 px-2 py-1 text-[11px] text-text-primary outline-none focus:border-accent"
+                className="mt-1 w-full rounded border border-border/60 bg-surface/40 px-2 py-1 text-xs text-text-primary outline-none focus:border-accent"
                 placeholder="分组名称"
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
@@ -469,7 +469,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
                   role="radio"
                   aria-checked={newGroupMode === "independent"}
                   className={cn(
-                    "text-ui-mono flex-1 rounded px-1.5 py-1 text-left text-[10px] outline-none transition-colors",
+                    "text-ui-mono flex-1 rounded px-1.5 py-1 text-left text-xs outline-none transition-colors",
                     newGroupMode === "independent"
                       ? "bg-accent/15 text-accent"
                       : "text-text-muted hover:text-text-primary"
@@ -483,7 +483,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
                   role="radio"
                   aria-checked={newGroupMode === "shared"}
                   className={cn(
-                    "text-ui-mono flex-1 rounded px-1.5 py-1 text-left text-[10px] outline-none transition-colors",
+                    "text-ui-mono flex-1 rounded px-1.5 py-1 text-left text-xs outline-none transition-colors",
                     newGroupMode === "shared"
                       ? "bg-accent/15 text-accent"
                       : "text-text-muted hover:text-text-primary"
@@ -495,7 +495,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
               </div>
               <button
                 type="button"
-                className="text-ui-mono mt-2 w-full rounded bg-accent/10 py-1 text-[11px] text-accent disabled:opacity-40"
+                className="text-ui-mono mt-2 w-full rounded bg-accent/10 py-1 text-xs text-accent disabled:opacity-40"
                 disabled={createGroupBusy || !newGroupName.trim()}
                 onClick={async () => {
                   setCreateGroupBusy(true);
@@ -518,7 +518,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
       </div>
-      <ul className="mt-1 space-y-0.5 text-ui-mono text-[12px] text-text-primary">
+      <ul className="mt-1 space-y-0.5 text-ui-mono text-xs text-text-primary">
         {groupRows.map((g) => {
           const sessions = inGroup(g.id);
           const groupRowActive =
@@ -527,7 +527,7 @@ export function SessionListSidebar({ initialSessionList = [] }: { initialSession
           return renderGroupRow(g, sessions, groupRowActive);
         })}
         {groupRows.length === 0 && (
-          <li className="px-1 py-1 text-[10px] text-text-muted/80">暂无分组，点击右侧 + 创建。</li>
+          <li className="px-1 py-1 text-xs text-text-muted/80">暂无分组，点击右侧 + 创建。</li>
         )}
       </ul>
 

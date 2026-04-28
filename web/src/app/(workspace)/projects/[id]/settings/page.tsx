@@ -37,7 +37,7 @@ export default async function ProjectSettingsPage(props: Props) {
   return (
     <div className="px-6 py-8">
       <h1 className="font-display text-2xl">项目设置</h1>
-      <p className="text-ui-mono mt-1 text-[11px] text-text-muted/80">ID · {id}</p>
+      <p className="text-ui-mono mt-1 text-xs text-text-muted/80">ID · {id}</p>
       <ProjectSettingsForm projectId={id} initialName={project.name} />
     </div>
   );

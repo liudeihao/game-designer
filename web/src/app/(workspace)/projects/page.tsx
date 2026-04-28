@@ -49,7 +49,7 @@ export default async function ProjectsPage() {
           新项目
         </Link>
       </div>
-      <p className="text-ui-mono mb-6 max-w-2xl text-[12px] leading-relaxed text-text-muted">
+      <p className="text-ui-mono mb-6 max-w-2xl text-xs leading-relaxed text-text-muted">
         在项目工作区与 AI 多会话讨论玩法与体验，引用「我的库」素材作为上下文；情绪板画布用于拼贴与布局，并自动保存。
       </p>
       <ul className="grid list-none gap-4 sm:grid-cols-2">
@@ -57,24 +57,24 @@ export default async function ProjectsPage() {
           <li key={p.id}>
             <div className="text-ui-mono flex h-full flex-col gap-3 rounded-lg border border-border bg-surface/60 p-4 text-sm shadow-sm">
               <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 text-[15px] font-medium leading-snug text-text-primary">{p.name}</p>
-                <p className="mt-1.5 text-[11px] text-text-muted">更新 {formatUpdated(p.updatedAt)}</p>
+                <p className="line-clamp-2 text-base font-medium leading-snug text-text-primary">{p.name}</p>
+                <p className="mt-1.5 text-xs text-text-muted">更新 {formatUpdated(p.updatedAt)}</p>
               </div>
               <div className="flex flex-wrap gap-2 border-t border-border/50 pt-3">
                 <Link
-                  className="rounded border border-border/80 px-2.5 py-1 text-[12px] text-accent hover:border-accent/40"
+                  className="rounded border border-border/80 px-2.5 py-1 text-xs text-accent hover:border-accent/40"
                   href={`/projects/${p.id}/design`}
                 >
                   进入项目
                 </Link>
                 <Link
-                  className="rounded border border-border/60 px-2.5 py-1 text-[12px] text-text-muted hover:border-accent/30 hover:text-text-primary"
+                  className="rounded border border-border/60 px-2.5 py-1 text-xs text-text-muted hover:border-accent/30 hover:text-text-primary"
                   href={`/projects/${p.id}/canvas`}
                 >
                   情绪板
                 </Link>
                 <Link
-                  className="rounded border border-border/60 px-2.5 py-1 text-[12px] text-text-muted hover:border-accent/30 hover:text-text-primary"
+                  className="rounded border border-border/60 px-2.5 py-1 text-xs text-text-muted hover:border-accent/30 hover:text-text-primary"
                   href={`/projects/${p.id}/settings`}
                 >
                   设置
@@ -85,7 +85,7 @@ export default async function ProjectsPage() {
         ))}
       </ul>
       {list.length === 0 && (
-        <p className="text-ui-mono mt-4 text-[13px] text-text-muted">
+        <p className="text-ui-mono mt-4 text-sm text-text-muted">
           还没有项目。{" "}
           <Link href="/projects/new" className="text-accent hover:underline">
             创建一个

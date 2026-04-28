@@ -31,7 +31,7 @@ export function SessionsLayoutClient({
   );
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
-      <div className="flex shrink-0 items-center justify-end gap-2 border-b border-divider px-3 py-2 text-ui-mono text-[12px] lg:hidden">
+      <div className="flex shrink-0 items-center justify-end gap-2 border-b border-divider px-3 py-2 text-ui-mono text-xs lg:hidden">
         <Link href="/library/sessions" className="mr-auto text-text-muted hover:text-accent">
           ← 会话
         </Link>

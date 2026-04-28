@@ -36,7 +36,7 @@ export default async function UserPage(props: Props) {
         <p className="text-ui-mono mt-2 text-sm text-text-muted">
           {u.displayName ?? "未设置显示名"}
         </p>
-        <p className="text-ui-mono mt-1 text-[12px] text-text-muted/90">公开素材 · 按创建时间倒序</p>
+        <p className="text-ui-mono mt-1 text-xs text-text-muted/90">公开素材 · 按创建时间倒序</p>
       </header>
       {assetsInitial === null ? (
         <BackendUnavailable

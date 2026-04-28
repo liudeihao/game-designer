@@ -15,7 +15,7 @@ export default function NewAssetPage() {
     <div className="gd-scrollbar flex min-h-0 w-full flex-1 flex-col overflow-y-auto">
       <div className="mx-auto max-w-lg px-4 py-10">
       <h1 className="font-display text-2xl">新建素材</h1>
-      <p className="text-ui-mono mt-2 text-[12px] text-text-muted">写下第一个概念的名称与描述</p>
+      <p className="text-ui-mono mt-2 text-xs text-text-muted">写下第一个概念的名称与描述</p>
       <form
         className="mt-8 space-y-4"
         onSubmit={async (e) => {
@@ -34,7 +34,7 @@ export default function NewAssetPage() {
         }}
       >
         <div>
-          <label className="text-ui-mono text-[11px] text-text-muted">名称</label>
+          <label className="text-ui-mono text-xs text-text-muted">名称</label>
           <input
             className={cn(
               "mt-1 w-full border-b border-border bg-transparent py-2 text-ui-mono text-sm text-text-primary outline-none",
@@ -48,7 +48,7 @@ export default function NewAssetPage() {
           />
         </div>
         <div>
-          <label className="text-ui-mono text-[11px] text-text-muted">描述</label>
+          <label className="text-ui-mono text-xs text-text-muted">描述</label>
           <textarea
             className="mt-1 min-h-28 w-full resize-y rounded border border-border bg-surface/80 p-3 text-sm text-text-primary outline-none focus:border-accent"
             value={description}
@@ -57,9 +57,9 @@ export default function NewAssetPage() {
             disabled={saving}
           />
         </div>
-        {err && <p className="text-ui-mono text-[12px] text-error-dim">{err}</p>}
+        {err && <p className="text-ui-mono text-xs text-error-dim">{err}</p>}
         {saving && (
-          <p className="text-ui-mono text-[12px] text-accent" role="status">
+          <p className="text-ui-mono text-xs text-accent" role="status">
             正在创建素材，请稍候…
           </p>
         )}

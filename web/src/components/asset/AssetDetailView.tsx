@@ -184,7 +184,7 @@ export function AssetDetailView({
         </nav>
         {linkToProject && showPrivateActions && (
           <div className="flex flex-col gap-2 rounded border border-accent/35 bg-accent/5 px-3 py-2">
-            <p className="text-ui-mono text-[11px] leading-relaxed text-text-muted">
+            <p className="text-ui-mono text-xs leading-relaxed text-text-muted">
               将当前<strong className="text-text-primary">私有素材</strong>引用到游戏项目后，AI
               在设计会话中可使用其名称与描述作为上下文。
             </p>
@@ -192,7 +192,7 @@ export function AssetDetailView({
               <button
                 type="button"
                 disabled={linkProjectBusy}
-                className="text-ui-mono rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-[11px] text-accent hover:bg-accent/20 disabled:opacity-50"
+                className="text-ui-mono rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-xs text-accent hover:bg-accent/20 disabled:opacity-50"
                 onClick={async () => {
                   setLinkProjectBusy(true);
                   try {
@@ -210,7 +210,7 @@ export function AssetDetailView({
               </button>
               <Link
                 href={`/projects/${encodeURIComponent(linkToProject)}/design`}
-                className="text-ui-mono rounded border border-border/60 px-3 py-1.5 text-[11px] text-text-muted hover:border-accent/30 hover:text-text-primary"
+                className="text-ui-mono rounded border border-border/60 px-3 py-1.5 text-xs text-text-muted hover:border-accent/30 hover:text-text-primary"
               >
                 返回项目设计
               </Link>
@@ -413,7 +413,7 @@ export function AssetDetailView({
           <ForkRelationPanel assetId={id} className="border-t-0 pt-0" />
           <Link
             href={`/library/assets/${encodeURIComponent(id)}/fork`}
-            className="text-ui-mono inline-block text-[11px] text-accent/90 hover:underline"
+            className="text-ui-mono inline-block text-xs text-accent/90 hover:underline"
           >
             查看完整 fork 图 →
           </Link>

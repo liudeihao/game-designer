@@ -107,7 +107,7 @@ export function LibraryStashBar({ className }: { className?: string }) {
       >
         <button
           type="button"
-          className="text-ui-mono flex w-full items-center justify-center gap-2 border-b border-border/40 px-3 py-1.5 text-[11px] text-text-muted hover:text-text-primary"
+          className="text-ui-mono flex w-full items-center justify-center gap-2 border-b border-border/40 px-3 py-1.5 text-xs text-text-muted hover:text-text-primary"
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
         >
@@ -120,13 +120,13 @@ export function LibraryStashBar({ className }: { className?: string }) {
         </button>
         <div className={cn("gd-scrollbar overflow-y-auto px-3", open ? "max-h-[38vh] py-2" : "hidden")}>
           {items.length === 0 ? (
-            <p className="text-ui-mono text-center text-[11px] text-text-muted">从列表拖入卡片，或稍后在 Inspector 中添加</p>
+            <p className="text-ui-mono text-center text-xs text-text-muted">从列表拖入卡片，或稍后在 Inspector 中添加</p>
           ) : (
             <ul className="space-y-1.5">
               {items.map((x) => (
                 <li
                   key={x.id}
-                  className="text-ui-mono flex items-center gap-2 rounded border border-border/50 bg-surface/50 px-2 py-1 text-[12px]"
+                  className="text-ui-mono flex items-center gap-2 rounded border border-border/50 bg-surface/50 px-2 py-1 text-xs"
                 >
                   <Link href={`/library/assets/${encodeURIComponent(x.id)}`} className="min-w-0 flex-1 truncate text-text-primary hover:text-accent">
                     {x.name}
@@ -147,21 +147,21 @@ export function LibraryStashBar({ className }: { className?: string }) {
             <div className="mt-2 flex flex-wrap gap-2 border-t border-border/30 pt-2">
               <button
                 type="button"
-                className="text-ui-mono rounded border border-border/50 px-2 py-1 text-[10px] text-text-muted hover:border-accent/30"
+                className="text-ui-mono rounded border border-border/50 px-2 py-1 text-xs text-text-muted hover:border-accent/30"
                 onClick={copyIds}
               >
                 复制全部 ID
               </button>
               <button
                 type="button"
-                className="text-ui-mono rounded border border-border/50 px-2 py-1 text-[10px] text-text-muted hover:border-error-dim/40"
+                className="text-ui-mono rounded border border-border/50 px-2 py-1 text-xs text-text-muted hover:border-error-dim/40"
                 onClick={clear}
               >
                 清空
               </button>
               <Link
                 href="/projects"
-                className="text-ui-mono rounded border border-accent/25 bg-accent/5 px-2 py-1 text-[10px] text-accent hover:bg-accent/10"
+                className="text-ui-mono rounded border border-accent/25 bg-accent/5 px-2 py-1 text-xs text-accent hover:bg-accent/10"
                 title="打开项目后进入画布时可从暂存批量引用（占位）"
               >
                 项目与画布 →

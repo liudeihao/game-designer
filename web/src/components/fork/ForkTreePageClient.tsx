@@ -66,7 +66,7 @@ function ForkGraphToolbar({ focusAssetId }: { focusAssetId: string }) {
         type="button"
         title="返回素材（Esc）"
         onClick={() => router.push(`/library/assets/${encodeURIComponent(focusAssetId)}`)}
-        className="flex items-center gap-1.5 rounded-md border border-border/70 bg-surface/95 px-3 py-2 text-ui-mono text-[11px] text-text-primary hover:bg-white/5"
+        className="flex items-center gap-1.5 rounded-md border border-border/70 bg-surface/95 px-3 py-2 text-ui-mono text-xs text-text-primary hover:bg-white/5"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         返回素材
@@ -197,7 +197,7 @@ function ForkFlowBody({ focusAssetId }: { focusAssetId: string }) {
       ) : null}
       {showRefetchOverlay ? (
         <div
-          className="pointer-events-none absolute left-1/2 top-14 z-10 -translate-x-1/2 rounded-md border border-border/60 bg-surface/90 px-3 py-1.5 text-ui-mono text-[10px] text-text-muted"
+          className="pointer-events-none absolute left-1/2 top-14 z-10 -translate-x-1/2 rounded-md border border-border/60 bg-surface/90 px-3 py-1.5 text-ui-mono text-xs text-text-muted"
           aria-live="polite"
         >
           更新中…
@@ -206,7 +206,7 @@ function ForkFlowBody({ focusAssetId }: { focusAssetId: string }) {
       {q.data ? (
         <>
           {q.data.truncated ? (
-            <div className="absolute left-3 top-12 z-10 max-w-sm rounded-md border border-border/60 bg-surface/90 px-3 py-2 text-ui-mono text-[10px] leading-snug text-text-muted backdrop-blur-sm">
+            <div className="absolute left-3 top-12 z-10 max-w-sm rounded-md border border-border/60 bg-surface/90 px-3 py-2 text-ui-mono text-xs leading-snug text-text-muted backdrop-blur-sm">
               图在服务器侧已截断。可在节点上点击加载更多子分支。
             </div>
           ) : null}

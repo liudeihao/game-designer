@@ -36,7 +36,7 @@ export function ThemeSelect({
           aria-labelledby={ariaLabelledBy}
           disabled={disabled}
           className={cn(
-            "text-ui-mono flex w-full max-w-xs items-center justify-between gap-2 rounded border border-border/60 bg-surface/60 px-3 py-2 text-left text-[13px] text-text-primary outline-none",
+            "text-ui-mono flex w-full max-w-xs items-center justify-between gap-2 rounded border border-border/60 bg-surface/60 px-3 py-2 text-left text-sm text-text-primary outline-none",
             "hover:border-accent/30 focus:border-accent/50",
             disabled && "cursor-not-allowed opacity-50 hover:border-border/60",
             className
@@ -57,7 +57,7 @@ export function ThemeSelect({
             <DropdownMenu.Item
               key={o.label + String(o.value)}
               className={cn(
-                "cursor-pointer rounded px-2 py-1.5 text-[13px] outline-none",
+                "cursor-pointer rounded px-2 py-1.5 text-sm outline-none",
                 "hover:bg-white/5 focus:bg-white/5 data-[highlighted]:bg-white/5",
                 o.value === value && "text-accent"
               )}

@@ -15,7 +15,7 @@ export default function NewProjectPage() {
     <div className="gd-scrollbar flex h-full min-h-0 flex-col overflow-y-auto px-4 py-6 sm:px-6">
       <div className="mx-auto w-full max-w-md">
         <h1 className="font-display text-2xl">新项目</h1>
-        <p className="text-ui-mono mt-2 text-[12px] leading-relaxed text-text-muted">
+        <p className="text-ui-mono mt-2 text-xs leading-relaxed text-text-muted">
           创建后可进入「设计」与 AI 多会话讨论玩法与叙事，并在「情绪板」画布中拼贴素材；画布会自动保存。
         </p>
         <input
@@ -26,7 +26,7 @@ export default function NewProjectPage() {
           maxLength={200}
           aria-label="项目名称"
         />
-        {err && <p className="text-ui-mono mt-2 text-[12px] text-error-dim/90">{err}</p>}
+        {err && <p className="text-ui-mono mt-2 text-xs text-error-dim/90">{err}</p>}
         <div className="mt-4 flex flex-wrap gap-3">
           <button
             type="button"

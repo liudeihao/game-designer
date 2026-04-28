@@ -85,16 +85,16 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
     <div className="mx-auto w-full max-w-xl px-4 py-6 sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-ui-mono text-[10px] uppercase tracking-wide text-text-muted">会话分组</p>
+            <p className="text-ui-mono text-xs uppercase tracking-wide text-text-muted">会话分组</p>
             <h1 className="font-display mt-1 text-2xl text-text-primary">{group.name}</h1>
-            <p className="text-ui-mono mt-1 text-[11px] text-text-muted/85">
+            <p className="text-ui-mono mt-1 text-xs text-text-muted/85">
               {group.draftStaging === "shared" ? "组内共享暂存" : "各会话独立暂存"} · {members.length}{" "}
               个会话
             </p>
           </div>
           <button
             type="button"
-            className="text-ui-mono rounded border border-border/60 px-2.5 py-1 text-[11px] text-error-dim/90 hover:border-error-dim/40 hover:bg-error-dim/5"
+            className="text-ui-mono rounded border border-border/60 px-2.5 py-1 text-xs text-error-dim/90 hover:border-error-dim/40 hover:bg-error-dim/5"
             disabled={groupSettingsBusy}
             onClick={() => setDeleteOpen(true)}
           >
@@ -104,10 +104,10 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
 
         <div className="mt-8 space-y-6 border-t border-divider pt-6">
           <section>
-            <p className="text-ui-mono text-[10px] uppercase tracking-wide text-text-muted">分组名称</p>
+            <p className="text-ui-mono text-xs uppercase tracking-wide text-text-muted">分组名称</p>
             <div className="mt-1 flex flex-wrap items-stretch gap-2">
               <input
-                className="text-ui-mono min-w-[10rem] flex-1 rounded border border-border/60 bg-surface/50 px-2 py-1.5 text-[13px] text-text-primary outline-none focus:border-accent/50"
+                className="text-ui-mono min-w-[10rem] flex-1 rounded border border-border/60 bg-surface/50 px-2 py-1.5 text-sm text-text-primary outline-none focus:border-accent/50"
                 value={groupNameField}
                 onChange={(e) => setGroupNameField(e.target.value)}
                 maxLength={120}
@@ -115,7 +115,7 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
               />
               <button
                 type="button"
-                className="text-ui-mono shrink-0 rounded bg-accent/15 px-3 py-1.5 text-[12px] text-accent hover:bg-accent/25 disabled:opacity-40"
+                className="text-ui-mono shrink-0 rounded bg-accent/15 px-3 py-1.5 text-xs text-accent hover:bg-accent/25 disabled:opacity-40"
                 disabled={
                   groupSettingsBusy ||
                   !groupNameField.trim() ||
@@ -142,7 +142,7 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
           </section>
 
           <section>
-            <p className="text-ui-mono text-[10px] uppercase tracking-wide text-text-muted">暂存模式</p>
+            <p className="text-ui-mono text-xs uppercase tracking-wide text-text-muted">暂存模式</p>
             <div
               className="mt-1.5 flex rounded border border-border/60 bg-surface/30 p-0.5"
               role="radiogroup"
@@ -153,7 +153,7 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
                 role="radio"
                 aria-checked={panelDraftMode === "independent"}
                 className={cn(
-                  "text-ui-mono flex-1 rounded px-1.5 py-1.5 text-left text-[10px] outline-none transition-colors disabled:opacity-40",
+                  "text-ui-mono flex-1 rounded px-1.5 py-1.5 text-left text-xs outline-none transition-colors disabled:opacity-40",
                   panelDraftMode === "independent"
                     ? "bg-accent/15 text-accent"
                     : "text-text-muted hover:text-text-primary"
@@ -181,7 +181,7 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
                 role="radio"
                 aria-checked={panelDraftMode === "shared"}
                 className={cn(
-                  "text-ui-mono flex-1 rounded px-1.5 py-1.5 text-left text-[10px] outline-none transition-colors disabled:opacity-40",
+                  "text-ui-mono flex-1 rounded px-1.5 py-1.5 text-left text-xs outline-none transition-colors disabled:opacity-40",
                   panelDraftMode === "shared"
                     ? "bg-accent/15 text-accent"
                     : "text-text-muted hover:text-text-primary"
@@ -205,7 +205,7 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
                 组内共享暂存
               </button>
             </div>
-            <p className="text-ui-mono mt-2 text-[10px] leading-relaxed text-text-muted/90">
+            <p className="text-ui-mono mt-2 text-xs leading-relaxed text-text-muted/90">
               {panelDraftMode === "shared"
                 ? "共享：全组合用一套暂存池，任一会话里增删会同步。"
                 : "独立：每条暂存归属具体会话；在任一组内会话中仍可查看本组全部暂存汇总。"}
@@ -214,10 +214,10 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
 
           <section>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-ui-mono text-[10px] uppercase tracking-wide text-text-muted">组内会话</p>
+              <p className="text-ui-mono text-xs uppercase tracking-wide text-text-muted">组内会话</p>
               <Link
                 href={`/library/sessions/new?group=${encodeURIComponent(groupId)}`}
-                className="text-ui-mono inline-flex items-center gap-1 rounded border border-accent/30 bg-accent/10 px-2 py-1 text-[11px] text-accent hover:border-accent/50"
+                className="text-ui-mono inline-flex items-center gap-1 rounded border border-accent/30 bg-accent/10 px-2 py-1 text-xs text-accent hover:border-accent/50"
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden />
                 新会话（加入此分组）
@@ -225,21 +225,21 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
             </div>
             <ul className="mt-2 space-y-1">
               {members.length === 0 && (
-                <li className="text-ui-mono text-[12px] text-text-muted/80">暂无会话，可使用上方按钮新建。</li>
+                <li className="text-ui-mono text-xs text-text-muted/80">暂无会话，可使用上方按钮新建。</li>
               )}
               {members.map((s) => (
                 <li key={s.id}>
                   <Link
                     href={`/library/sessions/${s.id}`}
-                    className="text-ui-mono block truncate rounded border border-border/40 bg-surface/40 px-3 py-2 text-[13px] text-text-primary hover:border-accent/30"
+                    className="text-ui-mono block truncate rounded border border-border/40 bg-surface/40 px-3 py-2 text-sm text-text-primary hover:border-accent/30"
                   >
                     {s.title}
-                    <span className="ml-2 text-[10px] text-text-muted">{s.draftAssetCount} 条暂存</span>
+                    <span className="ml-2 text-xs text-text-muted">{s.draftAssetCount} 条暂存</span>
                   </Link>
                 </li>
               ))}
             </ul>
-            <p className="text-ui-mono mt-3 text-[10px] leading-relaxed text-text-muted/80">
+            <p className="text-ui-mono mt-3 text-xs leading-relaxed text-text-muted/80">
               与 AI 聊天请打开组内某一会话。分组属性与列表在此；组内全部暂存在右侧（桌面）或下方（窄屏）。
             </p>
           </section>

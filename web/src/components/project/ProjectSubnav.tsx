@@ -20,7 +20,7 @@ export function ProjectSubnav({ projectId, projectName }: { projectId: string; p
     <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border/60 bg-bg-base/80 px-4 py-2">
       <Link
         href="/projects"
-        className="text-ui-mono text-[11px] text-text-muted hover:text-accent"
+        className="text-ui-mono text-xs text-text-muted hover:text-accent"
         title="返回项目列表"
       >
         ← 项目
@@ -37,7 +37,7 @@ export function ProjectSubnav({ projectId, projectName }: { projectId: string; p
               key={t.href}
               href={t.href}
               className={cn(
-                "text-ui-mono rounded px-2.5 py-1 text-[11px]",
+                "text-ui-mono rounded px-2.5 py-1 text-xs",
                 active
                   ? "border border-accent/35 bg-accent/10 text-accent"
                   : "border border-transparent text-text-muted hover:border-border/80 hover:text-text-primary"

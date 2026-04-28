@@ -59,6 +59,10 @@ html[data-gd-theme="light"] {
   --font-display: var(--font-bebas);
 }
 
+/*
+ * UI copy: prefer Tailwind `text-xs` (0.75rem) or `text-sm` instead of arbitrary `text-[Npx]`
+ * — smaller than xs is unreadable for CJK at typical densities.
+ */
 html {
   font-size: 16px;
 }

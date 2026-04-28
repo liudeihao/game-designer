@@ -33,7 +33,7 @@ function NewSessionPageInner() {
           onChange={(e) => setT(e.target.value)}
         />
         {groups.length > 0 && (
-          <div className="text-ui-mono mt-4 text-[12px] text-text-muted">
+          <div className="text-ui-mono mt-4 text-xs text-text-muted">
             <p id="new-sg-label" className="mb-1 block">
               会话分组（可选）
             </p>

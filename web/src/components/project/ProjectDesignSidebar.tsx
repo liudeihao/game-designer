@@ -95,13 +95,13 @@ export function ProjectDesignSidebar({
   return (
     <div className="flex h-full min-h-0 flex-col gap-0 border-r border-border/60 bg-bg-base/50">
       <div className="shrink-0 border-b border-border/50 px-2 py-2">
-        <p className="text-ui-mono px-1 text-[10px] font-medium uppercase tracking-wide text-text-muted">
+        <p className="text-ui-mono px-1 text-xs font-medium uppercase tracking-wide text-text-muted">
           会话
         </p>
         <button
           type="button"
           disabled={streaming}
-          className="text-ui-mono mt-1.5 w-full rounded border border-accent/35 bg-accent/10 px-2 py-1.5 text-[11px] text-accent hover:bg-accent/15 disabled:opacity-50"
+          className="text-ui-mono mt-1.5 w-full rounded border border-accent/35 bg-accent/10 px-2 py-1.5 text-xs text-accent hover:bg-accent/15 disabled:opacity-50"
           onClick={async () => {
             const s = await createProjectSession(projectId, {});
             void qc.invalidateQueries({ queryKey: ["project-sessions", projectId] });
@@ -123,7 +123,7 @@ export function ProjectDesignSidebar({
                     <input
                       autoFocus
                       disabled={renameBusy}
-                      className="text-ui-mono min-w-0 flex-1 rounded border border-accent/40 bg-surface/60 px-1.5 py-1 text-[12px] text-text-primary outline-none focus:border-accent"
+                      className="text-ui-mono min-w-0 flex-1 rounded border border-accent/40 bg-surface/60 px-1.5 py-1 text-xs text-text-primary outline-none focus:border-accent"
                       value={inlineRename.value}
                       maxLength={200}
                       aria-label="会话名称"
@@ -135,7 +135,7 @@ export function ProjectDesignSidebar({
                       href={`/projects/${projectId}/design/${s.id}`}
                       title={s.title}
                       className={cn(
-                        "min-w-0 flex-1 truncate rounded px-1 py-1 text-[12px]",
+                        "min-w-0 flex-1 truncate rounded px-1 py-1 text-xs",
                         active
                           ? "bg-accent/10 text-accent"
                           : "text-text-muted hover:text-text-primary"
@@ -182,7 +182,7 @@ export function ProjectDesignSidebar({
                   )}
                 </div>
                 {!editing && (
-                  <p className="text-ui-mono mb-1 pl-1 text-[10px] text-text-muted/80">
+                  <p className="text-ui-mono mb-1 pl-1 text-xs text-text-muted/80">
                     {formatThreadMeta(s)}
                   </p>
                 )}
@@ -193,30 +193,30 @@ export function ProjectDesignSidebar({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col border-t border-border/50 px-2 py-2">
-        <p className="text-ui-mono px-1 text-[10px] font-medium uppercase tracking-wide text-text-muted">
+        <p className="text-ui-mono px-1 text-xs font-medium uppercase tracking-wide text-text-muted">
           引用素材
         </p>
         <button
           type="button"
-          className="text-ui-mono mt-1.5 w-full rounded border border-border/70 px-2 py-1.5 text-[11px] text-accent hover:border-accent/40"
+          className="text-ui-mono mt-1.5 w-full rounded border border-border/70 px-2 py-1.5 text-xs text-accent hover:border-accent/40"
           onClick={() => setPickerOpen(true)}
         >
           从「我的库」选择…
         </button>
         <div className="gd-scrollbar mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
           {linked.length === 0 ? (
-            <p className="text-ui-mono py-2 text-center text-[10px] text-text-muted">暂无引用</p>
+            <p className="text-ui-mono py-2 text-center text-xs text-text-muted">暂无引用</p>
           ) : (
             linked.map((a) => (
               <div
                 key={a.id}
-                className="rounded border border-border/50 bg-surface/30 px-2 py-1.5 text-[11px]"
+                className="rounded border border-border/50 bg-surface/30 px-2 py-1.5 text-xs"
               >
                 <p className="font-display line-clamp-2 text-text-primary">{a.name}</p>
                 <button
                   type="button"
                   disabled={linkBusy}
-                  className="text-ui-mono mt-1 text-[10px] text-text-muted hover:text-error-dim"
+                  className="text-ui-mono mt-1 text-xs text-text-muted hover:text-error-dim"
                   onClick={async () => {
                     setLinkBusy(true);
                     try {

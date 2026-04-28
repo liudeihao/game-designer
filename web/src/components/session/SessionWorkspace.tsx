@@ -130,7 +130,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
           <span className="gd-editor-panel__blade" aria-hidden />
           <span className="gd-editor-panel__corners" aria-hidden />
         </div>
-        <p className="text-ui-mono pointer-events-none absolute right-1.5 top-1 z-[1] text-[7px] tracking-wider text-accent/25">
+        <p className="text-ui-mono pointer-events-none absolute right-1.5 top-1 z-[1] text-xs tracking-wider text-accent/25">
           {(() => {
             let h = 0;
             for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
@@ -156,13 +156,13 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
             )}
           >
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-              <h2 className="text-ui-mono text-[11px] uppercase text-text-muted">暂存</h2>
+              <h2 className="text-ui-mono text-xs uppercase text-text-muted">暂存</h2>
               <div className="flex flex-wrap items-center gap-1.5">
                 {draftAssets.length > 0 && (
                   <button
                     type="button"
                     className={cn(
-                      "text-ui-mono rounded px-2 py-0.5 text-[11px]",
+                      "text-ui-mono rounded px-2 py-0.5 text-xs",
                       bulkMode
                         ? "bg-accent/15 text-accent"
                         : "text-text-muted hover:text-text-primary"
@@ -174,7 +174,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                 )}
                 <button
                   type="button"
-                  className="text-ui-mono text-[11px] text-accent hover:underline"
+                  className="text-ui-mono text-xs text-accent hover:underline"
                   disabled={draftAssets.length === 0}
                   onClick={() => {
                     setOneExportAssetId(null);
@@ -186,12 +186,12 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
               </div>
             </div>
             {s.stagingGroup?.draftStaging === "shared" && (
-              <p className="text-ui-mono mt-0.5 shrink-0 text-[10px] leading-snug text-text-muted/85">
+              <p className="text-ui-mono mt-0.5 shrink-0 text-xs leading-snug text-text-muted/85">
                 当前分组为共享暂存：同组会话里会看到同一份列表，增删会同步。
               </p>
             )}
             {bulkMode && draftAssets.length > 0 && (
-              <div className="text-ui-mono mt-2 flex flex-wrap items-center gap-2 rounded border border-accent/20 bg-accent/[0.06] px-2.5 py-1.5 text-[10px] text-text-muted">
+              <div className="text-ui-mono mt-2 flex flex-wrap items-center gap-2 rounded border border-accent/20 bg-accent/[0.06] px-2.5 py-1.5 text-xs text-text-muted">
                 <span>
                   已选 <span className="text-accent">{selectedIds.length}</span> / {draftAssets.length} 条
                 </span>
@@ -216,7 +216,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                 </button>
               </div>
             )}
-            <p className="text-ui-mono mt-2 text-[11px] leading-relaxed text-text-muted/90">
+            <p className="text-ui-mono mt-2 text-xs leading-relaxed text-text-muted/90">
               与 AI 聊天不会自动写入暂存。请在此为每条素材手填
               <strong className="text-text-primary/90">名称</strong>（怎么称呼它）和
               <strong className="text-text-primary/90">视觉描述</strong>（长什么样、色调、材质、光感、氛围、构图等——不是玩法/系统说明）；
@@ -253,26 +253,26 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                 }
               }}
             >
-              <label className="block text-ui-mono text-[10px] uppercase text-text-muted">名称</label>
+              <label className="block text-ui-mono text-xs uppercase text-text-muted">名称</label>
               <input
                 value={draftName}
                 onChange={(e) => setDraftName(e.target.value)}
-                className="text-ui-mono w-full rounded border border-border/60 bg-surface/50 px-2 py-1.5 text-[13px] text-text-primary outline-none focus:border-accent/50"
+                className="text-ui-mono w-full rounded border border-border/60 bg-surface/50 px-2 py-1.5 text-sm text-text-primary outline-none focus:border-accent/50"
                 placeholder="这条素材的称呼，例如：赛博义体维修站"
                 maxLength={200}
               />
-              <label className="mt-1 block text-ui-mono text-[10px] uppercase text-text-muted">视觉描述</label>
+              <label className="mt-1 block text-ui-mono text-xs uppercase text-text-muted">视觉描述</label>
               <textarea
                 value={draftDesc}
                 onChange={(e) => setDraftDesc(e.target.value)}
-                className="text-ui-mono min-h-16 w-full resize-y rounded border border-border/60 bg-surface/50 px-2 py-1.5 text-[12px] text-text-primary outline-none focus:border-accent/50"
+                className="text-ui-mono min-h-16 w-full resize-y rounded border border-border/60 bg-surface/50 px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent/50"
                 placeholder="如：夜雨、霓虹紫与湿路面反光、锈蚀金属、雾中霓虹灯条；偏俯视、中景、冷色主调等"
                 maxLength={4000}
               />
               <button
                 type="submit"
                 disabled={draftSaving || !draftName.trim() || !draftDesc.trim()}
-                className="text-ui-mono w-full rounded bg-accent/15 py-1.5 text-[12px] text-accent disabled:cursor-not-allowed disabled:opacity-50 hover:bg-accent/25"
+                className="text-ui-mono w-full rounded bg-accent/15 py-1.5 text-xs text-accent disabled:cursor-not-allowed disabled:opacity-50 hover:bg-accent/25"
               >
                 {draftSaving ? "加入中…" : "加入暂存"}
               </button>
@@ -325,25 +325,25 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                           }
                         }}
                       >
-                        <p className="text-ui-mono text-[9px] text-text-muted/80">名称</p>
+                        <p className="text-ui-mono text-xs text-text-muted/80">名称</p>
                         <input
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          className="text-ui-mono w-full rounded border border-border/60 bg-bg-base px-2 py-1 text-[13px] text-text-primary outline-none focus:border-accent/50"
+                          className="text-ui-mono w-full rounded border border-border/60 bg-bg-base px-2 py-1 text-sm text-text-primary outline-none focus:border-accent/50"
                           maxLength={200}
                         />
-                        <p className="text-ui-mono text-[9px] text-text-muted/80">视觉描述</p>
+                        <p className="text-ui-mono text-xs text-text-muted/80">视觉描述</p>
                         <textarea
                           value={editDesc}
                           onChange={(e) => setEditDesc(e.target.value)}
-                          className="text-ui-mono min-h-20 w-full resize-y rounded border border-border/60 bg-bg-base px-2 py-1.5 text-[12px] text-text-primary outline-none focus:border-accent/50"
+                          className="text-ui-mono min-h-20 w-full resize-y rounded border border-border/60 bg-bg-base px-2 py-1.5 text-xs text-text-primary outline-none focus:border-accent/50"
                           placeholder="画面、色光、材质、氛围、镜头感等（非玩法/规则）"
                           maxLength={4000}
                         />
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"
-                            className="text-ui-mono text-[11px] text-text-muted hover:text-text-primary"
+                            className="text-ui-mono text-xs text-text-muted hover:text-text-primary"
                             onClick={() => {
                               setEditingId(null);
                               setEditName("");
@@ -355,7 +355,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                           <button
                             type="submit"
                             disabled={editSaving || !editName.trim() || !editDesc.trim()}
-                            className="text-ui-mono rounded bg-accent/15 px-2.5 py-1 text-[11px] text-accent disabled:opacity-50"
+                            className="text-ui-mono rounded bg-accent/15 px-2.5 py-1 text-xs text-accent disabled:opacity-50"
                           >
                             {editSaving ? "保存中…" : "保存"}
                           </button>
@@ -364,13 +364,13 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                     ) : (
                       <>
                         <p className="font-display line-clamp-2 text-sm text-text-primary">{d.name}</p>
-                        <p className="text-ui-mono mt-0.5 line-clamp-4 text-[11px] leading-relaxed text-text-muted">
+                        <p className="text-ui-mono mt-0.5 line-clamp-4 text-xs leading-relaxed text-text-muted">
                           {d.description}
                         </p>
                         <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5 border-t border-border/40 pt-2">
                           <button
                             type="button"
-                            className="text-ui-mono text-[10px] text-accent hover:underline"
+                            className="text-ui-mono text-xs text-accent hover:underline"
                             onClick={() => {
                               setOneExportAssetId(null);
                               setExportPrompt({ kind: "one", draft: d });
@@ -380,7 +380,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                           </button>
                           <button
                             type="button"
-                            className="text-ui-mono text-[10px] text-text-muted hover:text-accent"
+                            className="text-ui-mono text-xs text-text-muted hover:text-accent"
                             onClick={() => {
                               setEditingId(d.tempId);
                               setEditName(d.name);
@@ -391,7 +391,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
                           </button>
                           <button
                             type="button"
-                            className="text-ui-mono text-[10px] text-error-dim/90 hover:text-error-dim"
+                            className="text-ui-mono text-xs text-error-dim/90 hover:text-error-dim"
                             onClick={() => setDeleteTarget(d.tempId)}
                           >
                             删除
@@ -406,7 +406,7 @@ export function SessionWorkspace({ id, initial }: { id: string; initial: Session
               </motion.ul>
             )}
             {draftAssets.length === 0 && (
-              <p className="text-ui-mono py-2 text-center text-[11px] text-text-muted/90">
+              <p className="text-ui-mono py-2 text-center text-xs text-text-muted/90">
                 暂无暂存。在上方填写名称与「视觉描述」并加入后，会在此列表显示。
               </p>
             )}

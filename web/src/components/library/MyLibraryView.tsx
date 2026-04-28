@@ -132,8 +132,8 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
 
   const sidebar = (
     <aside className="gd-scrollbar box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto border-r border-divider p-4">
-        <p className="text-ui-mono text-[11px] uppercase tracking-wider text-text-muted">范围</p>
-        <ul className="mt-1 space-y-0.5 text-ui-mono text-[13px] text-text-primary">
+        <p className="text-ui-mono text-xs uppercase tracking-wider text-text-muted">范围</p>
+        <ul className="mt-1 space-y-0.5 text-ui-mono text-sm text-text-primary">
           <li>
             <Link
               href={hrefVis("all")}
@@ -162,8 +162,8 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
             </Link>
           </li>
         </ul>
-        <p className="text-ui-mono mt-4 text-[11px] uppercase tracking-wider text-text-muted">素材</p>
-        <ul className="mt-2 space-y-0.5 text-ui-mono text-[13px] text-text-primary">
+        <p className="text-ui-mono mt-4 text-xs uppercase tracking-wider text-text-muted">素材</p>
+        <ul className="mt-2 space-y-0.5 text-ui-mono text-sm text-text-primary">
           <li>
             <Link
               href={hrefFor(null)}
@@ -182,7 +182,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
           </li>
         </ul>
         {items.length > 0 && (
-          <ul className="mt-1 space-y-0.5 border-t border-border/40 pt-2 text-ui-mono text-[13px]">
+          <ul className="mt-1 space-y-0.5 border-t border-border/40 pt-2 text-ui-mono text-sm">
             {items.map((g) => (
               <li key={g.id} className="group/item flex items-center gap-0.5">
                 <Link
@@ -197,7 +197,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
                 <button
                   type="button"
                   title="删除分组"
-                  className="shrink-0 rounded p-1 text-[10px] text-text-muted opacity-0 hover:text-error-dim group-hover/item:opacity-100"
+                  className="shrink-0 rounded p-1 text-xs text-text-muted opacity-0 hover:text-error-dim group-hover/item:opacity-100"
                   onClick={() => setDeleteTarget({ id: g.id, name: g.name })}
                 >
                   ×
@@ -206,8 +206,8 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
             ))}
           </ul>
         )}
-        <p className="text-ui-mono mt-4 text-[11px] uppercase tracking-wider text-text-muted">标签</p>
-        <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto text-ui-mono text-[12px] text-text-primary">
+        <p className="text-ui-mono mt-4 text-xs uppercase tracking-wider text-text-muted">标签</p>
+        <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto text-ui-mono text-xs text-text-primary">
           {(tagCloud?.items ?? []).slice(0, 24).map((t) => (
             <li key={t.id}>
               <Link
@@ -218,7 +218,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
                 )}
               >
                 <span className="truncate">{t.name}</span>
-                <span className="shrink-0 text-[10px] text-text-muted">{t.assetCount}</span>
+                <span className="shrink-0 text-xs text-text-muted">{t.assetCount}</span>
               </Link>
             </li>
           ))}
@@ -237,11 +237,11 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="新分组"
-            className="min-w-0 flex-1 rounded border border-border/60 bg-surface/50 px-2 py-1 text-[12px] outline-none"
+            className="min-w-0 flex-1 rounded border border-border/60 bg-surface/50 px-2 py-1 text-xs outline-none"
           />
           <button
             type="submit"
-            className="shrink-0 rounded bg-accent/15 px-2 py-1 text-ui-mono text-[12px] text-accent"
+            className="shrink-0 rounded bg-accent/15 px-2 py-1 text-ui-mono text-xs text-accent"
             title="添加"
           >
             <Plus className="h-4 w-4" />
@@ -257,7 +257,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
         <h1 className="font-display text-2xl">我的库</h1>
         <div className="flex flex-wrap items-center gap-2">
           <div
-            className="text-ui-mono flex items-center gap-1 text-[11px] text-text-muted"
+            className="text-ui-mono flex items-center gap-1 text-xs text-text-muted"
             title="无：不显示缩略图；小/中/大：宫格下正方形封面尺寸"
           >
             <span>无</span>
@@ -276,7 +276,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
           </div>
           <Link
             href="/library/preferences"
-            className="text-ui-mono inline-flex items-center gap-1 rounded border border-border/50 px-2 py-1 text-[11px] text-text-muted hover:text-text-primary"
+            className="text-ui-mono inline-flex items-center gap-1 rounded border border-border/50 px-2 py-1 text-xs text-text-muted hover:text-text-primary"
           >
             <Settings className="h-3.5 w-3.5" />
             显示与字体
@@ -302,20 +302,20 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
               value={searchDraft}
               onChange={(e) => setSearchDraft(e.target.value)}
               placeholder="全文，或 type:image、tag:名称"
-              className="min-w-[12rem] flex-1 rounded border border-border/50 bg-bg-base/80 px-2 py-1.5 text-[12px] text-text-primary outline-none placeholder:text-text-muted/60"
+              className="min-w-[12rem] flex-1 rounded border border-border/50 bg-bg-base/80 px-2 py-1.5 text-xs text-text-primary outline-none placeholder:text-text-muted/60"
             />
             <button
               type="submit"
-              className="shrink-0 rounded border border-accent/35 bg-accent/10 px-2.5 py-1.5 text-[11px] text-accent hover:bg-accent/20"
+              className="shrink-0 rounded border border-accent/35 bg-accent/10 px-2.5 py-1.5 text-xs text-accent hover:bg-accent/20"
             >
               检索
             </button>
           </form>
-          <label className="flex items-center gap-1.5 text-[11px] text-text-muted">
+          <label className="flex items-center gap-1.5 text-xs text-text-muted">
             排序
             <select
               value={sortParam}
-              className="rounded border border-border/50 bg-bg-base/80 px-1.5 py-1 text-[11px] text-text-primary"
+              className="rounded border border-border/50 bg-bg-base/80 px-1.5 py-1 text-xs text-text-primary"
               onChange={(e) => router.replace(mergeLibraryHref(sp, { sort: e.target.value || null }))}
             >
               <option value="created_desc">创建时间 ↓</option>
@@ -349,7 +349,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
           </div>
         </div>
       </div>
-      <p className="text-ui-mono mb-3 text-[11px] text-text-muted/90">
+      <p className="text-ui-mono mb-3 text-xs text-text-muted/90">
         {visActive === "all" &&
           "私库素材与「探索」中的公开素材是两类：仅自己可见 vs 全站用户可见。侧栏可只筛一类。"}
         {visActive === "private" && "仅你可见的草稿与创作中素材，不会出现在全站「探索」。"}
@@ -357,7 +357,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
           "这些已发布到全站「探索」库；任何用户都能看到，与私库不是同一套列表。角标为「全站」。"}
       </p>
       {linkToProject && (
-        <div className="text-ui-mono mb-3 rounded border border-accent/30 bg-accent/5 px-3 py-2 text-[11px] text-text-muted">
+        <div className="text-ui-mono mb-3 rounded border border-accent/30 bg-accent/5 px-3 py-2 text-xs text-text-muted">
           正在为<strong className="text-text-primary">游戏项目</strong>引用素材：请点开<strong className="text-text-primary">仅自己可见</strong>
           的素材进入详情页，并点击「引用到项目」。完成后可回到项目「设计」页继续对话。
           <Link

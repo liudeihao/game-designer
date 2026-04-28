@@ -79,14 +79,14 @@ export function ChatThreadPanel({
                   <div
                     className={cn(
                       "max-w-[min(90%,20rem)] shadow-md sm:max-w-md",
-                      "rounded-2xl px-3.5 py-2.5 text-[14px] leading-[1.65] [word-break:break-word] whitespace-pre-wrap",
+                      "rounded-2xl px-3.5 py-2.5 text-sm leading-[1.65] [word-break:break-word] whitespace-pre-wrap",
                       m.role === "user"
                         ? "rounded-tr-md border border-accent/35 bg-gradient-to-br from-accent/20 to-accent/[0.08] text-text-primary"
                         : "rounded-tl-md border border-border/80 bg-surface/90 text-text-primary/95 shadow-black/5 backdrop-blur-sm"
                     )}
                   >
                     {m.role === "assistant" && (
-                      <p className="text-ui-mono mb-1 text-[9px] uppercase tracking-widest text-text-muted/80">
+                      <p className="text-ui-mono mb-1 text-xs uppercase tracking-widest text-text-muted/80">
                         AI
                       </p>
                     )}
@@ -96,8 +96,8 @@ export function ChatThreadPanel({
               ))}
               {streaming && (
                 <div className="flex w-full justify-start">
-                  <div className="max-w-[min(90%,20rem)] rounded-2xl rounded-tl-md border border-dashed border-accent/25 bg-surface/60 px-3.5 py-2.5 text-[14px] leading-[1.65] text-text-primary/90 shadow-md backdrop-blur-sm sm:max-w-md">
-                    <p className="text-ui-mono mb-1 text-[9px] uppercase tracking-widest text-text-muted/70">
+                  <div className="max-w-[min(90%,20rem)] rounded-2xl rounded-tl-md border border-dashed border-accent/25 bg-surface/60 px-3.5 py-2.5 text-sm leading-[1.65] text-text-primary/90 shadow-md backdrop-blur-sm sm:max-w-md">
+                    <p className="text-ui-mono mb-1 text-xs uppercase tracking-widest text-text-muted/70">
                       AI
                     </p>
                     <p className="text-ui-mono [word-break:break-word] whitespace-pre-wrap">
@@ -182,7 +182,7 @@ export function ChatThreadPanel({
     <div className="relative z-[2] flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="shrink-0 px-2 pb-1 pt-2">
         <div className="flex items-center justify-center gap-1.5">
-          <p className="text-ui-mono min-w-0 flex-1 text-center text-[11px] text-text-muted/70">{s.title}</p>
+          <p className="text-ui-mono min-w-0 flex-1 text-center text-xs text-text-muted/70">{s.title}</p>
           {showStagingGroupMenu && (
             <DropdownMenu.Root modal={false}>
               <DropdownMenu.Trigger asChild>
@@ -201,11 +201,11 @@ export function ChatThreadPanel({
                   sideOffset={6}
                   align="end"
                 >
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-text-muted">所属分组</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-text-muted">所属分组</p>
                   <ThemeSelect
                     id={`sg-${sessionId}`}
                     aria-label="会话分组"
-                    className="mt-1.5 max-w-none text-[12px]"
+                    className="mt-1.5 max-w-none text-xs"
                     disabled={groupSelectBusy}
                     value={s.stagingGroup?.id ?? ""}
                     options={[
@@ -226,7 +226,7 @@ export function ChatThreadPanel({
                       }
                     }}
                   />
-                  <p className="mt-2 text-[10px] leading-relaxed text-text-muted/80">
+                  <p className="mt-2 text-xs leading-relaxed text-text-muted/80">
                     {s.stagingGroup
                       ? "仅影响侧栏列表位置。分组的名称与暂存模式请从侧栏进入该分组页管理。"
                       : "未分组时，右侧暂存仅含本会话。加入分组不改变聊天与暂存操作方式。"}

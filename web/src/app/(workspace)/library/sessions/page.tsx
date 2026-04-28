@@ -36,18 +36,18 @@ export default async function SessionsPage() {
               <span className="min-w-0 flex-1 truncate">{s.title}</span>
               <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
                 {s.stagingGroup && (
-                  <span className="max-w-[10rem] truncate text-[10px] text-accent/90" title={s.stagingGroup.name}>
+                  <span className="max-w-[10rem] truncate text-xs text-accent/90" title={s.stagingGroup.name}>
                     {s.stagingGroup.name}
                   </span>
                 )}
-                <span className="text-[11px] text-text-muted">{s.draftAssetCount} 条暂存</span>
+                <span className="text-xs text-text-muted">{s.draftAssetCount} 条暂存</span>
               </span>
             </Link>
           </li>
         ))}
       </ul>
       {rows.length === 0 && <p className="text-ui-mono text-text-muted">还没有会话，创建一个开始。</p>}
-      <p className="text-ui-mono mt-6 text-[11px] text-text-muted">
+      <p className="text-ui-mono mt-6 text-xs text-text-muted">
         <Link href="/library/sessions/archive" className="hover:text-accent">
           归档
         </Link>

@@ -9,7 +9,7 @@ export default async function ExplorePage() {
       <div className="px-6 py-8">
         <header className="mb-8 border-b border-divider pb-4">
           <h1 className="font-display text-3xl text-text-primary">探索</h1>
-          <p className="text-ui-mono mt-1 text-[12px] text-text-muted">
+          <p className="text-ui-mono mt-1 text-xs text-text-muted">
             全站用户可见 · 与「我的库」中的私有不属于同一空间 · 按创建时间倒序
           </p>
         </header>
@@ -21,7 +21,7 @@ export default async function ExplorePage() {
     <div className="px-6 py-8">
       <header className="mb-8 border-b border-divider pb-4">
         <h1 className="font-display text-3xl text-text-primary">探索</h1>
-        <p className="text-ui-mono mt-1 text-[12px] text-text-muted">
+        <p className="text-ui-mono mt-1 text-xs text-text-muted">
           全站用户可见 · 与「我的库」中的私有不属于同一空间 · 按创建时间倒序
         </p>
       </header>

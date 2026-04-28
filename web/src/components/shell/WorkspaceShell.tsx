@@ -78,7 +78,7 @@ export function WorkspaceShell({
             );
           })}
         </div>
-        <div className="mt-auto flex flex-col items-center gap-2 border-t border-border/60 px-0.5 pt-2 text-ui-mono text-[10px] leading-tight text-text-muted">
+        <div className="mt-auto flex flex-col items-center gap-2 border-t border-border/60 px-0.5 pt-2 text-ui-mono text-xs leading-tight text-text-muted">
           {me ? (
             <>
               <Link
@@ -100,7 +100,7 @@ export function WorkspaceShell({
                     title={me.displayName ?? me.username}
                     aria-label={`${me.displayName ?? me.username}，账户菜单`}
                     className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-accent/10 text-[13px] font-medium text-text-primary outline-none",
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-accent/10 text-sm font-medium text-text-primary outline-none",
                       "hover:border-accent/40 hover:bg-accent/15 focus-visible:ring-2 focus-visible:ring-accent/40"
                     )}
                   >
@@ -116,7 +116,7 @@ export function WorkspaceShell({
                   >
                     <DropdownMenu.Item
                       className={cn(
-                        "cursor-pointer rounded px-2 py-1.5 text-[13px] text-text-primary outline-none",
+                        "cursor-pointer rounded px-2 py-1.5 text-sm text-text-primary outline-none",
                         "hover:bg-white/5 focus:bg-white/5 data-[highlighted]:bg-white/5"
                       )}
                       onSelect={(e) => {
@@ -133,7 +133,7 @@ export function WorkspaceShell({
           ) : (
             <Link
               href="/login"
-              className="rounded-md px-1 py-1.5 text-center text-[10px] text-accent hover:underline"
+              className="rounded-md px-1 py-1.5 text-center text-xs text-accent hover:underline"
             >
               登录
             </Link>

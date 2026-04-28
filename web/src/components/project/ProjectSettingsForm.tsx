@@ -43,7 +43,7 @@ export function ProjectSettingsForm({
       }}
     >
       <div>
-        <label htmlFor="proj-name" className="text-ui-mono text-[10px] uppercase text-text-muted">
+        <label htmlFor="proj-name" className="text-ui-mono text-xs uppercase text-text-muted">
           项目名称
         </label>
         <input
@@ -55,7 +55,7 @@ export function ProjectSettingsForm({
           autoComplete="off"
         />
       </div>
-      {err && <p className="text-ui-mono text-[12px] text-error-dim/90">{err}</p>}
+      {err && <p className="text-ui-mono text-xs text-error-dim/90">{err}</p>}
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"

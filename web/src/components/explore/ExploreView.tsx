@@ -51,7 +51,7 @@ export function ExploreView({ initialData }: { initialData: PaginatedAssets }) {
       leftDefaultSize={67}
       leftMinSize={36}
       rightMinSize={22}
-      rightClassName="border-l border-divider bg-bg-base"
+      rightClassName="bg-bg-base"
       className="min-h-0 min-w-0 flex-1"
       left={
         <div className="gd-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto px-6 pb-8 pt-4">

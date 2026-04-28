@@ -3,26 +3,29 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { LayoutGrid, List, Plus, Search, Settings } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useState, useCallback, useLayoutEffect, useMemo, useEffect } from "react";
 import { AssetGrid } from "@/components/asset/AssetGrid";
 import { LibraryStashBar } from "@/components/library/LibraryStash";
 import { useUiPreferences } from "@/components/providers/UiPreferencesProvider";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ThemeSelect } from "@/components/ui/ThemeSelect";
 import type { PaginatedAssets } from "@/lib/types";
 import type { AssetListFilters } from "@/lib/api";
 import { listAssetGroups, createAssetGroup, deleteAssetGroup, listAssetTags } from "@/lib/api";
 import { mergeLibraryHref, parseToolbarTokens } from "@/lib/library-query";
 import { cn } from "@/lib/utils";
 import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
-import type { GridCardSize } from "@/components/asset/AssetCard";
-
 type Props = {
   initialData: PaginatedAssets;
   libraryVisibility: "private" | "public" | null;
 };
 
-const LIBRARY_CARD_SIZES = ["none", "sm", "md", "lg"] as const satisfies readonly GridCardSize[];
+const LIBRARY_SORT_OPTIONS = [
+  { value: "created_desc", label: "创建时间 ↓" },
+  { value: "updated_desc", label: "最近修改 ↓" },
+  { value: "fork_desc", label: "分叉次数 ↓" },
+] as const;
 
 /** Tailwind `lg` default (keep in sync with breakpoints). */
 const LG_MIN_PX = 1024;
@@ -39,7 +42,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   const assetDetailSearch = linkToProject
     ? `linkToProject=${encodeURIComponent(linkToProject)}`
     : undefined;
-  const { prefs, setPrefs } = useUiPreferences();
+  const { prefs } = useUiPreferences();
   const qc = useQueryClient();
   const [sidebarWide, setSidebarWide] = useState(true);
   useLayoutEffect(() => {
@@ -234,44 +237,9 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
 
   const mainScroll = (
     <>
-      <div className="mb-6 flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl">我的库</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            className="text-ui-mono flex items-center gap-1 text-xs text-text-muted"
-            title="无：不显示缩略图；小/中/大：宫格下正方形封面尺寸"
-          >
-            <span>无</span>
-            <input
-              type="range"
-              min={0}
-              max={3}
-              value={LIBRARY_CARD_SIZES.indexOf(prefs.libraryCardSize)}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                setPrefs({ libraryCardSize: LIBRARY_CARD_SIZES[v] ?? "md" });
-              }}
-              className="h-1 w-24 accent-accent"
-            />
-            <span>大</span>
-          </div>
-          <Link
-            href="/library/preferences"
-            className="text-ui-mono inline-flex items-center gap-1 rounded border border-border/50 px-2 py-1 text-xs text-text-muted hover:text-text-primary"
-          >
-            <Settings className="h-3.5 w-3.5" />
-            显示与字体
-          </Link>
-          <Link
-            href="/library/assets/new"
-            className="text-ui-mono rounded bg-accent/15 px-3 py-1.5 text-sm text-accent hover:bg-accent/25"
-          >
-            新建素材
-          </Link>
-        </div>
-        </div>
-        <div className="text-ui-mono flex flex-wrap items-center gap-2 rounded-md border border-border/45 bg-surface/35 px-2 py-2">
+      <div className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-3">
+        <h1 className="font-display shrink-0 text-2xl">我的库</h1>
+        <div className="text-ui-mono flex min-w-0 flex-1 basis-[min(100%,36rem)] flex-wrap items-center gap-2 rounded-md border border-border/45 bg-surface/35 px-2 py-2">
           <Search className="h-4 w-4 shrink-0 text-text-muted" aria-hidden />
           <form
             className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
@@ -284,7 +252,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
               value={searchDraft}
               onChange={(e) => setSearchDraft(e.target.value)}
               placeholder="全文，或 type:image、tag:名称"
-              className="min-w-[12rem] flex-1 rounded border border-border/50 bg-bg-base/80 px-2 py-1.5 text-xs text-text-primary outline-none placeholder:text-text-muted/60"
+              className="min-w-[10rem] flex-1 rounded border border-border/50 bg-bg-base/80 px-2 py-1.5 text-xs text-text-primary outline-none placeholder:text-text-muted/60"
             />
             <button
               type="submit"
@@ -293,43 +261,25 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
               检索
             </button>
           </form>
-          <label className="flex items-center gap-1.5 text-xs text-text-muted">
-            排序
-            <select
+          <div className="flex items-center gap-1.5 text-xs text-text-muted">
+            <span id="library-sort-label" className="shrink-0">
+              排序
+            </span>
+            <ThemeSelect
+              aria-labelledby="library-sort-label"
               value={sortParam}
-              className="rounded border border-border/50 bg-bg-base/80 px-1.5 py-1 text-xs text-text-primary"
-              onChange={(e) => router.replace(mergeLibraryHref(sp, { sort: e.target.value || null }))}
-            >
-              <option value="created_desc">创建时间 ↓</option>
-              <option value="updated_desc">最近修改 ↓</option>
-              <option value="fork_desc">分叉次数 ↓</option>
-            </select>
-          </label>
-          <div className="flex items-center gap-0.5 rounded border border-border/50 p-0.5">
-            <button
-              type="button"
-              title="网格"
-              className={cn(
-                "rounded p-1.5",
-                (prefs.libraryViewMode ?? "grid") === "grid" ? "bg-accent/15 text-accent" : "text-text-muted"
-              )}
-              onClick={() => setPrefs({ libraryViewMode: "grid" })}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              title="列表"
-              className={cn(
-                "rounded p-1.5",
-                prefs.libraryViewMode === "list" ? "bg-accent/15 text-accent" : "text-text-muted"
-              )}
-              onClick={() => setPrefs({ libraryViewMode: "list" })}
-            >
-              <List className="h-4 w-4" />
-            </button>
+              onValueChange={(v) => router.replace(mergeLibraryHref(sp, { sort: v || null }))}
+              options={[...LIBRARY_SORT_OPTIONS]}
+              className="max-w-[12rem] min-w-[8rem] py-1.5 text-xs"
+            />
           </div>
         </div>
+        <Link
+          href="/library/assets/new"
+          className="text-ui-mono ml-auto shrink-0 rounded bg-accent/15 px-3 py-1.5 text-sm text-accent hover:bg-accent/25"
+        >
+          新建素材
+        </Link>
       </div>
       <p className="text-ui-mono mb-3 text-xs text-text-muted/90">
         {visActive === "all" &&

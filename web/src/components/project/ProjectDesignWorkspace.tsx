@@ -75,9 +75,10 @@ export function ProjectDesignWorkspace({
                   refetch={refetchSession}
                   showStagingGroupMenu={false}
                   stagingGroups={[]}
-                  composerPlaceholder="与 AI 讨论玩法、叙事、体验与关卡节奏；引用素材的名称与描述会进入模型上下文。"
+                  composerPlaceholder="与 AI 讨论玩法、叙事、体验与关卡节奏。输入 @ 可引用侧栏「引用素材」；发送时会展开为名称、描述与 ID。"
                   invalidateExtra={[{ queryKey: ["project-sessions", projectId] }]}
                   onStreamingChange={setStreaming}
+                  mentionableAssets={project?.linkedAssets ?? []}
                 />
               </div>
             }

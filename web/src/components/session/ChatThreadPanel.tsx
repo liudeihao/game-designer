@@ -5,10 +5,11 @@ import { useCallback, useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { patchSession, postChatStream } from "@/lib/api";
 import { createStreamParser } from "@/lib/stream-jsonl";
-import type { SessionDetail, StreamEvent } from "@/lib/types";
+import type { ProjectLinkedAsset, SessionDetail, StreamEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ThemeSelect } from "@/components/ui/ThemeSelect";
 import { WorkspaceVerticalSplit } from "@/components/shell/WorkspaceVerticalSplit";
+import { MentionableChatComposer } from "@/components/session/MentionableChatComposer";
 import { Settings2 } from "lucide-react";
 
 type Props = {
@@ -22,6 +23,8 @@ type Props = {
   invalidateExtra?: { queryKey: readonly unknown[] }[];
   /** Parent can track streaming (e.g. empty-session discard guard). */
   onStreamingChange?: (streaming: boolean) => void;
+  /** When set (e.g. project design), composer supports @ to insert linked assets; expanded on send. */
+  mentionableAssets?: ProjectLinkedAsset[];
 };
 
 export function ChatThreadPanel({
@@ -33,6 +36,7 @@ export function ChatThreadPanel({
   composerPlaceholder,
   invalidateExtra,
   onStreamingChange,
+  mentionableAssets,
 }: Props) {
   const qc = useQueryClient();
   const [input, setInput] = useState("");
@@ -56,6 +60,48 @@ export function ChatThreadPanel({
       void qc.invalidateQueries(x);
     }
   }, [invalidateExtra, qc, refetch, sessionId]);
+
+  const runChat = useCallback(
+    async (messageForApi: string) => {
+      setStreaming(true);
+      onStreamingChange?.(true);
+      setTextBuf("");
+      try {
+        const res = await postChatStream(sessionId, messageForApi);
+        if (!res.ok) throw new Error("chat");
+        const reader = res.body?.getReader();
+        if (!reader) {
+          await runInvalidate();
+          return;
+        }
+        const dec = new TextDecoder();
+        const feed = createStreamParser(onEvent);
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          feed(dec.decode(value, { stream: true }));
+        }
+        if (mentionableAssets === undefined) setInput("");
+        await runInvalidate();
+      } catch {
+        void refetch();
+      } finally {
+        setStreaming(false);
+        onStreamingChange?.(false);
+        setTextBuf("");
+        void qc.invalidateQueries({ queryKey: ["sessions"] });
+      }
+    },
+    [
+      mentionableAssets,
+      onEvent,
+      onStreamingChange,
+      qc,
+      refetch,
+      runInvalidate,
+      sessionId,
+    ]
+  );
 
   const sessionChatSplit = (
     <WorkspaceVerticalSplit
@@ -116,63 +162,45 @@ export function ChatThreadPanel({
       }
       bottom={
         <div className="box-border flex h-full min-h-0 flex-col bg-bg-base/40 px-3 py-2">
-          <form
-            className="flex min-h-[3.25rem] flex-1 gap-2"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (!input.trim() || streaming) return;
-              setStreaming(true);
-              onStreamingChange?.(true);
-              setTextBuf("");
-              try {
-                const res = await postChatStream(sessionId, input);
-                if (!res.ok) throw new Error("chat");
-                const reader = res.body?.getReader();
-                if (!reader) {
-                  await runInvalidate();
-                  return;
-                }
-                const dec = new TextDecoder();
-                const feed = createStreamParser(onEvent);
-                for (;;) {
-                  const { value, done } = await reader.read();
-                  if (done) break;
-                  feed(dec.decode(value, { stream: true }));
-                }
-                setInput("");
-                await runInvalidate();
-              } catch {
-                void refetch();
-              } finally {
-                setStreaming(false);
-                onStreamingChange?.(false);
-                setTextBuf("");
-                void qc.invalidateQueries({ queryKey: ["sessions"] });
-              }
-            }}
-          >
-            <textarea
-              className="text-ui-mono box-border max-h-none min-h-12 w-0 min-w-0 flex-1 resize-none overflow-y-auto border-b border-accent/40 bg-transparent text-sm text-text-primary outline-none focus:border-accent"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  e.currentTarget.form?.requestSubmit();
-                }
-              }}
-              placeholder={composerPlaceholder}
-              rows={1}
-              aria-label="聊天输入"
-            />
-            <button
-              type="submit"
-              className="gd-btn-dataflow text-ui-mono shrink-0 self-end rounded border border-border px-3 py-1 text-sm hover:border-accent/40"
+          {mentionableAssets !== undefined ? (
+            <MentionableChatComposer
               disabled={streaming}
+              placeholder={composerPlaceholder}
+              mentionAssets={mentionableAssets}
+              onSend={runChat}
+            />
+          ) : (
+            <form
+              className="flex min-h-[3.25rem] flex-1 gap-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!input.trim() || streaming) return;
+                await runChat(input);
+              }}
             >
-              发送
-            </button>
-          </form>
+              <textarea
+                className="text-ui-mono box-border max-h-none min-h-12 w-0 min-w-0 flex-1 resize-none overflow-y-auto border-b border-accent/40 bg-transparent text-sm text-text-primary outline-none focus:border-accent"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    e.currentTarget.form?.requestSubmit();
+                  }
+                }}
+                placeholder={composerPlaceholder}
+                rows={1}
+                aria-label="聊天输入"
+              />
+              <button
+                type="submit"
+                className="gd-btn-dataflow text-ui-mono shrink-0 self-end rounded border border-border px-3 py-1 text-sm hover:border-accent/40"
+                disabled={streaming}
+              >
+                发送
+              </button>
+            </form>
+          )}
         </div>
       }
     />

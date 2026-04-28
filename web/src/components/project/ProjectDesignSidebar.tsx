@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { Check, MoreVertical, X } from "lucide-react";
+import { Check, MoreVertical, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import {
   createProjectSession,
@@ -18,7 +18,6 @@ import type { ProjectDetail, ProjectSessionSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { LinkProjectAssetsDialog } from "@/components/project/LinkProjectAssetsDialog";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { WorkspaceVerticalSplit } from "@/components/shell/WorkspaceVerticalSplit";
 import {
   sessionSidebarNavListClass,
   sessionSidebarSessionLinkClass,
@@ -43,6 +42,9 @@ function linkedThumbLabel(name: string): string {
 const sessionOverflowMenuClass =
   "text-ui-mono z-[200] min-w-[9.5rem] rounded-md border border-border bg-bg-base p-1 shadow-lg";
 
+const tabBtn =
+  "text-ui-mono flex-1 rounded-md px-2 py-1.5 text-xs outline-none transition focus-visible:ring-2 focus-visible:ring-accent/40";
+
 export function ProjectDesignSidebar({
   projectId,
   sessionId,
@@ -62,9 +64,14 @@ export function ProjectDesignSidebar({
     queryKey: ["project", projectId],
     queryFn: () => getProject(projectId),
   });
-  const linked = (project as ProjectDetail | null | undefined)?.linkedAssets ?? [];
+  const linked = useMemo(
+    () => (project as ProjectDetail | null | undefined)?.linkedAssets ?? [],
+    [project]
+  );
 
+  const [sidebarTab, setSidebarTab] = useState<"sessions" | "assets">("sessions");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [linkedQuery, setLinkedQuery] = useState("");
   const [linkBusy, setLinkBusy] = useState(false);
   const [inlineRename, setInlineRename] = useState<{ id: string; value: string } | null>(null);
   const [renameBusy, setRenameBusy] = useState(false);
@@ -79,6 +86,16 @@ export function ProjectDesignSidebar({
     () => sortSessionsByPinnedOrder(threads, pinnedSessionIds),
     [threads, pinnedSessionIds]
   );
+
+  const linkedFiltered = useMemo(() => {
+    const q = linkedQuery.trim().toLowerCase();
+    if (!q) return linked;
+    return linked.filter((a) => {
+      const name = a.name.toLowerCase();
+      const desc = a.description.toLowerCase();
+      return name.includes(q) || desc.includes(q);
+    });
+  }, [linked, linkedQuery]);
 
   const persistProjectPins = (next: string[]) => {
     setPinnedSessionIds(next);
@@ -148,35 +165,59 @@ export function ProjectDesignSidebar({
         }}
       />
 
-      <div className="shrink-0 border-b border-border/50 px-3 py-3">
-        <p className="text-sm font-semibold text-text-muted">会话</p>
-        <button
-          type="button"
-          disabled={streaming}
-          className="font-display mt-2 w-full rounded-xl border border-accent/35 bg-accent/10 px-3 py-2.5 text-sm text-accent hover:bg-accent/15 disabled:opacity-50"
-          onClick={async () => {
-            const s = await createProjectSession(projectId, {});
-            void qc.invalidateQueries({ queryKey: ["project-sessions", projectId] });
-            router.push(`/projects/${projectId}/design/${s.id}`);
-          }}
-        >
-          + 新会话
-        </button>
+      <div className="shrink-0 border-b border-border/50 px-2 pt-2 pb-1">
+        <div className="flex gap-1 rounded-lg bg-surface/25 p-1" role="tablist" aria-label="设计侧栏">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sidebarTab === "sessions"}
+            className={cn(
+              tabBtn,
+              sidebarTab === "sessions"
+                ? "border border-accent/30 bg-accent/10 text-accent"
+                : "border border-transparent text-text-muted hover:text-text-primary"
+            )}
+            onClick={() => setSidebarTab("sessions")}
+          >
+            会话
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={sidebarTab === "assets"}
+            className={cn(
+              tabBtn,
+              sidebarTab === "assets"
+                ? "border border-accent/30 bg-accent/10 text-accent"
+                : "border border-transparent text-text-muted hover:text-text-primary"
+            )}
+            onClick={() => setSidebarTab("assets")}
+          >
+            引用素材
+            {linked.length > 0 ? (
+              <span className="ml-1 tabular-nums text-[10px] opacity-80">({linked.length})</span>
+            ) : null}
+          </button>
+        </div>
       </div>
 
-      <WorkspaceVerticalSplit
-        storageKey={`layout:project-design-sidebar-sessions-assets-${projectId}`}
-        topDefaultSize={46}
-        bottomDefaultSize={54}
-        topMinSize={18}
-        bottomMinSize={20}
-        separatorAriaLabel="拖动调整会话列表与引用素材区高度"
-        separatorTitle="拖动调整会话列表与引用素材区比例"
-        className="min-h-0 flex-1"
-        topClassName="min-h-0 min-w-0"
-        bottomClassName="min-h-0 min-w-0"
-        top={
-          <div className="gd-scrollbar h-full min-h-0 overflow-y-auto px-2 py-2">
+      {sidebarTab === "sessions" ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="shrink-0 px-3 pb-2 pt-2">
+            <button
+              type="button"
+              disabled={streaming}
+              className="font-display w-full rounded-xl border border-accent/35 bg-accent/10 px-3 py-2.5 text-sm text-accent hover:bg-accent/15 disabled:opacity-50"
+              onClick={async () => {
+                const s = await createProjectSession(projectId, {});
+                void qc.invalidateQueries({ queryKey: ["project-sessions", projectId] });
+                router.push(`/projects/${projectId}/design/${s.id}`);
+              }}
+            >
+              + 新会话
+            </button>
+          </div>
+          <div className="gd-scrollbar min-h-0 flex-1 overflow-y-auto px-2 py-2">
             <ul className={sessionSidebarNavListClass}>
               {sortedThreads.map((s) => {
                 const active = s.id === sessionId;
@@ -281,83 +322,112 @@ export function ProjectDesignSidebar({
               })}
             </ul>
           </div>
-        }
-        bottom={
-          <div className="flex h-full min-h-0 flex-col px-3 py-3">
-            <p className="text-sm font-semibold text-text-muted">引用素材</p>
-            <button
-              type="button"
-              className="text-ui-mono mt-2 w-full rounded-xl border border-border/70 px-3 py-2.5 text-sm text-accent hover:border-accent/40"
-              onClick={() => setPickerOpen(true)}
-            >
-              从「我的库」选择…
-            </button>
-            <div className="gd-scrollbar mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5">
-              {linked.length === 0 ? (
-                <p className="py-2 text-center text-sm text-text-muted">暂无引用</p>
-              ) : (
-                linked.map((a) => {
-                  const ch = linkedThumbLabel(a.name);
-                  return (
-                    <div
-                      key={a.id}
-                      className="rounded-xl border border-border/50 bg-surface/30 p-2 text-sm"
-                    >
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/library/assets/${encodeURIComponent(a.id)}`}
-                          className="flex min-w-0 flex-1 gap-2 rounded-lg outline-none ring-accent/0 transition hover:bg-white/[0.04] focus-visible:ring-2"
-                          title="在「我的库」中查看"
-                        >
-                          {a.coverImageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element -- signed thumbnail URL
-                            <img
-                              src={a.coverImageUrl}
-                              alt=""
-                              className="h-12 w-12 shrink-0 rounded-md object-cover"
-                            />
-                          ) : (
-                            <span
-                              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-accent/15 text-sm font-medium text-accent"
-                              aria-hidden
-                            >
-                              {ch}
-                            </span>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="font-display line-clamp-2 text-[13px] text-text-primary">{a.name}</p>
-                            {a.description.trim() ? (
-                              <p className="text-ui-mono mt-0.5 line-clamp-2 text-[11px] leading-snug text-text-muted">
-                                {a.description}
-                              </p>
-                            ) : null}
-                          </div>
-                        </Link>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={linkBusy}
-                        className="text-ui-mono mt-1.5 text-xs text-text-muted hover:text-error-dim"
-                        onClick={async () => {
-                          setLinkBusy(true);
-                          try {
-                            await unlinkProjectAsset(projectId, a.id);
-                            void qc.invalidateQueries({ queryKey: ["project", projectId] });
-                          } finally {
-                            setLinkBusy(false);
-                          }
-                        }}
-                      >
-                        从项目移除
-                      </button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col px-3 py-3" role="tabpanel">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-sm font-semibold text-text-muted">已引用</p>
+            {linked.length > 0 ? (
+              <span className="text-ui-mono text-[11px] text-text-muted tabular-nums">
+                {linkedFiltered.length}/{linked.length}
+              </span>
+            ) : null}
           </div>
-        }
-      />
+          <button
+            type="button"
+            className="text-ui-mono mt-2 w-full rounded-xl border border-border/70 px-3 py-2.5 text-sm text-accent hover:border-accent/40"
+            onClick={() => setPickerOpen(true)}
+          >
+            从「我的库」选择…
+          </button>
+          {linked.length > 0 ? (
+            <label className="text-ui-mono mt-2 block">
+              <span className="sr-only">搜索已引用素材</span>
+              <span className="relative block">
+                <Search
+                  className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted"
+                  aria-hidden
+                />
+                <input
+                  type="search"
+                  value={linkedQuery}
+                  onChange={(e) => setLinkedQuery(e.target.value)}
+                  placeholder="搜索名称或描述…"
+                  autoComplete="off"
+                  className="text-ui-mono w-full rounded-lg border border-border/60 bg-surface/40 py-2 pl-8 pr-2 text-xs text-text-primary outline-none placeholder:text-text-muted/60 focus:border-accent/40"
+                />
+              </span>
+            </label>
+          ) : null}
+          <div className="gd-scrollbar mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
+            {linked.length === 0 ? (
+              <p className="py-2 text-center text-sm text-text-muted">暂无引用</p>
+            ) : linkedFiltered.length === 0 ? (
+              <p className="py-2 text-center text-sm text-text-muted">没有匹配的素材</p>
+            ) : (
+              linkedFiltered.map((a) => {
+                const ch = linkedThumbLabel(a.name);
+                return (
+                  <div
+                    key={a.id}
+                    className="flex items-stretch gap-1 rounded-xl border border-border/50 bg-surface/30 p-1.5 text-sm"
+                  >
+                    <Link
+                      href={`/library/assets/${encodeURIComponent(a.id)}`}
+                      className="flex min-w-0 flex-1 gap-2 rounded-lg outline-none ring-accent/0 transition hover:bg-white/[0.04] focus-visible:ring-2"
+                      title="在「我的库」中查看"
+                    >
+                      {a.coverImageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- signed thumbnail URL
+                        <img
+                          src={a.coverImageUrl}
+                          alt=""
+                          className="h-11 w-11 shrink-0 rounded-md object-cover"
+                        />
+                      ) : (
+                        <span
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-accent/15 text-sm font-medium text-accent"
+                          aria-hidden
+                        >
+                          {ch}
+                        </span>
+                      )}
+                      <div className="min-w-0 flex-1 py-0.5">
+                        <p className="font-display line-clamp-2 text-[13px] leading-snug text-text-primary">
+                          {a.name}
+                        </p>
+                        {a.description.trim() ? (
+                          <p className="text-ui-mono mt-0.5 line-clamp-2 text-[11px] leading-snug text-text-muted">
+                            {a.description}
+                          </p>
+                        ) : null}
+                      </div>
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={linkBusy}
+                      title="从项目移除"
+                      aria-label={`从项目移除「${a.name}」`}
+                      className="text-ui-mono flex shrink-0 items-center justify-center self-center rounded-lg px-1.5 py-2 text-text-muted hover:bg-error-dim/10 hover:text-error-dim disabled:opacity-40"
+                      onClick={async () => {
+                        setLinkBusy(true);
+                        try {
+                          await unlinkProjectAsset(projectId, a.id);
+                          void qc.invalidateQueries({ queryKey: ["project", projectId] });
+                        } finally {
+                          setLinkBusy(false);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
 
       <LinkProjectAssetsDialog
         projectId={projectId}

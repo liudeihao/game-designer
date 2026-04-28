@@ -37,36 +37,44 @@ export function MentionableChatComposer({ disabled, placeholder, mentionAssets, 
     );
   });
 
-  const syncPickerFromInput = useCallback(() => {
+  /** Must use live `text` + `caret` from the textarea/event — React `input` state lags one frame behind. */
+  const syncPicker = useCallback((text: string, caret: number) => {
     const ta = taRef.current;
-    if (!ta) return;
-    const caret = ta.selectionStart ?? 0;
-    const mq = getActiveMentionQuery(input, caret);
+    const mq = getActiveMentionQuery(text, caret);
     if (mq) {
       setMentionStart(mq.start);
       setMentionQuery(mq.query);
       setPickerOpen(true);
       setHighlight(0);
-      const r = ta.getBoundingClientRect();
-      setPickerPos({
-        top: r.bottom + 4,
-        left: r.left,
-        width: Math.min(320, Math.max(r.width, 240)),
-      });
+      if (ta) {
+        const r = ta.getBoundingClientRect();
+        setPickerPos({
+          top: r.bottom + 4,
+          left: r.left,
+          width: Math.min(320, Math.max(r.width, 240)),
+        });
+      }
     } else {
       setPickerOpen(false);
       setMentionStart(null);
       setMentionQuery("");
     }
-  }, [input]);
+  }, []);
+
+  const syncPickerFromDom = useCallback(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    syncPicker(ta.value, ta.selectionStart ?? 0);
+  }, [syncPicker]);
 
   const insertMention = useCallback(
     (asset: ProjectLinkedAsset) => {
       const ta = taRef.current;
       if (!ta || mentionStart === null) return;
-      const caret = ta.selectionStart ?? input.length;
+      const value = ta.value;
+      const caret = ta.selectionStart ?? value.length;
       const token = formatAssetMentionToken(asset);
-      const next = input.slice(0, mentionStart) + token + input.slice(caret);
+      const next = value.slice(0, mentionStart) + token + value.slice(caret);
       setInput(next);
       setPickerOpen(false);
       setMentionStart(null);
@@ -75,9 +83,10 @@ export function MentionableChatComposer({ disabled, placeholder, mentionAssets, 
       requestAnimationFrame(() => {
         ta.focus();
         ta.setSelectionRange(pos, pos);
+        syncPicker(ta.value, pos);
       });
     },
-    [input, mentionStart]
+    [mentionStart, syncPicker]
   );
 
   useEffect(() => {
@@ -105,9 +114,12 @@ export function MentionableChatComposer({ disabled, placeholder, mentionAssets, 
           value={input}
           disabled={disabled}
           onChange={(e) => {
-            setInput(e.target.value);
-            requestAnimationFrame(() => syncPickerFromInput());
+            const v = e.target.value;
+            const caret = e.target.selectionStart ?? v.length;
+            setInput(v);
+            syncPicker(v, caret);
           }}
+          onCompositionEnd={syncPickerFromDom}
           onKeyDown={(e) => {
             if (pickerOpen && mentionAssets.length > 0 && filtered.length > 0) {
               if (e.key === "ArrowDown") {
@@ -136,8 +148,8 @@ export function MentionableChatComposer({ disabled, placeholder, mentionAssets, 
               e.currentTarget.form?.requestSubmit();
             }
           }}
-          onClick={syncPickerFromInput}
-          onSelect={syncPickerFromInput}
+          onClick={syncPickerFromDom}
+          onSelect={syncPickerFromDom}
           placeholder={placeholder}
           rows={1}
           aria-label="聊天输入"

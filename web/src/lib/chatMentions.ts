@@ -35,7 +35,9 @@ export type MentionQuery = { start: number; query: string };
 export function getActiveMentionQuery(text: string, caret: number): MentionQuery | null {
   if (caret < 0 || caret > text.length) return null;
   const before = text.slice(0, caret);
-  const at = before.lastIndexOf("@");
+  const atAscii = before.lastIndexOf("@");
+  const atWide = before.lastIndexOf("＠");
+  const at = Math.max(atAscii, atWide);
   if (at === -1) return null;
   if (at > 0) {
     const prev = before[at - 1];

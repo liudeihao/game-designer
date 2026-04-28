@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteAsset, getAssets } from "@/lib/api";
+import { deleteAsset, getAssets, type AssetListFilters } from "@/lib/api";
 import { isAssetFull } from "@/lib/guards";
 import type { AssetFull, PaginatedAssets } from "@/lib/types";
 import { AssetCard, type GridCardSize } from "./AssetCard";
@@ -24,6 +24,11 @@ export function AssetGrid({
   libraryVisibility = null,
   ownerLibraryBulkDelete = false,
   authorUsername = null,
+  cardInteraction = "link",
+  onInspectAsset,
+  viewMode = "grid",
+  assetListFilters,
+  stashDragPayload,
 }: {
   scope: "public" | "private";
   className?: string;
@@ -39,19 +44,36 @@ export function AssetGrid({
   ownerLibraryBulkDelete?: boolean;
   /** 公开列表：按作者 username 筛选（用户主页）；仅与 scope=public 共用 */
   authorUsername?: string | null;
+  cardInteraction?: "link" | "inspector";
+  onInspectAsset?: (id: string) => void;
+  viewMode?: "grid" | "list";
+  assetListFilters?: AssetListFilters;
+  /** Enable drag payload for library stash (JSON string per card). */
+  stashDragPayload?: (assetId: string, name: string) => string;
 }) {
   const qc = useQueryClient();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const groupKey = groupId ?? "all";
   const visKey = libraryVisibility ?? "all";
   const authorKey = authorUsername ?? "";
+  const sortKey = assetListFilters?.sort ?? "";
+  const qKey = assetListFilters?.q ?? "";
+  const tagKey = assetListFilters?.tagId ?? "";
+  const hiKey = assetListFilters?.hasImage === true ? "1" : "";
   const showOwnerLibBadge = scope === "private";
   const showBulkToolbar = scope === "private" && ownerLibraryBulkDelete;
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const listFiltersMerged: AssetListFilters = {
+    groupId: groupId ?? undefined,
+    visibility: libraryVisibility ?? undefined,
+    authorUsername: authorUsername ?? undefined,
+    ...assetListFilters,
+  };
+
   const q = useInfiniteQuery({
-    queryKey: ["assets", scope, groupKey, visKey, authorKey],
+    queryKey: ["assets", scope, groupKey, visKey, authorKey, sortKey, qKey, tagKey, hiKey],
     initialData:
       initialData != null
         ? {
@@ -61,14 +83,7 @@ export function AssetGrid({
         : undefined,
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) => {
-      return getAssets(
-        scope,
-        pageParam as string | null,
-        24,
-        groupId ?? undefined,
-        libraryVisibility ?? undefined,
-        authorUsername ?? undefined
-      );
+      return getAssets(scope, pageParam as string | null, 24, listFiltersMerged);
     },
     getNextPageParam: (last) => last.nextCursor,
   });
@@ -134,6 +149,28 @@ export function AssetGrid({
   };
 
   const colClass = "flex flex-wrap content-start items-start justify-start gap-4";
+
+  const cardProps = (a: (typeof items)[number]) => ({
+    asset: a,
+    href: `${itemHrefBase}/${a.id}${detailSearch ? `?${detailSearch}` : ""}`,
+    showOwnerLibraryBadge: showOwnerLibBadge,
+    cardInteraction,
+    onInspectorActivate:
+      cardInteraction === "inspector" && onInspectAsset ? () => onInspectAsset(a.id) : undefined,
+    stashDragData:
+      stashDragPayload && isAssetFull(a)
+        ? stashDragPayload(a.id, a.name)
+        : undefined,
+    libraryBulkSelect:
+      showBulkToolbar && bulkMode && isAssetFull(a)
+        ? {
+            checked: selectedIds.includes(a.id),
+            disabled: a.visibility !== "private",
+            disabledReason: "已公开的素材不能从私库批量删除",
+            onToggle: () => toggleSelect(a.id),
+          }
+        : undefined,
+  });
 
   return (
     <div className={cn("w-full", className)}>
@@ -213,29 +250,55 @@ export function AssetGrid({
           无法刷新列表。请检查网络或后端是否可用。
         </p>
       )}
-      <div className={colClass}>
-        {items.map((a) => (
-          <div key={a.id} className={cn("shrink-0", flowItemW[gridSize])}>
-            <AssetCard
-              asset={a}
-              href={`${itemHrefBase}/${a.id}${detailSearch ? `?${detailSearch}` : ""}`}
-              variant="grid"
-              gridSize={gridSize}
-              showOwnerLibraryBadge={showOwnerLibBadge}
-              libraryBulkSelect={
-                showBulkToolbar && bulkMode && isAssetFull(a)
-                  ? {
-                      checked: selectedIds.includes(a.id),
-                      disabled: a.visibility !== "private",
-                      disabledReason: "已公开的素材不能从私库批量删除",
-                      onToggle: () => toggleSelect(a.id),
-                    }
-                  : undefined
-              }
-            />
-          </div>
-        ))}
-      </div>
+      {viewMode === "grid" ? (
+        <div className={colClass}>
+          {items.map((a) => (
+            <div key={a.id} className={cn("shrink-0", flowItemW[gridSize])}>
+              <AssetCard {...cardProps(a)} variant="grid" gridSize={gridSize} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="border border-border/50 bg-surface/30">
+          <ul className="divide-y divide-border/40">
+            {items.map((a) => (
+              <li key={a.id} className="flex min-h-14 items-stretch gap-2 p-2 hover:bg-surface/60">
+                {showBulkToolbar && bulkMode && isAssetFull(a) && (
+                  <div className="flex w-8 shrink-0 items-center justify-center">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 cursor-pointer rounded border-border text-accent"
+                      checked={selectedIds.includes(a.id)}
+                      disabled={a.visibility !== "private"}
+                      title={a.visibility !== "private" ? "已公开不可删除" : undefined}
+                      onChange={() => toggleSelect(a.id)}
+                    />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <AssetCard
+                    {...cardProps(a)}
+                    variant="compact"
+                    gridSize="md"
+                    className="min-h-14 border-0 bg-transparent hover:translate-y-0"
+                  />
+                </div>
+                {isAssetFull(a) && (
+                  <div className="text-ui-mono hidden w-40 shrink-0 flex-col justify-center text-[10px] text-text-muted sm:flex">
+                    <span>创建 {new Date(a.createdAt).toLocaleString()}</span>
+                    <span>更新 {new Date(a.updatedAt).toLocaleString()}</span>
+                  </div>
+                )}
+                {isAssetFull(a) && (
+                  <div className="text-ui-mono hidden w-28 shrink-0 items-center text-[10px] text-text-muted md:flex">
+                    fork {a.forkCount}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div ref={sentinelRef} className="h-8" />
       {q.isFetching && !q.isFetchingNextPage && (
         <p className="text-ui-mono text-center text-[12px] text-text-muted">加载中…</p>

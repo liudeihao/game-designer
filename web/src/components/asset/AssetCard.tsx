@@ -1,5 +1,6 @@
 "use client";
 
+import type { DragEvent, MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Layers } from "lucide-react";
@@ -9,6 +10,17 @@ import { cn } from "@/lib/utils";
 import { ProceduralPlaceholder } from "./ProceduralPlaceholder";
 import { ForkFromIdLine } from "./ForkBadge";
 import type { LibraryCardSize } from "@/lib/ui-preferences";
+
+/** Cmd/Ctrl/Shift-click keeps native navigation to `href`. */
+function cancelInspectorNavigation(
+  e: MouseEvent,
+  onInspectorActivate?: () => void
+) {
+  if (!onInspectorActivate) return;
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+  e.preventDefault();
+  onInspectorActivate();
+}
 
 type Variant = "grid" | "compact";
 export type GridCardSize = LibraryCardSize;
@@ -37,6 +49,9 @@ export function AssetCard({
   href,
   showOwnerLibraryBadge,
   libraryBulkSelect,
+  cardInteraction = "link",
+  onInspectorActivate,
+  stashDragData,
 }: {
   asset: Asset;
   variant?: Variant;
@@ -46,6 +61,11 @@ export function AssetCard({
   href: string;
   /** In 我的库: show 仅自己 / 全站 for the owner (contrast with platform-wide explore). */
   showOwnerLibraryBadge?: boolean;
+  /** `inspector`: primary click opens side panel when `onInspectorActivate` is set (modifier-click still follows `href`). */
+  cardInteraction?: "link" | "inspector";
+  onInspectorActivate?: () => void;
+  /** JSON for library stash drag target */
+  stashDragData?: string;
   /** 我的库批量管理：勾选框；公开素材传 disabled。 */
   libraryBulkSelect?: {
     checked: boolean;
@@ -124,10 +144,23 @@ export function AssetCard({
 
   const coverPillPosition = libraryBulkSelect ? "right-2 top-2 left-auto" : "left-2 top-2";
 
+  const dragProps =
+    stashDragData != null
+      ? {
+          draggable: true as const,
+          onDragStart: (e: DragEvent) => {
+            e.dataTransfer.setData("application/json", stashDragData);
+            e.dataTransfer.effectAllowed = "copy";
+          },
+        }
+      : {};
+
   if (variant === "compact") {
     return (
       <Link
         href={href}
+        {...dragProps}
+        onClick={(e) => cancelInspectorNavigation(e, cardInteraction === "inspector" ? onInspectorActivate : undefined)}
         className={cn(
           "group flex min-h-16 items-stretch gap-2 rounded-md border border-border bg-surface/90 transition-none hover:-translate-y-0.5 hover:border-accent/40",
           className
@@ -172,6 +205,8 @@ export function AssetCard({
         {bulkCheckbox}
         <Link
           href={href}
+          {...dragProps}
+          onClick={(e) => cancelInspectorNavigation(e, cardInteraction === "inspector" ? onInspectorActivate : undefined)}
           className={cn(
             "group relative block w-full overflow-hidden rounded-md border border-border bg-surface/95 transition-none hover:-translate-y-0.5 hover:border-[rgba(0,255,178,0.35)]",
             libraryBulkSelect?.checked && "ring-2 ring-accent/50"
@@ -199,6 +234,8 @@ export function AssetCard({
       {bulkCheckbox}
       <Link
         href={href}
+        {...dragProps}
+        onClick={(e) => cancelInspectorNavigation(e, cardInteraction === "inspector" ? onInspectorActivate : undefined)}
         className={cn(
           "group relative block aspect-square w-full overflow-hidden rounded-md border border-border bg-surface transition-none hover:-translate-y-0.5 hover:border-[rgba(0,255,178,0.35)]",
           libraryBulkSelect?.checked && "ring-2 ring-accent/50"

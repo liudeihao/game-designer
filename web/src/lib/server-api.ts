@@ -55,15 +55,23 @@ export async function getUserPublicAssets(username: string): Promise<PaginatedAs
   }
 }
 
-export async function getMyLibraryAssetsInitial(
-  groupId?: string | null,
-  visibility?: "private" | "public" | null
-): Promise<PaginatedAssets | null> {
+export async function getMyLibraryAssetsInitial(opts: {
+  groupId?: string | null;
+  visibility?: "private" | "public" | null;
+  sort?: string | null;
+  q?: string | null;
+  tagId?: string | null;
+  hasImage?: boolean | null;
+}): Promise<PaginatedAssets | null> {
   try {
-    let path = "/api/assets?scope=private&limit=24";
-    if (groupId) path += `&groupId=${encodeURIComponent(groupId)}`;
-    if (visibility) path += `&visibility=${encodeURIComponent(visibility)}`;
-    const r = await serverFetch(path);
+    const q = new URLSearchParams({ scope: "private", limit: "24" });
+    if (opts.groupId) q.set("groupId", opts.groupId);
+    if (opts.visibility) q.set("visibility", opts.visibility);
+    if (opts.sort) q.set("sort", opts.sort);
+    if (opts.q) q.set("q", opts.q);
+    if (opts.tagId) q.set("tagId", opts.tagId);
+    if (opts.hasImage === true) q.set("hasImage", "true");
+    const r = await serverFetch(`/api/assets?${q.toString()}`);
     if (!r.ok) return null;
     return (await r.json()) as PaginatedAssets;
   } catch {

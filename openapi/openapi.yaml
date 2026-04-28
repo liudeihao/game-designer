@@ -1093,7 +1093,10 @@ components:
             linkedAssets:
               type: array
               items: { $ref: "#/components/schemas/ProjectLinkedAsset" }
-          required: [linkedAssets]
+            designDocument:
+              type: string
+              description: Markdown game design document (GDD)
+          required: [linkedAssets, designDocument]
 
     ProjectPatch:
       type: object
@@ -1102,3 +1105,6 @@ components:
         canvasDocument:
           type: object
           additionalProperties: true
+        designDocument:
+          type: string
+          description: Full Markdown body for the project GDD

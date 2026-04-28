@@ -7,6 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { getAssets, getProject, patchProject } from "@/lib/api";
 import { isAssetFull } from "@/lib/guards";
 import type { ProjectDetail } from "@/lib/types";
+import type { Editor } from "tldraw";
 import { createShapeId, parseTldrawJsonFile, useEditor, serializeTldrawJson } from "tldraw";
 import "tldraw/tldraw.css";
 
@@ -46,7 +47,7 @@ function InCanvasAssetPanel() {
   const editor = useEditor();
   const { data, isSuccess } = useQuery({
     queryKey: ["assets", "private", "all", "all", ""],
-    queryFn: () => getAssets("private", null, 100),
+    queryFn: () => getAssets("private", null, 100, {}),
   });
   const place = useCallback(
     (assetId: string) => {
@@ -151,6 +152,9 @@ function CanvasInner({
 }
 
 export function ProjectCanvasLoader({ id, embedded }: { id: string; embedded?: boolean }) {
+  const onTldrawMount = useCallback((editor: Editor) => {
+    editor.user.updateUserPreferences({ colorScheme: "dark" });
+  }, []);
   const { data, isError } = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
   if (isError) {
     return (
@@ -166,9 +170,11 @@ export function ProjectCanvasLoader({ id, embedded }: { id: string; embedded?: b
     return <p className="p-4 text-ui-mono text-text-muted">加载中…</p>;
   }
   const detail = data as ProjectDetail;
+
   return (
     <div className={embedded ? "h-full min-h-0 w-full" : "h-[100dvh] w-full"}>
       <Tldraw
+        onMount={onTldrawMount}
         components={{
           InFrontOfTheCanvas: () => (
             <CanvasInner projectId={id} canvasDocument={detail.canvasDocument as Record<string, unknown> | null} />

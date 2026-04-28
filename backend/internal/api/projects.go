@@ -123,7 +123,10 @@ func (s *Server) getProjectDetail(ctx context.Context, id uuid.UUID) (map[string
 	var name string
 	var up time.Time
 	var doc []byte
-	err := s.pool.QueryRow(ctx, `SELECT name, updated_at, canvas_document FROM projects WHERE id = $1`, id).Scan(&name, &up, &doc)
+	var designDoc string
+	err := s.pool.QueryRow(ctx, `
+		SELECT name, updated_at, canvas_document, COALESCE(design_document, '') FROM projects WHERE id = $1`,
+		id).Scan(&name, &up, &doc, &designDoc)
 	if err != nil {
 		return nil, err
 	}
@@ -141,6 +144,7 @@ func (s *Server) getProjectDetail(ctx context.Context, id uuid.UUID) (map[string
 	return map[string]any{
 		"id": id.String(), "name": name, "updatedAt": up.Format(time.RFC3339),
 		"canvasDocument": canvas, "linkedAssets": linked,
+		"designDocument": designDoc,
 	}, nil
 }
 
@@ -402,8 +406,9 @@ func (s *Server) patchProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var b struct {
-		Name           *string         `json:"name"`
-		CanvasDocument json.RawMessage `json:"canvasDocument"`
+		Name            *string         `json:"name"`
+		CanvasDocument  json.RawMessage `json:"canvasDocument"`
+		DesignDocument  *string         `json:"designDocument"`
 	}
 	if err := readJSONRelaxed(r, &b); err != nil {
 		writeErr(w, 400, "bad json", "bad_request")
@@ -429,6 +434,9 @@ func (s *Server) patchProject(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(b.CanvasDocument) > 0 {
 		_, _ = s.pool.Exec(ctx, `UPDATE projects SET canvas_document = $1, updated_at = now() WHERE id = $2`, b.CanvasDocument, pid)
+	}
+	if b.DesignDocument != nil {
+		_, _ = s.pool.Exec(ctx, `UPDATE projects SET design_document = $1, updated_at = now() WHERE id = $2`, *b.DesignDocument, pid)
 	}
 	m, err := s.getProjectDetail(ctx, pid)
 	if err != nil {

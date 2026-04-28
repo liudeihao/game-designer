@@ -16,6 +16,7 @@ const Ctx = createContext<{
 const defaultPrefs: UiPreferences = {
   fontScale: "md",
   libraryCardSize: "md",
+  libraryViewMode: "grid",
 };
 
 export function UiPreferencesProvider({ children }: { children: ReactNode }) {

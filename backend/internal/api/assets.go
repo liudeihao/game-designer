@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -83,15 +84,87 @@ func (s *Server) assetDataToMap(ctx context.Context, a assetRowData) (map[string
 	if a.authorDispName.Valid {
 		authDn = a.authorDispName.String
 	}
+	tags, err := s.loadAssetTagNames(ctx, a.id)
+	if err != nil {
+		return nil, err
+	}
 	return map[string]any{
 		"id": a.id.String(), "name": a.name, "description": a.desc, "annotation": annV,
 		"authorId": a.authorID.String(), "createdAt": a.createdAt.Format(time.RFC3339),
 		"updatedAt": a.upAt.Format(time.RFC3339), "visibility": a.vis, "forkedFromId": forkV,
 		"forkCount": a.forkCount, "images": imgs, "coverImageId": cov, "groupId": gp, "deletedAt": nil,
+		"tags": tags,
 		"author": map[string]any{
 			"id": a.authorID.String(), "username": a.authorUsername, "displayName": authDn,
 		},
 	}, nil
+}
+
+func (s *Server) loadAssetTagNames(ctx context.Context, assetID uuid.UUID) ([]any, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT t.name FROM asset_tags x
+		INNER JOIN tags t ON t.id = x.tag_id
+		WHERE x.asset_id = $1
+		ORDER BY lower(t.name)
+	`, assetID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []any
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		out = append(out, name)
+	}
+	if out == nil {
+		out = []any{}
+	}
+	return out, nil
+}
+
+func (s *Server) syncAssetTags(ctx context.Context, uid, assetID uuid.UUID, names []string) error {
+	const maxTags = 48
+	if len(names) > maxTags {
+		return fmt.Errorf("too many tags (max %d)", maxTags)
+	}
+	if _, err := s.pool.Exec(ctx, `DELETE FROM asset_tags WHERE asset_id = $1`, assetID); err != nil {
+		return err
+	}
+	seen := map[string]struct{}{}
+	for _, raw := range names {
+		n := strings.TrimSpace(raw)
+		if n == "" {
+			continue
+		}
+		runes := []rune(n)
+		if len(runes) > 64 {
+			n = string(runes[:64])
+		}
+		key := strings.ToLower(n)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		var tid uuid.UUID
+		err := s.pool.QueryRow(ctx, `SELECT id FROM tags WHERE user_id = $1 AND lower(trim(name)) = $2`, uid, key).Scan(&tid)
+		if errors.Is(err, pgx.ErrNoRows) {
+			err = s.pool.QueryRow(ctx, `
+				INSERT INTO tags (user_id, name) VALUES ($1, $2) RETURNING id
+			`, uid, n).Scan(&tid)
+		}
+		if err != nil {
+			return err
+		}
+		if _, err = s.pool.Exec(ctx, `
+			INSERT INTO asset_tags (asset_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING
+		`, assetID, tid); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func ghostJSON(id uuid.UUID, forkedFrom sql.NullString, deletedAt sql.NullTime) (map[string]any, error) {
@@ -142,6 +215,73 @@ func (s *Server) loadAssetImages(ctx context.Context, assetID uuid.UUID) ([]any,
 	return out, nil
 }
 
+func assetListSortMode(sort string) string {
+	switch strings.TrimSpace(sort) {
+	case "updated_desc":
+		return "updated_desc"
+	case "fork_desc":
+		return "fork_desc"
+	default:
+		return "created_desc"
+	}
+}
+
+func assetListCursorPred(sortMode string, cursorArg int) string {
+	switch sortMode {
+	case "updated_desc":
+		return fmt.Sprintf(
+			`AND ($%[1]d::uuid IS NULL OR (a.updated_at, a.id) < (SELECT i.updated_at, i.id FROM assets i WHERE i.id = $%[1]d::uuid))`,
+			cursorArg,
+		)
+	case "fork_desc":
+		return fmt.Sprintf(
+			`AND ($%[1]d::uuid IS NULL OR (a.fork_count, a.id) < (SELECT i.fork_count, i.id FROM assets i WHERE i.id = $%[1]d::uuid))`,
+			cursorArg,
+		)
+	default:
+		return fmt.Sprintf(
+			`AND ($%[1]d::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $%[1]d::uuid))`,
+			cursorArg,
+		)
+	}
+}
+
+func assetListOrderBy(sortMode string) string {
+	switch sortMode {
+	case "updated_desc":
+		return "ORDER BY a.updated_at DESC, a.id DESC"
+	case "fork_desc":
+		return "ORDER BY a.fork_count DESC, a.id DESC"
+	default:
+		return "ORDER BY a.created_at DESC, a.id DESC"
+	}
+}
+
+func assetListSearchClause(patIdx int) string {
+	return fmt.Sprintf(
+		` AND ($%[1]d::text IS NULL OR trim($%[1]d::text) = '' OR a.name ILIKE ('%%' || $%[1]d || '%%') OR a.description ILIKE ('%%' || $%[1]d || '%%') OR COALESCE(a.annotation, '') ILIKE ('%%' || $%[1]d || '%%'))`,
+		patIdx,
+	)
+}
+
+func assetListTagClause(tagIdx int) string {
+	return fmt.Sprintf(
+		` AND ($%[1]d::uuid IS NULL OR EXISTS (SELECT 1 FROM asset_tags z WHERE z.asset_id = a.id AND z.tag_id = $%[1]d))`,
+		tagIdx,
+	)
+}
+
+func normalizeSearchPointer(q string) any {
+	s := strings.TrimSpace(q)
+	if len(s) > 200 {
+		s = s[:200]
+	}
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
 func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	scope := q.Get("scope")
@@ -177,9 +317,23 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 		}
 		uid = u
 	}
+	sortMode := assetListSortMode(q.Get("sort"))
+	searchPtr := normalizeSearchPointer(q.Get("q"))
+	var tagPtr any = nil
+	if scope == "private" {
+		if tid := strings.TrimSpace(q.Get("tagId")); tid != "" {
+			if parsed, terr := uuid.Parse(tid); terr == nil {
+				tagPtr = parsed
+			}
+		}
+	}
+
 	imgExtra := ""
 	if q.Get("img") == "no" {
 		imgExtra = " AND NOT EXISTS (SELECT 1 FROM asset_images i WHERE i.asset_id = a.id)"
+	}
+	if q.Get("hasImage") == "true" || q.Get("img") == "yes" {
+		imgExtra += " AND EXISTS (SELECT 1 FROM asset_images i WHERE i.asset_id = a.id)"
 	}
 
 	sel := `
@@ -196,13 +350,19 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 		if authorUser != "" {
 			authorExtra = ` AND a.author_id = (SELECT id FROM users WHERE username = $3)`
 		}
-		qSQL := sel + `a.visibility = 'public'` + authorExtra + imgExtra + `
-			AND ($1::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $1::uuid))
-			ORDER BY a.created_at DESC, a.id DESC LIMIT $2`
+		ob := assetListOrderBy(sortMode)
+		cp := assetListCursorPred(sortMode, 1)
+		var qSQL string
 		if authorUser != "" {
-			rows, err = s.pool.Query(ctx, qSQL, cursor, limit+1, authorUser)
+			qSQL = sel + `a.visibility = 'public'` + authorExtra + imgExtra + `
+			` + cp + assetListSearchClause(4) + `
+			` + ob + ` LIMIT $2`
+			rows, err = s.pool.Query(ctx, qSQL, cursor, limit+1, authorUser, searchPtr)
 		} else {
-			rows, err = s.pool.Query(ctx, qSQL, cursor, limit+1)
+			qSQL = sel + `a.visibility = 'public'` + imgExtra + `
+			` + cp + assetListSearchClause(3) + `
+			` + ob + ` LIMIT $2`
+			rows, err = s.pool.Query(ctx, qSQL, cursor, limit+1, searchPtr)
 		}
 	} else {
 		gf := r.URL.Query().Get("groupId")
@@ -235,22 +395,29 @@ func (s *Server) listAssets(w http.ResponseWriter, r *http.Request) {
 				visExtra = " AND a.visibility = 'public'"
 			}
 		}
+		ob := assetListOrderBy(sortMode)
 		var qSQL string
 		if gf == "ungrouped" {
-			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + imgExtra + `
-			AND ($2::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $2::uuid))
-			ORDER BY a.created_at DESC, a.id DESC LIMIT $3`
-			rows, err = s.pool.Query(ctx, qSQL, uid, cursor, limit+1)
+			cp := assetListCursorPred(sortMode, 2)
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + imgExtra +
+				assetListSearchClause(3) + assetListTagClause(4) + `
+			` + cp + `
+			` + ob + ` LIMIT $5`
+			rows, err = s.pool.Query(ctx, qSQL, uid, cursor, searchPtr, tagPtr, limit+1)
 		} else if gu, perr := uuid.Parse(gf); perr == nil && gf != "" {
-			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + imgExtra + `
-			AND ($3::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $3::uuid))
-			ORDER BY a.created_at DESC, a.id DESC LIMIT $4`
-			rows, err = s.pool.Query(ctx, qSQL, uid, gu, cursor, limit+1)
+			cp := assetListCursorPred(sortMode, 3)
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + imgExtra +
+				assetListSearchClause(4) + assetListTagClause(5) + `
+			` + cp + `
+			` + ob + ` LIMIT $6`
+			rows, err = s.pool.Query(ctx, qSQL, uid, gu, cursor, searchPtr, tagPtr, limit+1)
 		} else {
-			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + imgExtra + `
-			AND ($2::uuid IS NULL OR (a.created_at, a.id) < (SELECT i.created_at, i.id FROM assets i WHERE i.id = $2::uuid))
-			ORDER BY a.created_at DESC, a.id DESC LIMIT $3`
-			rows, err = s.pool.Query(ctx, qSQL, uid, cursor, limit+1)
+			cp := assetListCursorPred(sortMode, 2)
+			qSQL = sel + `a.author_id = $1::uuid AND a.visibility != 'deleted'` + visExtra + imgExtra +
+				assetListSearchClause(3) + assetListTagClause(4) + `
+			` + cp + `
+			` + ob + ` LIMIT $5`
+			rows, err = s.pool.Query(ctx, qSQL, uid, cursor, searchPtr, tagPtr, limit+1)
 		}
 	}
 	if err != nil {
@@ -379,11 +546,12 @@ func (s *Server) createAsset(w http.ResponseWriter, r *http.Request) {
 }
 
 type assetPatch struct {
-	Name         *string `json:"name"`
-	Description  *string `json:"description"`
-	Annotation   *string `json:"annotation"`
-	CoverImageID *string `json:"coverImageId"`
-	GroupID      *string `json:"groupId"`
+	Name         *string   `json:"name"`
+	Description  *string   `json:"description"`
+	Annotation   *string   `json:"annotation"`
+	CoverImageID *string   `json:"coverImageId"`
+	GroupID      *string   `json:"groupId"`
+	Tags         *[]string `json:"tags"`
 }
 
 func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
@@ -442,6 +610,12 @@ func (s *Server) patchAsset(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			_, _ = s.pool.Exec(ctx, `UPDATE assets SET group_id = $1, updated_at = now() WHERE id = $2`, gid, id)
+		}
+	}
+	if p.Tags != nil {
+		if err := s.syncAssetTags(ctx, uid, id, *p.Tags); err != nil {
+			writeErr(w, 400, err.Error(), "bad_request")
+			return
 		}
 	}
 	m, err := s.getAssetByID(ctx, id)

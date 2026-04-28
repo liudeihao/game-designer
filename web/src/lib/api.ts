@@ -57,23 +57,34 @@ export async function logoutAccount() {
   await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
 }
 
+export type AssetListFilters = {
+  groupId?: string | null;
+  visibility?: "private" | "public" | null;
+  authorUsername?: string | null;
+  sort?: string | null;
+  q?: string | null;
+  tagId?: string | null;
+  hasImage?: boolean | null;
+};
+
 export async function getAssets(
   scope: "public" | "private",
   cursor?: string | null,
   limit = 24,
-  groupId?: string | null,
-  /** My library: filter by material visibility */
-  visibility?: "private" | "public" | null,
-  /** Explore / user profile: filter public list by author username */
-  authorUsername?: string | null
+  filters?: AssetListFilters
 ) {
   const u = new URL("/api/assets", window.location.origin);
   u.searchParams.set("scope", scope);
   u.searchParams.set("limit", String(limit));
   if (cursor) u.searchParams.set("cursor", cursor);
-  if (groupId) u.searchParams.set("groupId", groupId);
-  if (visibility) u.searchParams.set("visibility", visibility);
-  if (authorUsername) u.searchParams.set("authorUsername", authorUsername);
+  const f = filters ?? {};
+  if (f.groupId) u.searchParams.set("groupId", f.groupId);
+  if (f.visibility) u.searchParams.set("visibility", f.visibility);
+  if (f.authorUsername) u.searchParams.set("authorUsername", f.authorUsername);
+  if (f.sort) u.searchParams.set("sort", f.sort);
+  if (f.q) u.searchParams.set("q", f.q);
+  if (f.tagId) u.searchParams.set("tagId", f.tagId);
+  if (f.hasImage === true) u.searchParams.set("hasImage", "true");
   const r = await fetch(u, { credentials: "include" });
   if (!r.ok) throw new Error("assets");
   return r.json() as Promise<PaginatedAssets>;
@@ -108,6 +119,12 @@ export async function deleteAssetGroup(id: string) {
   if (!r.ok) throw new Error("delete group");
 }
 
+export async function listAssetTags() {
+  const r = await fetch("/api/asset-tags", { credentials: "include" });
+  if (!r.ok) throw new Error("asset-tags");
+  return r.json() as Promise<import("./types").AssetTagList>;
+}
+
 export async function patchAsset(
   id: string,
   body: {
@@ -116,6 +133,7 @@ export async function patchAsset(
     annotation?: string | null;
     coverImageId?: string | null;
     groupId?: string | null;
+    tags?: string[];
   }
 ) {
   const r = await fetch(`/api/assets/${id}`, {
@@ -393,7 +411,10 @@ export async function getProject(id: string) {
   return r.json() as Promise<ProjectDetail>;
 }
 
-export async function patchProject(id: string, body: { name?: string; canvasDocument?: Record<string, unknown> | null }) {
+export async function patchProject(
+  id: string,
+  body: { name?: string; canvasDocument?: Record<string, unknown> | null; designDocument?: string }
+) {
   const r = await fetch(`/api/projects/${id}`, {
     method: "PATCH",
     credentials: "include",

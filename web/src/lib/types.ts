@@ -29,6 +29,8 @@ export type AssetFull = {
   coverImageId: string | null;
   /** Private library folder; null = ungrouped. */
   groupId?: string | null;
+  /** Present after asset-tags migration (may be []). */
+  tags?: string[];
   deletedAt: null;
 };
 
@@ -55,6 +57,10 @@ export type AssetGroup = {
 };
 
 export type AssetGroupList = { items: AssetGroup[] };
+
+export type AssetTagSummary = { id: string; name: string; assetCount: number };
+
+export type AssetTagList = { items: AssetTagSummary[] };
 
 export type UserPublic = {
   id: string;
@@ -147,6 +153,8 @@ export type ProjectLinkedAsset = {
 export type ProjectDetail = ProjectSummary & {
   canvasDocument: Record<string, unknown> | null;
   linkedAssets: ProjectLinkedAsset[];
+  /** Markdown game design document; user-editable, future AI may update. */
+  designDocument: string;
 };
 
 export type ProjectSessionSummary = { id: string; title: string; updatedAt: string };

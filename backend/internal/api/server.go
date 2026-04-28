@@ -49,6 +49,8 @@ func (s *Server) Router() http.Handler {
 		r.With(s.requireUser).Post("/asset-groups", s.createAssetGroup)
 		r.With(s.requireUser).Delete("/asset-groups/{id}", s.deleteAssetGroup)
 
+		r.With(s.requireUser).Get("/asset-tags", s.listAssetTags)
+
 		r.With(s.requireUser).Get("/session-staging-groups", s.listSessionStagingGroups)
 		r.With(s.requireUser).Post("/session-staging-groups", s.createSessionStagingGroup)
 		r.With(s.requireUser).Get("/session-staging-groups/{groupId}/drafts", s.listSessionStagingGroupDrafts)

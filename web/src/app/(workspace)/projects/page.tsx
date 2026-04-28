@@ -29,7 +29,7 @@ export default async function ProjectsPage() {
   const res = await load();
   if (!res.ok) {
     return (
-      <div className="px-6 py-8">
+      <div className="mx-auto max-w-5xl px-6 py-8">
         <h1 className="font-display text-2xl">项目</h1>
         <div className="mt-6">
           <BackendUnavailable title="无法加载项目列表" />
@@ -39,7 +39,7 @@ export default async function ProjectsPage() {
   }
   const list = res.list;
   return (
-    <div className="px-6 py-8">
+    <div className="mx-auto max-w-5xl px-6 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl">项目</h1>
         <Link
@@ -49,32 +49,32 @@ export default async function ProjectsPage() {
           新项目
         </Link>
       </div>
-      <p className="text-ui-mono mb-4 max-w-2xl text-[12px] leading-relaxed text-text-muted">
+      <p className="text-ui-mono mb-6 max-w-2xl text-[12px] leading-relaxed text-text-muted">
         在项目工作区与 AI 多会话讨论玩法与体验，引用「我的库」素材作为上下文；情绪板画布用于拼贴与布局，并自动保存。
       </p>
-      <ul className="space-y-2">
+      <ul className="grid list-none gap-4 sm:grid-cols-2">
         {list.map((p) => (
           <li key={p.id}>
-            <div className="text-ui-mono flex flex-col gap-2 rounded border border-border bg-surface/60 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-ui-mono flex h-full flex-col gap-3 rounded-lg border border-border bg-surface/60 p-4 text-sm shadow-sm">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-text-primary">{p.name}</p>
-                <p className="mt-0.5 text-[11px] text-text-muted">更新 {formatUpdated(p.updatedAt)}</p>
+                <p className="line-clamp-2 text-[15px] font-medium leading-snug text-text-primary">{p.name}</p>
+                <p className="mt-1.5 text-[11px] text-text-muted">更新 {formatUpdated(p.updatedAt)}</p>
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 border-t border-border/50 pt-3">
                 <Link
-                  className="rounded border border-border/80 px-3 py-1 text-[12px] text-accent hover:border-accent/40"
+                  className="rounded border border-border/80 px-2.5 py-1 text-[12px] text-accent hover:border-accent/40"
                   href={`/projects/${p.id}/design`}
                 >
                   进入项目
                 </Link>
                 <Link
-                  className="rounded border border-border/60 px-3 py-1 text-[12px] text-text-muted hover:border-accent/30 hover:text-text-primary"
+                  className="rounded border border-border/60 px-2.5 py-1 text-[12px] text-text-muted hover:border-accent/30 hover:text-text-primary"
                   href={`/projects/${p.id}/canvas`}
                 >
                   情绪板
                 </Link>
                 <Link
-                  className="rounded border border-border/60 px-3 py-1 text-[12px] text-text-muted hover:border-accent/30 hover:text-text-primary"
+                  className="rounded border border-border/60 px-2.5 py-1 text-[12px] text-text-muted hover:border-accent/30 hover:text-text-primary"
                   href={`/projects/${p.id}/settings`}
                 >
                   设置

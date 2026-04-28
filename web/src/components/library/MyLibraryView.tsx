@@ -1,15 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Settings } from "lucide-react";
-import { useState, useCallback, useLayoutEffect } from "react";
+import { LayoutGrid, List, Plus, Search, Settings } from "lucide-react";
+import { useState, useCallback, useLayoutEffect, useMemo, useEffect } from "react";
 import { AssetGrid } from "@/components/asset/AssetGrid";
+import { AssetInspectorPanel } from "@/components/library/AssetInspectorPanel";
+import { LibraryStashBar } from "@/components/library/LibraryStash";
 import { useUiPreferences } from "@/components/providers/UiPreferencesProvider";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { PaginatedAssets } from "@/lib/types";
-import { listAssetGroups, createAssetGroup, deleteAssetGroup } from "@/lib/api";
+import type { AssetListFilters } from "@/lib/api";
+import { listAssetGroups, createAssetGroup, deleteAssetGroup, listAssetTags } from "@/lib/api";
+import { mergeLibraryHref, parseToolbarTokens } from "@/lib/library-query";
 import { cn } from "@/lib/utils";
 import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
 import type { GridCardSize } from "@/components/asset/AssetCard";
@@ -19,17 +23,6 @@ type Props = {
   libraryVisibility: "private" | "public" | null;
 };
 
-function buildLibraryHref(opts: { group?: string; vis?: "private" | "public" | "all" | null }) {
-  const p = new URLSearchParams();
-  if (opts.group === "ungrouped") p.set("group", "ungrouped");
-  else if (opts.group) p.set("group", opts.group);
-  if (opts.vis === "public") p.set("vis", "public");
-  else if (opts.vis === "all") p.set("vis", "all");
-  // private：默认不落参，与「进入我的库」缺省一致
-  const s = p.toString();
-  return s ? `/library/assets?${s}` : "/library/assets";
-}
-
 const LIBRARY_CARD_SIZES = ["none", "sm", "md", "lg"] as const satisfies readonly GridCardSize[];
 
 /** Tailwind `lg` default (keep in sync with breakpoints). */
@@ -37,7 +30,13 @@ const LG_MIN_PX = 1024;
 
 export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   const sp = useSearchParams();
+  const router = useRouter();
   const group = sp.get("group") || "";
+  const inspectorAssetId = sp.get("asset")?.trim() || null;
+  const sortParam = sp.get("sort")?.trim() || "created_desc";
+  const qParam = sp.get("q")?.trim() || "";
+  const tagIdParam = sp.get("tagId")?.trim() || "";
+  const hasImageParam = sp.get("hasImage") === "true";
   const linkToProject = sp.get("linkToProject")?.trim() || undefined;
   const assetDetailSearch = linkToProject
     ? `linkToProject=${encodeURIComponent(linkToProject)}`
@@ -56,6 +55,23 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
     queryKey: ["asset-groups"],
     queryFn: listAssetGroups,
   });
+  const { data: tagCloud } = useQuery({
+    queryKey: ["asset-tags"],
+    queryFn: listAssetTags,
+  });
+
+  const assetListFilters: AssetListFilters = useMemo(
+    () => ({
+      sort: sortParam,
+      q: qParam || undefined,
+      tagId: tagIdParam || undefined,
+      hasImage: hasImageParam ? true : undefined,
+    }),
+    [sortParam, qParam, tagIdParam, hasImageParam]
+  );
+
+  const [searchDraft, setSearchDraft] = useState(qParam);
+  useEffect(() => setSearchDraft(qParam), [qParam]);
   const [newName, setNewName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -68,26 +84,51 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
 
   const visActive: "all" | "private" | "public" = libraryVisibility === null ? "all" : libraryVisibility;
 
-  /** URL `vis` param snapshot for building links (stable for hooks). */
-  const visForHref =
-    libraryVisibility === null ? "all" : libraryVisibility === "public" ? "public" : null;
-
   const hrefFor = useCallback(
     (g: string | null) =>
-      buildLibraryHref({
-        group: g ?? undefined,
-        vis: visForHref,
+      mergeLibraryHref(sp, {
+        group: g === null ? null : g === "ungrouped" ? "ungrouped" : g,
       }),
-    [visForHref]
+    [sp]
   );
   const hrefVis = useCallback(
     (v: "all" | "private" | "public") =>
-      buildLibraryHref({
-        group: group || undefined,
+      mergeLibraryHref(sp, {
         vis: v === "all" ? "all" : v === "public" ? "public" : null,
       }),
-    [group]
+    [sp]
   );
+
+  const applySearch = useCallback(() => {
+    const parsed = parseToolbarTokens(searchDraft);
+    const patch: Record<string, string | null | undefined> = {
+      q: parsed.remainder || null,
+    };
+    if (parsed.tagHints.length > 0) {
+      const want = parsed.tagHints[0].toLowerCase();
+      const hit = tagCloud?.items?.find((t) => t.name.toLowerCase() === want);
+      patch.tagId = hit?.id ?? null;
+    }
+    if (parsed.hasImage === true) patch.hasImage = "true";
+    else if (parsed.hasImage === false) patch.hasImage = null;
+    router.replace(mergeLibraryHref(sp, patch));
+  }, [searchDraft, sp, router, tagCloud]);
+
+  const openInspector = useCallback(
+    (id: string) => {
+      const p = new URLSearchParams(sp.toString());
+      p.set("asset", id);
+      router.replace(`/library/assets?${p.toString()}`);
+    },
+    [sp, router]
+  );
+
+  const closeInspector = useCallback(() => {
+    const p = new URLSearchParams(sp.toString());
+    p.delete("asset");
+    const qs = p.toString();
+    router.replace(qs ? `/library/assets?${qs}` : "/library/assets");
+  }, [sp, router]);
 
   const sidebar = (
     <aside className="gd-scrollbar box-border flex h-full min-h-0 w-full min-w-0 shrink-0 flex-col overflow-y-auto border-r border-divider p-4">
@@ -165,6 +206,23 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
             ))}
           </ul>
         )}
+        <p className="text-ui-mono mt-4 text-[11px] uppercase tracking-wider text-text-muted">标签</p>
+        <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto text-ui-mono text-[12px] text-text-primary">
+          {(tagCloud?.items ?? []).slice(0, 24).map((t) => (
+            <li key={t.id}>
+              <Link
+                href={mergeLibraryHref(sp, { tagId: tagIdParam === t.id ? null : t.id })}
+                className={cn(
+                  "flex items-center justify-between gap-1 rounded px-2 py-1",
+                  tagIdParam === t.id ? "bg-accent/10 text-accent" : "hover:bg-surface/80"
+                )}
+              >
+                <span className="truncate">{t.name}</span>
+                <span className="shrink-0 text-[10px] text-text-muted">{t.assetCount}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
         <form
           className="mt-3 flex gap-1 border-t border-border/40 pt-3"
           onSubmit={(e) => {
@@ -192,9 +250,10 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
     </aside>
   );
 
-  const main = (
-    <div className="gd-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+  const mainScroll = (
+    <>
+      <div className="mb-6 flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl">我的库</h1>
         <div className="flex flex-wrap items-center gap-2">
           <div
@@ -229,6 +288,66 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
             新建素材
           </Link>
         </div>
+        </div>
+        <div className="text-ui-mono flex flex-wrap items-center gap-2 rounded-md border border-border/45 bg-surface/35 px-2 py-2">
+          <Search className="h-4 w-4 shrink-0 text-text-muted" aria-hidden />
+          <form
+            className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              applySearch();
+            }}
+          >
+            <input
+              value={searchDraft}
+              onChange={(e) => setSearchDraft(e.target.value)}
+              placeholder="全文，或 type:image、tag:名称"
+              className="min-w-[12rem] flex-1 rounded border border-border/50 bg-bg-base/80 px-2 py-1.5 text-[12px] text-text-primary outline-none placeholder:text-text-muted/60"
+            />
+            <button
+              type="submit"
+              className="shrink-0 rounded border border-accent/35 bg-accent/10 px-2.5 py-1.5 text-[11px] text-accent hover:bg-accent/20"
+            >
+              检索
+            </button>
+          </form>
+          <label className="flex items-center gap-1.5 text-[11px] text-text-muted">
+            排序
+            <select
+              value={sortParam}
+              className="rounded border border-border/50 bg-bg-base/80 px-1.5 py-1 text-[11px] text-text-primary"
+              onChange={(e) => router.replace(mergeLibraryHref(sp, { sort: e.target.value || null }))}
+            >
+              <option value="created_desc">创建时间 ↓</option>
+              <option value="updated_desc">最近修改 ↓</option>
+              <option value="fork_desc">分叉次数 ↓</option>
+            </select>
+          </label>
+          <div className="flex items-center gap-0.5 rounded border border-border/50 p-0.5">
+            <button
+              type="button"
+              title="网格"
+              className={cn(
+                "rounded p-1.5",
+                (prefs.libraryViewMode ?? "grid") === "grid" ? "bg-accent/15 text-accent" : "text-text-muted"
+              )}
+              onClick={() => setPrefs({ libraryViewMode: "grid" })}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              title="列表"
+              className={cn(
+                "rounded p-1.5",
+                prefs.libraryViewMode === "list" ? "bg-accent/15 text-accent" : "text-text-muted"
+              )}
+              onClick={() => setPrefs({ libraryViewMode: "list" })}
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
       <p className="text-ui-mono mb-3 text-[11px] text-text-muted/90">
         {visActive === "all" &&
@@ -250,7 +369,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
         </div>
       )}
       <AssetGrid
-        key={`${group || "all"}-${visActive}`}
+        key={`${group || "all"}-${visActive}-${sortParam}-${qParam}-${tagIdParam}-${hasImageParam}`}
         scope="private"
         initialData={initialData}
         groupId={group || null}
@@ -258,7 +377,35 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
         gridSize={prefs.libraryCardSize}
         ownerLibraryBulkDelete
         detailSearch={assetDetailSearch}
+        cardInteraction="inspector"
+        onInspectAsset={openInspector}
+        viewMode={prefs.libraryViewMode ?? "grid"}
+        assetListFilters={assetListFilters}
+        stashDragPayload={(id, name) => JSON.stringify({ id, name })}
       />
+    </>
+  );
+
+  const main = inspectorAssetId ? (
+    <WorkspaceHorizontalSplit
+      storageKey="layout:library-inspector"
+      leftDefaultSize={67}
+      leftMinSize={36}
+      rightMinSize={22}
+      rightClassName="border-l border-divider bg-bg-base"
+      className="min-h-0 min-w-0 flex-1"
+      left={
+        <div className="gd-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto px-4 pb-28 pt-6 lg:px-8">
+          {mainScroll}
+        </div>
+      }
+      right={
+        <AssetInspectorPanel assetId={inspectorAssetId} onClose={closeInspector} className="min-w-[260px]" />
+      }
+    />
+  ) : (
+    <div className="gd-scrollbar min-h-0 min-w-0 flex-1 overflow-y-auto px-4 pb-28 pt-6 lg:px-8">
+      {mainScroll}
     </div>
   );
 
@@ -279,14 +426,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
           void refetchGroups();
           void qc.invalidateQueries({ queryKey: ["assets", "private"] });
           if (activeGroup === deleteTarget.id) {
-            window.location.href = buildLibraryHref({
-              vis:
-                libraryVisibility === null
-                  ? "all"
-                  : libraryVisibility === "public"
-                    ? "public"
-                    : null,
-            });
+            router.replace(mergeLibraryHref(sp, { group: null }));
           }
         }}
       />
@@ -321,6 +461,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
       ) : (
         <div className="min-h-0 flex-1">{main}</div>
       )}
+      <LibraryStashBar />
     </div>
   );
 }

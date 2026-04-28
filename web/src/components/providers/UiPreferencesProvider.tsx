@@ -17,6 +17,7 @@ const defaultPrefs: UiPreferences = {
   fontScale: "md",
   libraryCardSize: "md",
   libraryViewMode: "grid",
+  colorScheme: "dark",
 };
 
 export function UiPreferencesProvider({ children }: { children: ReactNode }) {

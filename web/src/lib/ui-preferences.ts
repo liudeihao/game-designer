@@ -7,17 +7,21 @@ export type LibraryCardSize = "none" | "sm" | "md" | "lg";
 
 export type LibraryViewMode = "grid" | "list";
 
+export type ColorScheme = "light" | "dark";
+
 export type UiPreferences = {
   fontScale: FontScale;
   libraryCardSize: LibraryCardSize;
   /** My library asset list layout */
   libraryViewMode: LibraryViewMode;
+  colorScheme: ColorScheme;
 };
 
 const defaults: UiPreferences = {
   fontScale: "md",
   libraryCardSize: "md",
   libraryViewMode: "grid",
+  colorScheme: "dark",
 };
 
 function parse(raw: string | null): UiPreferences {
@@ -37,6 +41,7 @@ function parse(raw: string | null): UiPreferences {
         j.libraryViewMode === "list" || j.libraryViewMode === "grid"
           ? j.libraryViewMode
           : defaults.libraryViewMode,
+      colorScheme: j.colorScheme === "light" || j.colorScheme === "dark" ? j.colorScheme : defaults.colorScheme,
     };
   } catch {
     return { ...defaults };
@@ -61,6 +66,7 @@ export function applyUiPreferencesToDocument(p: UiPreferences) {
   const el = document.documentElement;
   el.setAttribute("data-gd-font", p.fontScale);
   el.setAttribute("data-gd-card", p.libraryCardSize);
+  el.setAttribute("data-gd-theme", p.colorScheme);
 }
 
 export { defaults as defaultUiPreferences };

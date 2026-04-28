@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useUiPreferences } from "@/components/providers/UiPreferencesProvider";
 import { getAssets, getProject, patchProject } from "@/lib/api";
 import { isAssetFull } from "@/lib/guards";
 import type { ProjectDetail } from "@/lib/types";
@@ -152,9 +153,24 @@ function CanvasInner({
 }
 
 export function ProjectCanvasLoader({ id, embedded }: { id: string; embedded?: boolean }) {
-  const onTldrawMount = useCallback((editor: Editor) => {
-    editor.user.updateUserPreferences({ colorScheme: "dark" });
-  }, []);
+  const { prefs } = useUiPreferences();
+  const editorRef = useRef<Editor | null>(null);
+  const colorScheme = prefs.colorScheme;
+
+  const onTldrawMount = useCallback(
+    (editor: Editor) => {
+      editorRef.current = editor;
+      editor.user.updateUserPreferences({ colorScheme });
+    },
+    [colorScheme]
+  );
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.user.updateUserPreferences({ colorScheme });
+  }, [colorScheme]);
+
   const { data, isError } = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
   if (isError) {
     return (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useUiPreferences } from "@/components/providers/UiPreferencesProvider";
-import type { FontScale, LibraryCardSize } from "@/lib/ui-preferences";
+import type { ColorScheme, FontScale, LibraryCardSize } from "@/lib/ui-preferences";
 import { cn } from "@/lib/utils";
 
 function ScaleRow({
@@ -51,12 +51,21 @@ export default function LibraryPreferencesPage() {
         </Link>{" "}
         / <span className="text-text-primary">显示设置</span>
       </nav>
-      <h1 className="font-display mt-2 text-3xl text-text-primary">显示与字体</h1>
+      <h1 className="font-display mt-2 text-3xl text-text-primary">显示与外观</h1>
       <p className="text-ui-mono mt-1 text-[12px] text-text-muted/90">
         以下设置仅保存在本机浏览器，可配合「我的库」工具条调整宫格缩略图尺寸（含无缩略图）。
       </p>
 
       <div className="mt-8 space-y-8 border-t border-border/60 pt-8">
+        <ScaleRow
+          label="配色"
+          value={prefs.colorScheme}
+          onChange={(v) => setPrefs({ colorScheme: v as ColorScheme })}
+          options={[
+            { v: "dark", t: "深色" },
+            { v: "light", t: "浅色" },
+          ]}
+        />
         <ScaleRow
           label="界面字体大小"
           value={prefs.fontScale}

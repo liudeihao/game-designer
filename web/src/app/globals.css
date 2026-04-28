@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-:root {
+/* Default + explicit dark: same tokens (SSR / no data-gd-theme uses :root) */
+:root,
+html[data-gd-theme="dark"] {
   --bg-base: #080b14;
   --surface: #0f1420;
   --text-primary: #e2e8f4;
@@ -12,6 +14,32 @@
   --ai-violet: #7b5ea7;
   --divider: rgba(255, 255, 255, 0.06);
   --error-dim: #8b3a3a;
+  --bg-glow-accent: rgba(0, 255, 178, 0.09);
+  --bg-glow-violet: rgba(123, 94, 167, 0.07);
+  --bg-dot: rgba(255, 255, 255, 0.045);
+  --accent-border-strong: color-mix(in srgb, var(--accent) 40%, transparent);
+  --accent-sweep-mid: color-mix(in srgb, var(--accent) 45%, transparent);
+  --accent-sweep-dim: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+html[data-gd-theme="light"] {
+  --bg-base: #eef1f8;
+  --surface: #ffffff;
+  --text-primary: #1a2332;
+  --text-muted: rgba(26, 35, 50, 0.55);
+  --accent: #00c896;
+  --accent-mid: rgba(0, 200, 150, 0.14);
+  --accent-dim: rgba(0, 200, 150, 0.08);
+  --border: rgba(0, 200, 150, 0.22);
+  --ai-violet: #684f8c;
+  --divider: rgba(26, 35, 50, 0.08);
+  --error-dim: #b91c1c;
+  --bg-glow-accent: rgba(0, 200, 150, 0.07);
+  --bg-glow-violet: rgba(104, 79, 140, 0.06);
+  --bg-dot: rgba(26, 36, 52, 0.07);
+  --accent-border-strong: color-mix(in srgb, var(--accent) 38%, transparent);
+  --accent-sweep-mid: color-mix(in srgb, var(--accent) 42%, transparent);
+  --accent-sweep-dim: color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 @theme inline {
@@ -45,12 +73,12 @@ html[data-gd-font="lg"] {
 
 html {
   min-height: 100%;
-  /* Deep base + dim accent/violet glows (depth, not surface noise) + subtle dot grid (CAD / canvas feel) */
+  /* Deep base + dim accent/violet glows + dot grid; glow/dot tokens switch with data-gd-theme */
   background-color: var(--bg-base);
   background-image:
-    radial-gradient(ellipse 90% 55% at 0% 0%, rgba(0, 255, 178, 0.09), transparent 55%),
-    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(123, 94, 167, 0.07), transparent 55%),
-    radial-gradient(circle, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    radial-gradient(ellipse 90% 55% at 0% 0%, var(--bg-glow-accent), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, var(--bg-glow-violet), transparent 55%),
+    radial-gradient(circle, var(--bg-dot) 1px, transparent 1px);
   background-size: auto, auto, 22px 22px;
   background-attachment: fixed;
 }
@@ -141,7 +169,7 @@ body {
     height: 1px;
     width: 38%;
     max-width: 12rem;
-    background: linear-gradient(90deg, #00ffb2, rgba(0, 255, 178, 0.2), transparent);
+    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 20%, transparent), transparent);
     pointer-events: none;
   }
   .gd-editor-panel__corners {
@@ -156,7 +184,7 @@ body {
     position: absolute;
     width: 7px;
     height: 7px;
-    border-color: rgba(0, 255, 178, 0.4);
+    border-color: var(--accent-border-strong);
     border-style: solid;
   }
   .gd-editor-panel__corners::before {
@@ -186,9 +214,9 @@ body {
     background: linear-gradient(
       105deg,
       transparent 0%,
-      rgba(0, 255, 178, 0.2) 45%,
-      rgba(0, 255, 178, 0.45) 50%,
-      rgba(0, 255, 178, 0.2) 55%,
+      var(--accent-sweep-dim) 45%,
+      var(--accent-sweep-mid) 50%,
+      var(--accent-sweep-dim) 55%,
       transparent 100%
     );
     opacity: 0;

@@ -100,11 +100,16 @@ export function WorkspaceShell({
                     title={me.displayName ?? me.username}
                     aria-label={`${me.displayName ?? me.username}，账户菜单`}
                     className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/60 bg-accent/10 text-sm font-medium text-text-primary outline-none",
+                      "flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-accent/10 text-sm font-medium text-text-primary outline-none",
                       "hover:border-accent/40 hover:bg-accent/15 focus-visible:ring-2 focus-visible:ring-accent/40"
                     )}
                   >
-                    {userAvatarInitial(me)}
+                    {me.avatarUrl?.trim() ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={me.avatarUrl.trim()} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      userAvatarInitial(me)
+                    )}
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>

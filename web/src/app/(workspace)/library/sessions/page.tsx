@@ -40,7 +40,7 @@ export default async function SessionsPage() {
                     {s.stagingGroup.name}
                   </span>
                 )}
-                <span className="text-xs text-text-muted">{s.draftAssetCount} 条暂存</span>
+                <span className="text-xs text-ember/90">{s.draftAssetCount} 条暂存</span>
               </span>
             </Link>
           </li>

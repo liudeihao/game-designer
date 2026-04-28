@@ -220,7 +220,7 @@ export function AssetCard({
           </div>
           {isAssetFull(full) && full.forkCount > 0 && (
             <div className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-bg-base/80 opacity-0 transition-opacity group-hover:opacity-100">
-              <Layers className="h-3.5 w-3.5 text-accent" aria-label="有衍生" />
+              <Layers className="h-3.5 w-3.5 text-ai-violet" aria-label="有衍生" />
             </div>
           )}
         </Link>
@@ -273,7 +273,7 @@ export function AssetCard({
               libraryBulkSelect ? "right-2 top-10" : "right-2 top-2"
             )}
           >
-            <Layers className="h-3.5 w-3.5 text-accent" aria-label="有衍生" />
+            <Layers className="h-3.5 w-3.5 text-ai-violet" aria-label="有衍生" />
           </div>
         )}
       </Link>

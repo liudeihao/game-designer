@@ -35,7 +35,7 @@ export function ForkAssetNode({ data }: NodeProps) {
     <div
       className={cn(
         "group/node relative overflow-hidden rounded-md border border-border bg-surface shadow-sm transition-none",
-        isFocus && "ring-2 ring-accent/70 ring-offset-2 ring-offset-bg-base",
+        isFocus && "ring-2 ring-ai-violet/55 ring-offset-2 ring-offset-bg-base",
         deleted && "border-dashed border-white/25 opacity-85"
       )}
       style={{ width: FORK_NODE_WIDTH, height: FORK_NODE_HEIGHT }}
@@ -66,7 +66,7 @@ export function ForkAssetNode({ data }: NodeProps) {
         ) : (
           <Link
             href={`/library/assets/${encodeURIComponent(n.id)}`}
-            className="font-display line-clamp-2 text-left text-sm leading-tight text-accent/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] hover:underline"
+            className="font-display line-clamp-2 text-left text-sm leading-tight text-ai-violet drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] hover:underline hover:text-ai-violet/95"
             onClick={(e) => e.stopPropagation()}
           >
             {titleText}
@@ -95,7 +95,7 @@ export function ForkAssetNode({ data }: NodeProps) {
               e.stopPropagation();
               onExpand();
             }}
-            className="text-ui-mono mt-1 w-full truncate text-left text-xs text-accent/95 hover:underline disabled:opacity-50"
+            className="text-ui-mono mt-1 w-full truncate text-left text-xs text-ai-violet/95 hover:underline hover:text-ai-violet disabled:opacity-50"
           >
             {expanding ? "加载中…" : `+ 子分支 (${n.forkCount - childCount})`}
           </button>

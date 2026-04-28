@@ -16,7 +16,7 @@ function nodeRow(n: ForkNode) {
     );
   }
   return (
-    <Link key={n.id} href={href} className="text-ui-mono block text-xs text-accent/90 hover:underline">
+    <Link key={n.id} href={href} className="text-ui-mono block text-xs text-ai-violet/95 hover:underline">
       {n.name || `素材 ${n.id.slice(0, 8)}…`}
     </Link>
   );
@@ -38,7 +38,7 @@ export function ForkRelationPanel({ assetId, className }: { assetId: string; cla
 
   return (
     <div className={cn("space-y-3 border-t border-border/60 pt-3", className)}>
-      <p className="text-ui-mono text-xs uppercase tracking-wider text-text-muted/80">Fork 关系</p>
+      <p className="text-ui-mono text-xs uppercase tracking-wider text-ai-violet/70">Fork 关系</p>
       {up.length > 0 && (
         <div>
           <p className="text-ui-mono mb-1 text-xs text-text-muted">上游（直接来源）</p>

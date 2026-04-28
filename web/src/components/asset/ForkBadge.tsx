@@ -35,7 +35,7 @@ export function ForkBadge({ asset, className }: { asset: Asset; className?: stri
   const { name, href, isDeleted } = forkSourceName(data ?? null);
   return (
     <p className={cn("text-ui-mono text-xs text-text-muted/80", className)}>
-      <span className="text-accent/80">↑</span> 衍生自{" "}
+      <span className="text-ai-violet/85">↑</span> 衍生自{" "}
       {isLoading && <span className="text-text-muted/60">加载中…</span>}
       {!isLoading && isError && (
         <span className="text-text-muted/60" title={asset.forkedFromId}>
@@ -45,7 +45,7 @@ export function ForkBadge({ asset, className }: { asset: Asset; className?: stri
       {!isLoading && !isError && (isDeleted || href === "#" ? (
         <span className="line-through text-text-muted/70">{name}</span>
       ) : (
-        <Link href={href} className="text-accent/90 hover:underline">
+        <Link href={href} className="text-ai-violet/95 hover:underline hover:text-ai-violet">
           {name}
         </Link>
       ))}
@@ -64,7 +64,7 @@ export function GhostHint({ forkedFromId }: { forkedFromId: string | null }) {
       {forkedFromId && !isLoading && isError && <span className="line-through">〔上游不可见〕</span>}
       {forkedFromId && !isLoading && !isError && (isDeleted || href === "#") && <span className="line-through">{name}</span>}
       {forkedFromId && !isLoading && !isError && !isDeleted && href !== "#" && (
-        <Link href={href} className="text-accent/80 hover:underline">
+        <Link href={href} className="text-ai-violet/85 hover:underline hover:text-ai-violet">
           {name}
         </Link>
       )}
@@ -84,7 +84,7 @@ export function ForkFromIdLine({ forkedFromId }: { forkedFromId: string }) {
       {!isLoading && !isError && (isDeleted || href === "#" ? (
         <span className="text-text-muted/60">{name}</span>
       ) : (
-        <Link href={href} className="text-accent/70 hover:underline">
+        <Link href={href} className="text-ai-violet/85 hover:underline hover:text-ai-violet">
           {name}
         </Link>
       ))}

@@ -16,14 +16,14 @@ export default function HomePage() {
         </Link>
         <Link
           href="/library/assets"
-          className="rounded border border-border px-6 py-2 text-ui-mono text-sm text-text-primary hover:border-accent/40"
+          className="rounded border border-border px-6 py-2 text-ui-mono text-sm text-text-primary hover:border-sky/45 hover:bg-sky-dim/40"
         >
           我的库
         </Link>
-        <Link href="/login" className="text-ui-mono text-sm text-text-muted hover:text-text-primary">
+        <Link href="/login" className="text-ui-mono text-sm text-text-muted hover:text-sky">
           登录
         </Link>
-        <Link href="/register" className="text-ui-mono text-sm text-text-muted hover:text-text-primary">
+        <Link href="/register" className="text-ui-mono text-sm text-text-muted hover:text-sky">
           注册
         </Link>
       </div>

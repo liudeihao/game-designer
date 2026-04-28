@@ -11,11 +11,22 @@ html[data-gd-theme="dark"] {
   --accent-mid: rgba(0, 255, 178, 0.12);
   --accent-dim: rgba(0, 255, 178, 0.1);
   --border: rgba(0, 255, 178, 0.12);
-  --ai-violet: #7b5ea7;
+  /* Secondary cool blue — nav, outlines, tertiary CTAs (not mint-only). */
+  --sky: #6eb4ff;
+  --sky-mid: rgba(110, 180, 255, 0.14);
+  --sky-dim: rgba(110, 180, 255, 0.07);
+  /* AI replies, fork lineage graph, spectral UI — already in glows below. */
+  --ai-violet: #a78bfa;
+  --spectral-mid: rgba(167, 139, 250, 0.16);
+  --spectral-dim: rgba(167, 139, 250, 0.08);
   --divider: rgba(255, 255, 255, 0.06);
   --error-dim: #8b3a3a;
+  /* Amber — draft counts, non-destructive attention (not accent green). */
+  --ember: #e8b647;
+  --ember-dim: rgba(232, 182, 71, 0.12);
   --bg-glow-accent: rgba(0, 255, 178, 0.09);
-  --bg-glow-violet: rgba(123, 94, 167, 0.07);
+  --bg-glow-violet: rgba(139, 92, 246, 0.09);
+  --bg-glow-sky: rgba(110, 180, 255, 0.06);
   --bg-dot: rgba(255, 255, 255, 0.045);
   --accent-border-strong: color-mix(in srgb, var(--accent) 40%, transparent);
   --accent-sweep-mid: color-mix(in srgb, var(--accent) 45%, transparent);
@@ -31,11 +42,19 @@ html[data-gd-theme="light"] {
   --accent-mid: rgba(0, 200, 150, 0.14);
   --accent-dim: rgba(0, 200, 150, 0.08);
   --border: rgba(0, 200, 150, 0.22);
+  --sky: #2563eb;
+  --sky-mid: rgba(37, 99, 235, 0.1);
+  --sky-dim: rgba(37, 99, 235, 0.06);
   --ai-violet: #684f8c;
+  --spectral-mid: rgba(104, 79, 140, 0.12);
+  --spectral-dim: rgba(104, 79, 140, 0.06);
   --divider: rgba(26, 35, 50, 0.08);
   --error-dim: #b91c1c;
+  --ember: #c27b16;
+  --ember-dim: rgba(194, 123, 22, 0.12);
   --bg-glow-accent: rgba(0, 200, 150, 0.07);
   --bg-glow-violet: rgba(104, 79, 140, 0.06);
+  --bg-glow-sky: rgba(37, 99, 235, 0.07);
   --bg-dot: rgba(26, 36, 52, 0.07);
   --accent-border-strong: color-mix(in srgb, var(--accent) 38%, transparent);
   --accent-sweep-mid: color-mix(in srgb, var(--accent) 42%, transparent);
@@ -51,7 +70,14 @@ html[data-gd-theme="light"] {
   --color-accent-mid: var(--accent-mid);
   --color-accent-dim: var(--accent-dim);
   --color-border: var(--border);
+  --color-sky: var(--sky);
+  --color-sky-mid: var(--sky-mid);
+  --color-sky-dim: var(--sky-dim);
   --color-ai-violet: var(--ai-violet);
+  --color-spectral-mid: var(--spectral-mid);
+  --color-spectral-dim: var(--spectral-dim);
+  --color-ember: var(--ember);
+  --color-ember-dim: var(--ember-dim);
   --color-divider: var(--divider);
   --color-error-dim: var(--error-dim);
   --font-sans: var(--font-inter);
@@ -81,7 +107,8 @@ html {
   background-color: var(--bg-base);
   background-image:
     radial-gradient(ellipse 90% 55% at 0% 0%, var(--bg-glow-accent), transparent 55%),
-    radial-gradient(ellipse 70% 50% at 100% 100%, var(--bg-glow-violet), transparent 55%),
+    radial-gradient(ellipse 72% 48% at 100% 100%, var(--bg-glow-violet), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 85% 5%, var(--bg-glow-sky), transparent 48%),
     radial-gradient(circle, var(--bg-dot) 1px, transparent 1px);
   background-size: auto, auto, 22px 22px;
   background-attachment: fixed;

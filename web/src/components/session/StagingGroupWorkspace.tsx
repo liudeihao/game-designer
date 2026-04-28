@@ -234,7 +234,7 @@ export function StagingGroupWorkspace({ groupId }: { groupId: string }) {
                     className="text-ui-mono block truncate rounded border border-border/40 bg-surface/40 px-3 py-2 text-sm text-text-primary hover:border-accent/30"
                   >
                     {s.title}
-                    <span className="ml-2 text-xs text-text-muted">{s.draftAssetCount} 条暂存</span>
+                    <span className="ml-2 text-xs text-ember/90">{s.draftAssetCount} 条暂存</span>
                   </Link>
                 </li>
               ))}

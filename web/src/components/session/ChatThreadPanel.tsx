@@ -82,11 +82,11 @@ export function ChatThreadPanel({
                       "rounded-2xl px-3.5 py-2.5 text-sm leading-[1.65] [word-break:break-word] whitespace-pre-wrap",
                       m.role === "user"
                         ? "rounded-tr-md border border-accent/35 bg-gradient-to-br from-accent/20 to-accent/[0.08] text-text-primary"
-                        : "rounded-tl-md border border-border/80 bg-surface/90 text-text-primary/95 shadow-black/5 backdrop-blur-sm"
+                        : "rounded-tl-md border border-ai-violet/25 bg-surface/90 bg-gradient-to-br from-ai-violet/[0.07] to-surface/90 text-text-primary/95 shadow-black/5 backdrop-blur-sm"
                     )}
                   >
                     {m.role === "assistant" && (
-                      <p className="text-ui-mono mb-1 text-xs uppercase tracking-widest text-text-muted/80">
+                      <p className="text-ui-mono mb-1 text-xs uppercase tracking-widest text-ai-violet/85">
                         AI
                       </p>
                     )}
@@ -96,14 +96,14 @@ export function ChatThreadPanel({
               ))}
               {streaming && (
                 <div className="flex w-full justify-start">
-                  <div className="max-w-[min(90%,20rem)] rounded-2xl rounded-tl-md border border-dashed border-accent/25 bg-surface/60 px-3.5 py-2.5 text-sm leading-[1.65] text-text-primary/90 shadow-md backdrop-blur-sm sm:max-w-md">
-                    <p className="text-ui-mono mb-1 text-xs uppercase tracking-widest text-text-muted/70">
+                  <div className="max-w-[min(90%,20rem)] rounded-2xl rounded-tl-md border border-dashed border-ai-violet/30 bg-surface/60 px-3.5 py-2.5 text-sm leading-[1.65] text-text-primary/90 shadow-md backdrop-blur-sm sm:max-w-md">
+                    <p className="text-ui-mono mb-1 text-xs uppercase tracking-widest text-ai-violet/75">
                       AI
                     </p>
                     <p className="text-ui-mono [word-break:break-word] whitespace-pre-wrap">
                       {textBuf}
                       <span
-                        className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-accent align-middle"
+                        className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-ai-violet align-middle"
                         aria-hidden
                       />
                     </p>

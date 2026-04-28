@@ -14,12 +14,13 @@ import (
 // MockChat streams JSONL events matching front protocol (底層技術契約).
 type MockChat struct{}
 
-func (m *MockChat) StreamChat(ctx context.Context, w io.Writer, p StreamChatParams) error {
+func (m *MockChat) StreamChat(ctx context.Context, w io.Writer, p StreamChatParams) (string, error) {
 	_ = p.SessionID
 	_ = p.UserID
 	_ = p.UserMessage
 	// text-only: staging is user-driven via POST /drafts, not the stream
 	_ = p.DraftTempID
+	_ = p.Messages
 	ctxNote := ""
 	if trim := strings.TrimSpace(p.LinkedProjectAssets); trim != "" {
 		n := strings.Count(trim, "\n") + 1
@@ -30,6 +31,7 @@ func (m *MockChat) StreamChat(ctx context.Context, w io.Writer, p StreamChatPara
 		line2 += ctxNote
 	}
 	line2 += "素材向會話可在右側「暫存」手動填寫後導出到我的庫；項目設計會話無暫存欄。\n"
+	full := "[mock] " + line2
 	events := []string{
 		`{"type":"text","delta":"[mock] "}`,
 		string(mustJSONLine(map[string]string{"type": "text", "delta": line2})),
@@ -37,19 +39,19 @@ func (m *MockChat) StreamChat(ctx context.Context, w io.Writer, p StreamChatPara
 	for _, line := range events {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return "", ctx.Err()
 		default:
 		}
 		_, err := fmt.Fprintf(w, "data: %s\n\n", line)
 		if err != nil {
-			return err
+			return "", err
 		}
 		if flusher, ok := w.(httpFlusher); ok {
 			flusher.Flush()
 		}
 		time.Sleep(25 * time.Millisecond)
 	}
-	return nil
+	return full, nil
 }
 
 func mustJSONLine(v any) []byte {

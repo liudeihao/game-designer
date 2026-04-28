@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"game-designer/backend/internal/ai"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -380,6 +378,11 @@ func (s *Server) postChat(w http.ResponseWriter, r *http.Request) {
 
 	draftTemp := "temp_" + uuid.NewString()[:8]
 	linkedCtx, _ := s.linkedProjectAssetsPlaintext(ctx, sid)
+	params, err := s.buildStreamChatParams(ctx, sid, uid, b.Message, draftTemp, linkedCtx)
+	if err != nil {
+		writeErr(w, 500, err.Error(), "internal")
+		return
+	}
 	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
@@ -387,17 +390,14 @@ func (s *Server) postChat(w http.ResponseWriter, r *http.Request) {
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}
-	err = s.ai.Chat.StreamChat(ctx, w, ai.StreamChatParams{
-		SessionID: sid, UserID: uid, UserMessage: b.Message, DraftTempID: draftTemp,
-		LinkedProjectAssets: linkedCtx,
-	})
+	reply, err := s.ai.Chat.StreamChat(ctx, w, params)
 	if err != nil {
 		return
 	}
-	// Persist assistant line for history (UI also showed stream); drafts are user-driven via postSessionDraft.
-	_, _ = s.pool.Exec(ctx, `INSERT INTO chat_messages (session_id, role, content) VALUES ($1, 'assistant', $2)`,
-		sid, "[mock] 這條回覆由 Go MockChat 生成。若你已有清晰的素材名稱與說明，可在右側「暫存」手動填寫後加入，再一鍵導出到我的庫。")
-	_, _ = s.pool.Exec(ctx, `UPDATE chat_sessions SET updated_at = now() WHERE id = $1`, sid)
+	if strings.TrimSpace(reply) != "" {
+		_, _ = s.pool.Exec(ctx, `INSERT INTO chat_messages (session_id, role, content) VALUES ($1, 'assistant', $2)`, sid, reply)
+		_, _ = s.pool.Exec(ctx, `UPDATE chat_sessions SET updated_at = now() WHERE id = $1`, sid)
+	}
 }
 
 type draftCreateBody struct {

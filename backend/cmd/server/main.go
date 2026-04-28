@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -29,9 +30,22 @@ func main() {
 		log.Fatalf("migrate: %v", err)
 	}
 	var reg *ai.Registry
-	switch cfg.AIDriver {
+	switch strings.ToLower(strings.TrimSpace(cfg.AIDriver)) {
 	case "mock", "":
 		reg = ai.NewMockRegistry()
+	case "eino":
+		if strings.TrimSpace(cfg.AIAPIKey) == "" {
+			log.Printf("AI_DRIVER=eino but AI_API_KEY is empty; using mock")
+			reg = ai.NewMockRegistry()
+		} else {
+			chat, err := ai.NewEinoChat(ctx, cfg.AIAPIKey, cfg.AIBaseURL, cfg.AIChatModel, cfg.AIHTTPTimeout)
+			if err != nil {
+				log.Printf("eino chat init: %v; using mock", err)
+				reg = ai.NewMockRegistry()
+			} else {
+				reg = &ai.Registry{Chat: chat, Image: &ai.MockImage{}}
+			}
+		}
 	default:
 		log.Printf("unknown AI_DRIVER=%q, using mock", cfg.AIDriver)
 		reg = ai.NewMockRegistry()

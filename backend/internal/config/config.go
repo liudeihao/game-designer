@@ -9,7 +9,12 @@ type Config struct {
 	DatabaseURL string
 	HTTPAddr    string
 	DevLogin    bool
-	AIDriver    string // "mock" | future values
+	AIDriver    string // "mock" | "eino"
+	// Eino + OpenAI-compatible Chat Completions (server-side only).
+	AIAPIKey      string
+	AIBaseURL     string // optional; empty = default OpenAI host
+	AIChatModel   string
+	AIHTTPTimeout time.Duration
 }
 
 func Load() Config {
@@ -26,7 +31,22 @@ func Load() Config {
 	if ai == "" {
 		ai = "mock"
 	}
-	return Config{DatabaseURL: u, HTTPAddr: addr, DevLogin: dev, AIDriver: ai}
+	aiKey := os.Getenv("AI_API_KEY")
+	aiBase := os.Getenv("AI_BASE_URL")
+	aiModel := os.Getenv("AI_CHAT_MODEL")
+	if aiModel == "" {
+		aiModel = "gpt-4o-mini"
+	}
+	aiTimeout := 90 * time.Second
+	if d := os.Getenv("AI_HTTP_TIMEOUT"); d != "" {
+		if x, err := time.ParseDuration(d); err == nil {
+			aiTimeout = x
+		}
+	}
+	return Config{
+		DatabaseURL: u, HTTPAddr: addr, DevLogin: dev, AIDriver: ai,
+		AIAPIKey: aiKey, AIBaseURL: aiBase, AIChatModel: aiModel, AIHTTPTimeout: aiTimeout,
+	}
 }
 
 func SessionTTL() time.Duration {

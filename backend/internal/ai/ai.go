@@ -4,9 +4,14 @@ import (
 	"context"
 	"io"
 
-	"github.com/cloudwego/eino/schema"
 	"github.com/google/uuid"
 )
+
+// ChatMessage is one turn for the chat completion API (roles: system, user, assistant).
+type ChatMessage struct {
+	Role    string
+	Content string
+}
 
 // StreamChatParams carries everything needed to stream one assistant reply (session + optional project library context).
 type StreamChatParams struct {
@@ -16,8 +21,8 @@ type StreamChatParams struct {
 	DraftTempID string
 	// LinkedProjectAssets is human-readable name/description lines for assets linked to the project (game design context).
 	LinkedProjectAssets string
-	// Messages is the full model turn list (system + history + user). Required for EinoChat; MockChat ignores it.
-	Messages []*schema.Message
+	// Messages is the full model turn list (system + history + user). Required for OpenAIChat; MockChat ignores it.
+	Messages []ChatMessage
 }
 
 // ChatStreamer produces JSONL events as SSE "data: ...\n\n" and returns the full assistant text for persistence.
@@ -25,10 +30,18 @@ type ChatStreamer interface {
 	StreamChat(ctx context.Context, w io.Writer, p StreamChatParams) (assistantContent string, err error)
 }
 
-// ImageGenerator returns mock image job result.
-// Phase B: no EinoExt component matched our asset_images pipeline; add a concrete provider implementation when chosen.
+// ImageGenParams is passed to image providers; name/description ground the visual prompt.
+type ImageGenParams struct {
+	AssetID     uuid.UUID
+	AuthorID    uuid.UUID
+	Name        string
+	Description string
+	ExtraPrompt *string
+}
+
+// ImageGenerator produces a persistent image URL (HTTPS, data: URL, etc.) for asset_images.url.
 type ImageGenerator interface {
-	GenerateImage(ctx context.Context, assetID, authorID uuid.UUID, extraPrompt *string) (imageID uuid.UUID, url string, err error)
+	GenerateImage(ctx context.Context, p ImageGenParams) (imageID uuid.UUID, url string, err error)
 }
 
 // Registry groups swappable providers (mock now; inject real later).

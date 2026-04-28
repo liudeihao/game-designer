@@ -7,6 +7,7 @@ import { ExternalLink, GitFork, X } from "lucide-react";
 import { getAsset, getForkGraph } from "@/lib/api";
 import { isAssetFull } from "@/lib/guards";
 import type { AssetFull } from "@/lib/types";
+import { imageDisplaySrc } from "@/lib/imageDisplaySrc";
 import { cn } from "@/lib/utils";
 import { ProceduralPlaceholder } from "@/components/asset/ProceduralPlaceholder";
 
@@ -106,11 +107,7 @@ export function AssetInspectorPanel({
                 const cover = full.coverImageId
                   ? imgs.find((i) => i.id === full.coverImageId) ?? imgs[0]
                   : imgs[0];
-                const url = cover?.url
-                  ? cover.url.includes("?")
-                    ? cover.url
-                    : `${cover.url}?w=640`
-                  : null;
+                const url = cover?.url ? imageDisplaySrc(cover.url, 640) : null;
                 return url ? (
                   <Image src={url} alt="" fill className="object-cover" unoptimized />
                 ) : (

@@ -9,12 +9,15 @@ type Config struct {
 	DatabaseURL string
 	HTTPAddr    string
 	DevLogin    bool
-	AIDriver    string // "mock" | "eino"
-	// Eino + OpenAI-compatible Chat Completions (server-side only).
+	AIDriver    string // "mock" | "openai" (alias "eino" for legacy .env)
+	// OpenAI API (official openai-go); server-side only.
 	AIAPIKey      string
 	AIBaseURL     string // optional; empty = default OpenAI host
 	AIChatModel   string
 	AIHTTPTimeout time.Duration
+	// Image generation (OpenAI images API; same key/base as chat when using OpenAI).
+	AIImageModel string
+	AIImageSize  string
 }
 
 func Load() Config {
@@ -43,9 +46,18 @@ func Load() Config {
 			aiTimeout = x
 		}
 	}
+	imgModel := os.Getenv("AI_IMAGE_MODEL")
+	if imgModel == "" {
+		imgModel = "dall-e-3"
+	}
+	imgSize := os.Getenv("AI_IMAGE_SIZE")
+	if imgSize == "" {
+		imgSize = "1024x1024"
+	}
 	return Config{
 		DatabaseURL: u, HTTPAddr: addr, DevLogin: dev, AIDriver: ai,
 		AIAPIKey: aiKey, AIBaseURL: aiBase, AIChatModel: aiModel, AIHTTPTimeout: aiTimeout,
+		AIImageModel: imgModel, AIImageSize: imgSize,
 	}
 }
 

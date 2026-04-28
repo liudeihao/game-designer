@@ -67,12 +67,14 @@ type httpFlusher interface{ Flush() }
 // MockImage returns a placeholder URL (picsum); generation is instant.
 type MockImage struct{}
 
-func (m *MockImage) GenerateImage(ctx context.Context, assetID, authorID uuid.UUID, extraPrompt *string) (uuid.UUID, string, error) {
+func (m *MockImage) GenerateImage(ctx context.Context, p ImageGenParams) (uuid.UUID, string, error) {
 	_ = ctx
-	_ = authorID
-	_ = extraPrompt
+	_ = p.AuthorID
+	_ = p.Name
+	_ = p.Description
+	_ = p.ExtraPrompt
 	id := uuid.New()
 	url := fmt.Sprintf("https://picsum.photos/seed/%s/800/800", id.String())
-	_ = assetID
+	_ = p.AssetID
 	return id, url, nil
 }

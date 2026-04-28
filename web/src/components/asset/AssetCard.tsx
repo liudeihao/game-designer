@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Layers } from "lucide-react";
 import type { Asset } from "@/lib/types";
 import { isAssetFull } from "@/lib/guards";
+import { imageDisplaySrc } from "@/lib/imageDisplaySrc";
 import { cn } from "@/lib/utils";
 import { ProceduralPlaceholder } from "./ProceduralPlaceholder";
 import { ForkFromIdLine } from "./ForkBadge";
@@ -97,9 +98,9 @@ export function AssetCard({
   const showThumb = gridSize !== "none";
   const thumbReqW = variant === "compact" ? 96 : coverWByGrid[gridSize];
   const coverUrl = cover
-    ? cover.url.includes("?")
-        ? cover.url
-        : `${cover.url}${cover.url.includes("picsum") ? "" : `?w=${thumbReqW}`}`
+    ? cover.url.includes("picsum")
+      ? cover.url
+      : imageDisplaySrc(cover.url, thumbReqW)
     : null;
 
   const visPill =

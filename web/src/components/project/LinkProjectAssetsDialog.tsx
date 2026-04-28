@@ -9,6 +9,7 @@ import { isAssetFull } from "@/lib/guards";
 import type { AssetFull, ProjectLinkedAsset } from "@/lib/types";
 import { ProceduralPlaceholder } from "@/components/asset/ProceduralPlaceholder";
 import { ThemeSelect } from "@/components/ui/ThemeSelect";
+import { imageDisplaySrc } from "@/lib/imageDisplaySrc";
 import { cn } from "@/lib/utils";
 
 type GroupFilter = "" | "ungrouped" | string;
@@ -22,9 +23,8 @@ function assetListThumbUrl(asset: AssetFull): string | null {
     : imgs[0];
   if (!cover?.url?.trim()) return null;
   const u = cover.url.trim();
-  if (u.includes("?")) return u;
   if (u.includes("picsum")) return u;
-  return `${u}?w=${thumbPx * 2}`;
+  return imageDisplaySrc(u, thumbPx * 2);
 }
 
 export function LinkProjectAssetsDialog({

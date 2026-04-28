@@ -14,6 +14,7 @@ const thumbPx = 48;
 function forkThumbSrc(url: string | null | undefined): string | null {
   if (!url?.trim()) return null;
   const u = url.trim();
+  if (u.startsWith("data:") || u.startsWith("blob:")) return u;
   if (u.includes("?")) return u;
   if (u.includes("picsum")) return u;
   return `${u}?w=${thumbPx * 2}`;

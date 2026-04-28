@@ -5,7 +5,6 @@ import (
 
 	"game-designer/backend/internal/ai"
 
-	"github.com/cloudwego/eino/schema"
 	"github.com/google/uuid"
 )
 
@@ -29,7 +28,7 @@ type chatMsgRow struct {
 	role, content string
 }
 
-func (s *Server) chatMessagesForModel(ctx context.Context, sessionID uuid.UUID, systemPrompt string) ([]*schema.Message, error) {
+func (s *Server) chatMessagesForModel(ctx context.Context, sessionID uuid.UUID, systemPrompt string) ([]ai.ChatMessage, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT role, content FROM chat_messages WHERE session_id = $1 ORDER BY created_at ASC
 	`, sessionID)
@@ -51,17 +50,17 @@ func (s *Server) chatMessagesForModel(ctx context.Context, sessionID uuid.UUID, 
 	if len(list) > maxChatHistoryMessages {
 		list = list[len(list)-maxChatHistoryMessages:]
 	}
-	out := []*schema.Message{schema.SystemMessage(systemPrompt)}
+	out := []ai.ChatMessage{{Role: "system", Content: systemPrompt}}
 	for _, r := range list {
 		switch r.role {
 		case "user":
-			out = append(out, schema.UserMessage(r.content))
+			out = append(out, ai.ChatMessage{Role: "user", Content: r.content})
 		case "assistant":
-			out = append(out, schema.AssistantMessage(r.content, nil))
+			out = append(out, ai.ChatMessage{Role: "assistant", Content: r.content})
 		case "system":
-			out = append(out, schema.SystemMessage(r.content))
+			out = append(out, ai.ChatMessage{Role: "system", Content: r.content})
 		default:
-			out = append(out, schema.UserMessage(r.content))
+			out = append(out, ai.ChatMessage{Role: "user", Content: r.content})
 		}
 	}
 	return out, nil

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { ForkGraphNode } from "@/lib/types";
+import { imageDisplaySrc } from "@/lib/imageDisplaySrc";
 import { cn } from "@/lib/utils";
 import { ProceduralPlaceholder } from "@/components/asset/ProceduralPlaceholder";
 import { FORK_NODE_HEIGHT, FORK_NODE_WIDTH } from "./forkGraphLayout";
@@ -21,9 +22,9 @@ export function ForkAssetNode({ data }: NodeProps) {
   const deleted = n.visibility === "deleted";
   const coverUrl =
     n.coverImageUrl && !hidden
-      ? n.coverImageUrl.includes("?")
+      ? n.coverImageUrl.includes("picsum")
         ? n.coverImageUrl
-        : `${n.coverImageUrl}${n.coverImageUrl.includes("picsum") ? "" : "?w=240"}`
+        : imageDisplaySrc(n.coverImageUrl, 240)
       : null;
   const showExpand = !hidden && !deleted && n.forkCount > childCount;
   /** No Link: others' private placeholders and deleted ghosts (avoid navigating to id-only ghost views from the graph). */

@@ -33,17 +33,24 @@ func main() {
 	switch strings.ToLower(strings.TrimSpace(cfg.AIDriver)) {
 	case "mock", "":
 		reg = ai.NewMockRegistry()
-	case "eino":
+	case "openai", "eino":
+		// "eino" kept as alias for older .env files; implementation is openai-go only.
 		if strings.TrimSpace(cfg.AIAPIKey) == "" {
-			log.Printf("AI_DRIVER=eino but AI_API_KEY is empty; using mock")
+			log.Printf("AI_DRIVER=%s but AI_API_KEY is empty; using mock", cfg.AIDriver)
 			reg = ai.NewMockRegistry()
 		} else {
-			chat, err := ai.NewEinoChat(ctx, cfg.AIAPIKey, cfg.AIBaseURL, cfg.AIChatModel, cfg.AIHTTPTimeout)
+			chat, err := ai.NewOpenAIChat(cfg.AIAPIKey, cfg.AIBaseURL, cfg.AIChatModel, cfg.AIHTTPTimeout)
 			if err != nil {
-				log.Printf("eino chat init: %v; using mock", err)
+				log.Printf("openai chat init: %v; using mock", err)
 				reg = ai.NewMockRegistry()
 			} else {
-				reg = &ai.Registry{Chat: chat, Image: &ai.MockImage{}}
+				img, ierr := ai.NewOpenAIImageGen(cfg.AIAPIKey, cfg.AIBaseURL, cfg.AIImageModel, cfg.AIImageSize, cfg.AIHTTPTimeout)
+				if ierr != nil {
+					log.Printf("openai image init: %v; using mock images", ierr)
+					reg = &ai.Registry{Chat: chat, Image: &ai.MockImage{}}
+				} else {
+					reg = &ai.Registry{Chat: chat, Image: img}
+				}
 			}
 		}
 	default:

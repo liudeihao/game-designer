@@ -18,7 +18,7 @@ desktop.ini
 .history/
 
 # ==========================================
-# Backend: Go + Eino
+# Backend: Go
 # ==========================================
 # Binaries and overridable components
 bin/
@@ -35,7 +35,7 @@ main
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Eino / Go related temp files
+# Go workspace / vendor
 vendor/
 go.work
 go.work.sum

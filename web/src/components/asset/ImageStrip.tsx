@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { AssetImage } from "@/lib/types";
 import { ProceduralPlaceholder } from "./ProceduralPlaceholder";
 import { StatusDot } from "./StatusDot";
+import { imageDisplaySrc } from "@/lib/imageDisplaySrc";
 import { cn } from "@/lib/utils";
 
 export function ImageStrip({
@@ -80,7 +81,7 @@ export function ImageStrip({
                 </div>
               ) : (
                 <Image
-                  src={im.url.includes("?") ? im.url : `${im.url}?w=800`}
+                  src={imageDisplaySrc(im.url, 800)}
                   alt=""
                   fill
                   className="object-cover"
@@ -211,7 +212,7 @@ export function ImageStrip({
             onClick={(e) => e.stopPropagation()}
           >
             <Image
-              src={lightbox.url.includes("?") ? lightbox.url : `${lightbox.url}?w=1200`}
+              src={imageDisplaySrc(lightbox.url, 1200)}
               alt=""
               width={1200}
               height={1200}

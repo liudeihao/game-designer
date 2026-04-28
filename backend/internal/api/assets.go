@@ -774,8 +774,8 @@ func (s *Server) postImage(w http.ResponseWriter, r *http.Request) {
 	_ = readJSON(r, &b)
 	ctx := r.Context()
 	var author uuid.UUID
-	var vis string
-	err := s.pool.QueryRow(ctx, `SELECT author_id, visibility FROM assets WHERE id = $1`, aid).Scan(&author, &vis)
+	var vis, aname, adesc string
+	err := s.pool.QueryRow(ctx, `SELECT author_id, visibility, name, description FROM assets WHERE id = $1`, aid).Scan(&author, &vis, &aname, &adesc)
 	if err != nil {
 		writeErr(w, 404, "not found", "not_found")
 		return
@@ -792,7 +792,9 @@ func (s *Server) postImage(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "public assets are read-only; fork a private copy to generate images", "bad_request")
 		return
 	}
-	imgID, url, err := s.ai.Image.GenerateImage(ctx, aid, uid, b.ExtraPrompt)
+	imgID, url, err := s.ai.Image.GenerateImage(ctx, ai.ImageGenParams{
+		AssetID: aid, AuthorID: uid, Name: aname, Description: adesc, ExtraPrompt: b.ExtraPrompt,
+	})
 	if err != nil {
 		writeErr(w, 500, err.Error(), "internal")
 		return

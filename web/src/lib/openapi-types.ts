@@ -46,7 +46,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Update profile (displayName only in v1) */
+        /** Update profile (partial; at least one field) */
         patch: {
             parameters: {
                 query?: never;
@@ -693,7 +693,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List AI material sessions */
+        /**
+         * List AI material sessions
+         * @description Returns only sessions not bound to a game project (`project_id` null). Project design threads use `GET /projects/{projectId}/sessions`.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -1333,6 +1336,156 @@ export interface paths {
         };
         trace?: never;
     };
+    "/projects/{projectId}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List design chat sessions for a project */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: components["parameters"]["ProjectId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProjectSessionSummary"][];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** Create a design chat session under a project */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: components["parameters"]["ProjectId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        title?: string;
+                    };
+                };
+            };
+            responses: {
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SessionDetail"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link a private library asset to a project (AI context) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: components["parameters"]["ProjectId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        assetId: string;
+                    };
+                };
+            };
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProjectDetail"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{projectId}/assets/{assetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove linked asset from project */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: components["parameters"]["ProjectId"];
+                    assetId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProjectDetail"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1347,9 +1500,21 @@ export interface components {
             id: string;
             username: string;
             displayName?: string | null;
+            /** @description https URL; shown on public profile */
+            avatarUrl?: string | null;
+            /** @description https URL; profile header banner */
+            coverUrl?: string | null;
         };
+        /** @description Partial update; send only fields to change. displayName null clears; avatarUrl/coverUrl null or empty clears. */
         MePatch: {
             displayName?: string | null;
+            avatarUrl?: string | null;
+            coverUrl?: string | null;
+        };
+        UserProfileStats: {
+            publicAssets: number;
+            forksReceived: number;
+            projects: number;
         };
         RegisterRequest: {
             /** Format: email */
@@ -1363,10 +1528,14 @@ export interface components {
             email: string;
             password: string;
         };
+        /** @description Embedded author rows omit avatarUrl, coverUrl, stats. Full GET /users/{username} includes them. */
         UserPublic: {
             id: string;
             username: string;
             displayName?: string | null;
+            avatarUrl?: string | null;
+            coverUrl?: string | null;
+            stats?: components["schemas"]["UserProfileStats"];
         };
         /** @enum {string} */
         AssetVisibility: "private" | "public" | "deleted";
@@ -1444,6 +1613,8 @@ export interface components {
             forkedFromId: string | null;
             /** Format: date-time */
             deletedAt: string | null;
+            /** @description Cover URL when the viewer may read the asset and an image exists; null for deleted, unreadable private, or no image */
+            coverImageUrl?: string | null;
         };
         ForkPage: {
             /** @enum {string} */
@@ -1487,6 +1658,8 @@ export interface components {
             stagingGroup?: components["schemas"]["SessionStagingGroupRef"];
         };
         SessionDetail: components["schemas"]["SessionSummary"] & {
+            /** @description Present when this thread is a project design session (hidden from global `/sessions` list) */
+            projectId?: string | null;
             messages?: components["schemas"]["ChatMessage"][];
             draftAssets?: components["schemas"]["DraftAsset"][];
         };
@@ -1514,17 +1687,35 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        ProjectSessionSummary: {
+            id: string;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ProjectLinkedAsset: {
+            id: string;
+            name: string;
+            description: string;
+            coverImageId?: string | null;
+            coverImageUrl?: string | null;
+        };
         ProjectDetail: components["schemas"]["ProjectSummary"] & {
             /** @description tldraw document JSON; only asset refs are semantic */
             canvasDocument?: {
                 [key: string]: unknown;
             };
+            linkedAssets: components["schemas"]["ProjectLinkedAsset"][];
+            /** @description Markdown game design document (GDD) */
+            designDocument: string;
         };
         ProjectPatch: {
             name?: string;
             canvasDocument?: {
                 [key: string]: unknown;
             };
+            /** @description Full Markdown body for the project GDD */
+            designDocument?: string;
         };
     };
     responses: {

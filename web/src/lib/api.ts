@@ -20,6 +20,24 @@ export async function getMe() {
   return r.json() as Promise<Me>;
 }
 
+export async function patchMe(body: {
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
+}) {
+  const r = await fetch("/api/me", {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) {
+    const j = (await r.json().catch(() => ({}))) as { error?: string };
+    throw new Error(j.error || "patch me");
+  }
+  return r.json() as Promise<Me>;
+}
+
 export async function registerAccount(body: {
   email: string;
   password: string;

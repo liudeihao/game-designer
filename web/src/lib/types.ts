@@ -47,6 +47,8 @@ export type Me = {
   id: string;
   username: string;
   displayName: string | null;
+  avatarUrl: string | null;
+  coverUrl: string | null;
 };
 
 export type AssetGroup = {
@@ -62,10 +64,20 @@ export type AssetTagSummary = { id: string; name: string; assetCount: number };
 
 export type AssetTagList = { items: AssetTagSummary[] };
 
+export type UserProfileStats = {
+  publicAssets: number;
+  forksReceived: number;
+  projects: number;
+};
+
+/** Author on assets: only id, username, displayName. Full profile adds media + stats. */
 export type UserPublic = {
   id: string;
   username: string;
   displayName: string | null;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
+  stats?: UserProfileStats;
 };
 
 export type PaginatedAssets = {
@@ -80,6 +92,8 @@ export type ForkNode = {
   visibility: AssetVisibility;
   forkedFromId: string | null;
   deletedAt: string | null;
+  /** Present on neighbourhood API when readable; null if no image or hidden. */
+  coverImageUrl?: string | null;
 };
 
 export type ForkPage = { direction: "upstream" | "downstream"; nodes: ForkNode[] };

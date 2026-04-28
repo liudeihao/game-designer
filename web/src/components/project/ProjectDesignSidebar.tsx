@@ -21,6 +21,8 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   sessionSidebarNavListClass,
   sessionSidebarSessionLinkClass,
+  sessionSidebarSessionOverflowWrapClass,
+  sessionSidebarSessionRowShellClass,
 } from "@/components/session/sessionSidebarNavStyles";
 import {
   readProjectPinnedSessionIds,
@@ -257,7 +259,13 @@ export function ProjectDesignSidebar({
                 const isPinned = pinnedSessionIds.includes(s.id);
                 return (
                   <li key={s.id}>
-                    <div className="group flex min-w-0 items-center gap-0.5">
+                    <div
+                      className={cn(
+                        "group flex min-w-0 items-center",
+                        editing ? "gap-1" : "gap-0",
+                        !editing && sessionSidebarSessionRowShellClass(active)
+                      )}
+                    >
                       {editing ? (
                         <input
                           autoFocus
@@ -273,7 +281,7 @@ export function ProjectDesignSidebar({
                         <Link
                           href={`/projects/${projectId}/design/${s.id}`}
                           title={s.title}
-                          className={cn("font-display", sessionSidebarSessionLinkClass(active))}
+                          className={sessionSidebarSessionLinkClass(active)}
                         >
                           <span className="min-w-0 truncate">{s.title}</span>
                         </Link>
@@ -302,51 +310,53 @@ export function ProjectDesignSidebar({
                           </button>
                         </>
                       ) : (
-                        <DropdownMenu.Root modal={false}>
-                          <DropdownMenu.Trigger asChild>
-                            <button
-                              type="button"
-                              className={cn(iconBtn, "text-text-muted/80 hover:text-text-primary")}
-                              aria-label={`「${s.title}」更多操作`}
-                              disabled={streaming}
-                              onPointerDown={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-4 w-4" aria-hidden />
-                            </button>
-                          </DropdownMenu.Trigger>
-                          <DropdownMenu.Portal>
-                            <DropdownMenu.Content
-                              className={sessionOverflowMenuClass}
-                              sideOffset={4}
-                              align="end"
-                              collisionPadding={8}
-                            >
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-white/5"
+                        <span className={sessionSidebarSessionOverflowWrapClass(active)}>
+                          <DropdownMenu.Root modal={false}>
+                            <DropdownMenu.Trigger asChild>
+                              <button
+                                type="button"
+                                className={cn(iconBtn, "text-text-muted/80 hover:text-text-primary")}
+                                aria-label={`「${s.title}」更多操作`}
                                 disabled={streaming}
-                                onSelect={() =>
-                                  persistProjectPins(togglePinnedId(pinnedSessionIds, s.id))
-                                }
+                                onPointerDown={(e) => e.stopPropagation()}
                               >
-                                {isPinned ? "取消固定" : "固定"}
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-white/5"
-                                disabled={streaming}
-                                onSelect={() => setInlineRename({ id: s.id, value: s.title })}
+                                <MoreVertical className="h-4 w-4" aria-hidden />
+                              </button>
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Portal>
+                              <DropdownMenu.Content
+                                className={sessionOverflowMenuClass}
+                                sideOffset={4}
+                                align="end"
+                                collisionPadding={8}
                               >
-                                重命名
-                              </DropdownMenu.Item>
-                              <DropdownMenu.Item
-                                className="cursor-pointer rounded px-2 py-1.5 text-sm text-error-dim outline-none data-[highlighted]:bg-white/5"
-                                disabled={streaming}
-                                onSelect={() => setSessionToDelete(s)}
-                              >
-                                删除
-                              </DropdownMenu.Item>
-                            </DropdownMenu.Content>
-                          </DropdownMenu.Portal>
-                        </DropdownMenu.Root>
+                                <DropdownMenu.Item
+                                  className="cursor-pointer rounded px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-white/5"
+                                  disabled={streaming}
+                                  onSelect={() =>
+                                    persistProjectPins(togglePinnedId(pinnedSessionIds, s.id))
+                                  }
+                                >
+                                  {isPinned ? "取消固定" : "固定"}
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Item
+                                  className="cursor-pointer rounded px-2 py-1.5 text-sm outline-none data-[highlighted]:bg-white/5"
+                                  disabled={streaming}
+                                  onSelect={() => setInlineRename({ id: s.id, value: s.title })}
+                                >
+                                  重命名
+                                </DropdownMenu.Item>
+                                <DropdownMenu.Item
+                                  className="cursor-pointer rounded px-2 py-1.5 text-sm text-error-dim outline-none data-[highlighted]:bg-white/5"
+                                  disabled={streaming}
+                                  onSelect={() => setSessionToDelete(s)}
+                                >
+                                  删除
+                                </DropdownMenu.Item>
+                              </DropdownMenu.Content>
+                            </DropdownMenu.Portal>
+                          </DropdownMenu.Root>
+                        </span>
                       )}
                     </div>
                   </li>

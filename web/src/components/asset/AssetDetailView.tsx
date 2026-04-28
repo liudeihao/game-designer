@@ -7,7 +7,16 @@ import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import type { Asset } from "@/lib/types";
 import { isAssetFull } from "@/lib/guards";
-import { deleteAssetImage, patchAsset, publishAsset, forkAsset, getAsset, getMe, listAssetGroups } from "@/lib/api";
+import {
+  deleteAssetImage,
+  patchAsset,
+  publishAsset,
+  forkAsset,
+  getAsset,
+  getMe,
+  listAssetGroups,
+  linkProjectAsset,
+} from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ImageStrip } from "./ImageStrip";
@@ -17,7 +26,16 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { WorkspaceHorizontalSplit } from "@/components/shell/WorkspaceHorizontalSplit";
 import { ThemeSelect } from "@/components/ui/ThemeSelect";
 
-export function AssetDetailView({ id, initial }: { id: string; initial: Asset }) {
+export function AssetDetailView({
+  id,
+  initial,
+  linkToProject,
+}: {
+  id: string;
+  initial: Asset;
+  /** When set (URL query from「我的库」), owner can attach this private asset to the project for AI context. */
+  linkToProject?: string | null;
+}) {
   const router = useRouter();
   const qc = useQueryClient();
   const { data: me } = useQuery({
@@ -57,6 +75,7 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
   const [discardOpen, setDiscardOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
   const [forkOpen, setForkOpen] = useState(false);
+  const [linkProjectBusy, setLinkProjectBusy] = useState(false);
 
   const isOwner = me != null && isAssetFull(asset) && me.id === asset.authorId;
   const isPrivateAsset = isAssetFull(asset) && asset.visibility === "private";
@@ -163,6 +182,41 @@ export function AssetDetailView({ id, initial }: { id: string; initial: Asset })
             </>
           )}
         </nav>
+        {linkToProject && showPrivateActions && (
+          <div className="flex flex-col gap-2 rounded border border-accent/35 bg-accent/5 px-3 py-2">
+            <p className="text-ui-mono text-[11px] leading-relaxed text-text-muted">
+              将当前<strong className="text-text-primary">私有素材</strong>引用到游戏项目后，AI
+              在设计会话中可使用其名称与描述作为上下文。
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={linkProjectBusy}
+                className="text-ui-mono rounded border border-accent/40 bg-accent/15 px-3 py-1.5 text-[11px] text-accent hover:bg-accent/20 disabled:opacity-50"
+                onClick={async () => {
+                  setLinkProjectBusy(true);
+                  try {
+                    await linkProjectAsset(linkToProject, id);
+                    toast.success("已引用到项目");
+                    router.push(`/projects/${encodeURIComponent(linkToProject)}/design`);
+                  } catch {
+                    toast.error("引用失败（仅私有素材可引用）");
+                  } finally {
+                    setLinkProjectBusy(false);
+                  }
+                }}
+              >
+                {linkProjectBusy ? "处理中…" : "引用到项目"}
+              </button>
+              <Link
+                href={`/projects/${encodeURIComponent(linkToProject)}/design`}
+                className="text-ui-mono rounded border border-border/60 px-3 py-1.5 text-[11px] text-text-muted hover:border-accent/30 hover:text-text-primary"
+              >
+                返回项目设计
+              </Link>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-2 rounded border border-border/40 bg-surface/40 px-3 py-2">
           <span className="text-ui-mono text-xs text-text-muted">发布者</span>
           <Link

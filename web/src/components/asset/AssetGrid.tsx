@@ -16,6 +16,8 @@ export function AssetGrid({
   scope,
   className,
   itemHrefBase = DEFAULT_ASSET_HREF_BASE,
+  /** Appended as `?${detailSearch}` on detail links (no leading `?`). */
+  detailSearch,
   initialData,
   groupId,
   gridSize = "md",
@@ -26,6 +28,7 @@ export function AssetGrid({
   scope: "public" | "private";
   className?: string;
   itemHrefBase?: string;
+  detailSearch?: string;
   initialData?: PaginatedAssets;
   /** Filter private list: group uuid, "ungrouped", or omit for all */
   groupId?: string | null;
@@ -215,7 +218,7 @@ export function AssetGrid({
           <div key={a.id} className={cn("shrink-0", flowItemW[gridSize])}>
             <AssetCard
               asset={a}
-              href={`${itemHrefBase}/${a.id}`}
+              href={`${itemHrefBase}/${a.id}${detailSearch ? `?${detailSearch}` : ""}`}
               variant="grid"
               gridSize={gridSize}
               showOwnerLibraryBadge={showOwnerLibBadge}

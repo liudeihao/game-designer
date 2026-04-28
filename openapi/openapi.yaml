@@ -373,6 +373,7 @@ paths:
     get:
       tags: [sessions]
       summary: List AI material sessions
+      description: Returns only sessions not bound to a game project (`project_id` null). Project design threads use `GET /projects/{projectId}/sessions`.
       responses:
         "200":
           content:
@@ -677,6 +678,83 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /projects/{projectId}/sessions:
+    get:
+      tags: [projects]
+      summary: List design chat sessions for a project
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProjectSessionSummary" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags: [projects]
+      summary: Create a design chat session under a project
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionDetail" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /projects/{projectId}/assets:
+    post:
+      tags: [projects]
+      summary: Link a private library asset to a project (AI context)
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assetId]
+              properties:
+                assetId: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectDetail" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /projects/{projectId}/assets/{assetId}:
+    delete:
+      tags: [projects]
+      summary: Remove linked asset from project
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - name: assetId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectDetail" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   parameters:
     AssetId:
@@ -944,6 +1022,10 @@ components:
         - { $ref: "#/components/schemas/SessionSummary" }
         - type: object
           properties:
+            projectId:
+              type: string
+              nullable: true
+              description: Present when this thread is a project design session (hidden from global `/sessions` list)
             messages:
               type: array
               items: { $ref: "#/components/schemas/ChatMessage" }
@@ -981,6 +1063,24 @@ components:
         updatedAt: { type: string, format: date-time }
       required: [id, name, updatedAt]
 
+    ProjectSessionSummary:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        updatedAt: { type: string, format: date-time }
+      required: [id, title, updatedAt]
+
+    ProjectLinkedAsset:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        coverImageId: { type: string, nullable: true }
+        coverImageUrl: { type: string, nullable: true }
+      required: [id, name, description]
+
     ProjectDetail:
       allOf:
         - { $ref: "#/components/schemas/ProjectSummary" }
@@ -990,6 +1090,10 @@ components:
               type: object
               description: tldraw document JSON; only asset refs are semantic
               additionalProperties: true
+            linkedAssets:
+              type: array
+              items: { $ref: "#/components/schemas/ProjectLinkedAsset" }
+          required: [linkedAssets]
 
     ProjectPatch:
       type: object

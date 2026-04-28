@@ -150,7 +150,7 @@ function CanvasInner({
   );
 }
 
-export function ProjectCanvasLoader({ id }: { id: string }) {
+export function ProjectCanvasLoader({ id, embedded }: { id: string; embedded?: boolean }) {
   const { data, isError } = useQuery({ queryKey: ["project", id], queryFn: () => getProject(id) });
   if (isError) {
     return (
@@ -167,7 +167,7 @@ export function ProjectCanvasLoader({ id }: { id: string }) {
   }
   const detail = data as ProjectDetail;
   return (
-    <div className="h-[100dvh] w-full">
+    <div className={embedded ? "h-full min-h-0 w-full" : "h-[100dvh] w-full"}>
       <Tldraw
         components={{
           InFrontOfTheCanvas: () => (

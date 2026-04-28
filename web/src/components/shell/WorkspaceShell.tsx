@@ -96,7 +96,11 @@ export function WorkspaceShell({
             className={cn(
               "flex min-h-0 min-w-0 flex-1 flex-col",
               // Library + sessions: viewport height is fixed here; scroll only inside sidebar / main panels.
-              pathname.startsWith("/library/assets") || pathname.startsWith("/library/sessions")
+              pathname.startsWith("/library/assets") ||
+              pathname.startsWith("/library/sessions") ||
+              (pathname.startsWith("/projects/") &&
+                pathname.split("/")[2] !== "new" &&
+                pathname.split("/").length >= 3)
                 ? "overflow-hidden"
                 : "gd-scrollbar overflow-y-auto"
             )}

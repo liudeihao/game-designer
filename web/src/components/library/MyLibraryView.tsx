@@ -38,6 +38,10 @@ const LG_MIN_PX = 1024;
 export function MyLibraryView({ initialData, libraryVisibility }: Props) {
   const sp = useSearchParams();
   const group = sp.get("group") || "";
+  const linkToProject = sp.get("linkToProject")?.trim() || undefined;
+  const assetDetailSearch = linkToProject
+    ? `linkToProject=${encodeURIComponent(linkToProject)}`
+    : undefined;
   const { prefs, setPrefs } = useUiPreferences();
   const qc = useQueryClient();
   const [sidebarWide, setSidebarWide] = useState(true);
@@ -233,6 +237,18 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
         {visActive === "public" &&
           "这些已发布到全站「探索」库；任何用户都能看到，与私库不是同一套列表。角标为「全站」。"}
       </p>
+      {linkToProject && (
+        <div className="text-ui-mono mb-3 rounded border border-accent/30 bg-accent/5 px-3 py-2 text-[11px] text-text-muted">
+          正在为<strong className="text-text-primary">游戏项目</strong>引用素材：请点开<strong className="text-text-primary">仅自己可见</strong>
+          的素材进入详情页，并点击「引用到项目」。完成后可回到项目「设计」页继续对话。
+          <Link
+            href={`/projects/${encodeURIComponent(linkToProject)}/design`}
+            className="ml-2 text-accent hover:underline"
+          >
+            返回项目设计
+          </Link>
+        </div>
+      )}
       <AssetGrid
         key={`${group || "all"}-${visActive}`}
         scope="private"
@@ -241,6 +257,7 @@ export function MyLibraryView({ initialData, libraryVisibility }: Props) {
         libraryVisibility={libraryVisibility}
         gridSize={prefs.libraryCardSize}
         ownerLibraryBulkDelete
+        detailSearch={assetDetailSearch}
       />
     </div>
   );

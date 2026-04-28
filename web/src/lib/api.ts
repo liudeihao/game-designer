@@ -4,6 +4,7 @@ import type {
   Me,
   PaginatedAssets,
   ProjectDetail,
+  ProjectSessionSummary,
   ProjectSummary,
   SessionDetail,
   SessionStagingGroup,
@@ -400,6 +401,46 @@ export async function patchProject(id: string, body: { name?: string; canvasDocu
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error("patch project");
+  return r.json() as Promise<ProjectDetail>;
+}
+
+export async function listProjectSessions(projectId: string) {
+  const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/sessions`, {
+    credentials: "include",
+  });
+  if (!r.ok) throw new Error("project sessions");
+  const data = (await r.json()) as ProjectSessionSummary[] | null;
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createProjectSession(projectId: string, body?: { title?: string }) {
+  const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/sessions`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
+  if (!r.ok) throw new Error("create project session");
+  return r.json() as Promise<SessionDetail>;
+}
+
+export async function linkProjectAsset(projectId: string, assetId: string) {
+  const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/assets`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ assetId }),
+  });
+  if (!r.ok) throw new Error("link project asset");
+  return r.json() as Promise<ProjectDetail>;
+}
+
+export async function unlinkProjectAsset(projectId: string, assetId: string) {
+  const r = await fetch(
+    `/api/projects/${encodeURIComponent(projectId)}/assets/${encodeURIComponent(assetId)}`,
+    { method: "DELETE", credentials: "include" }
+  );
+  if (!r.ok) throw new Error("unlink project asset");
   return r.json() as Promise<ProjectDetail>;
 }
 

@@ -16,7 +16,7 @@ export default function NewProjectPage() {
       <div className="mx-auto w-full max-w-md">
         <h1 className="font-display text-2xl">新项目</h1>
         <p className="text-ui-mono mt-2 text-[12px] leading-relaxed text-text-muted">
-          游戏项目为私人情绪板空间；可在画布中从「我的库」放置素材节点，内容会自动保存。
+          创建后可进入「设计」与 AI 多会话讨论玩法与叙事，并在「情绪板」画布中拼贴素材；画布会自动保存。
         </p>
         <input
           className="text-ui-mono mt-4 w-full border-b border-border bg-transparent py-2 outline-none focus:border-accent"
@@ -42,7 +42,7 @@ export default function NewProjectPage() {
               setBusy(true);
               try {
                 const p = await createProject({ name: n });
-                router.replace(`/projects/${p.id}/canvas`);
+                router.replace(`/projects/${p.id}/design`);
               } catch {
                 setErr("创建失败，请检查网络或稍后重试。");
               } finally {
@@ -50,7 +50,7 @@ export default function NewProjectPage() {
               }
             }}
           >
-            {busy ? "创建中…" : "创建并打开画布"}
+            {busy ? "创建中…" : "创建并进入项目"}
           </button>
           <Link
             href="/projects"

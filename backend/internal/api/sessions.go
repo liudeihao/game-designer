@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
+
+	"game-designer/backend/internal/ai"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -57,7 +60,7 @@ func (s *Server) listChatSessions(w http.ResponseWriter, r *http.Request) {
 			END
 		FROM chat_sessions cs
 		LEFT JOIN session_staging_groups g ON g.id = cs.staging_group_id
-		WHERE cs.user_id = $1
+		WHERE cs.user_id = $1 AND cs.project_id IS NULL
 		ORDER BY cs.updated_at DESC
 	`, uid)
 	if err != nil {
@@ -186,11 +189,12 @@ func (s *Server) getSessionDetail(ctx context.Context, sessionID uuid.UUID) (map
 	var sgid *uuid.UUID
 	var gname *string
 	var gds *string
+	var projID *uuid.UUID
 	err := s.pool.QueryRow(ctx, `
-		SELECT cs.title, cs.updated_at, g.id, g.name, g.draft_staging
+		SELECT cs.title, cs.updated_at, cs.project_id, g.id, g.name, g.draft_staging
 		FROM chat_sessions cs
 		LEFT JOIN session_staging_groups g ON g.id = cs.staging_group_id
-		WHERE cs.id = $1`, sessionID).Scan(&title, &up, &sgid, &gname, &gds)
+		WHERE cs.id = $1`, sessionID).Scan(&title, &up, &projID, &sgid, &gname, &gds)
 	if err != nil {
 		return nil, err
 	}
@@ -221,6 +225,11 @@ func (s *Server) getSessionDetail(ctx context.Context, sessionID uuid.UUID) (map
 		}
 	} else {
 		m["stagingGroup"] = nil
+	}
+	if projID != nil {
+		m["projectId"] = projID.String()
+	} else {
+		m["projectId"] = nil
 	}
 	return m, nil
 }
@@ -311,6 +320,38 @@ func (s *Server) deleteChatSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(204)
 }
 
+// linkedProjectAssetsPlaintext builds "name: description" lines for the project's linked library assets when session belongs to a project.
+func (s *Server) linkedProjectAssetsPlaintext(ctx context.Context, sessionID uuid.UUID) (string, error) {
+	var pid *uuid.UUID
+	err := s.pool.QueryRow(ctx, `SELECT project_id FROM chat_sessions WHERE id = $1`, sessionID).Scan(&pid)
+	if err != nil {
+		return "", err
+	}
+	if pid == nil {
+		return "", nil
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT a.name, a.description
+		FROM project_assets pa
+		JOIN assets a ON a.id = pa.asset_id
+		WHERE pa.project_id = $1 AND a.deleted_at IS NULL AND a.visibility = 'private'
+		ORDER BY pa.created_at ASC
+	`, *pid)
+	if err != nil {
+		return "", err
+	}
+	defer rows.Close()
+	var parts []string
+	for rows.Next() {
+		var name, desc string
+		if err := rows.Scan(&name, &desc); err != nil {
+			return "", err
+		}
+		parts = append(parts, fmt.Sprintf("%s: %s", strings.TrimSpace(name), strings.TrimSpace(desc)))
+	}
+	return strings.Join(parts, "\n"), rows.Err()
+}
+
 func (s *Server) postChat(w http.ResponseWriter, r *http.Request) {
 	uid, _ := userID(r.Context())
 	sid, err := uuid.Parse(chi.URLParam(r, "sessionId"))
@@ -338,6 +379,7 @@ func (s *Server) postChat(w http.ResponseWriter, r *http.Request) {
 	_, _ = s.pool.Exec(ctx, `UPDATE chat_sessions SET updated_at = now() WHERE id = $1`, sid)
 
 	draftTemp := "temp_" + uuid.NewString()[:8]
+	linkedCtx, _ := s.linkedProjectAssetsPlaintext(ctx, sid)
 	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
@@ -345,7 +387,10 @@ func (s *Server) postChat(w http.ResponseWriter, r *http.Request) {
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}
-	err = s.ai.Chat.StreamChat(ctx, w, sid, uid, b.Message, draftTemp)
+	err = s.ai.Chat.StreamChat(ctx, w, ai.StreamChatParams{
+		SessionID: sid, UserID: uid, UserMessage: b.Message, DraftTempID: draftTemp,
+		LinkedProjectAssets: linkedCtx,
+	})
 	if err != nil {
 		return
 	}
@@ -386,6 +431,10 @@ func (s *Server) postSessionDraft(w http.ResponseWriter, r *http.Request) {
 		} else {
 			writeErr(w, 500, err.Error(), "internal")
 		}
+		return
+	}
+	if bound, _ := s.sessionHasProjectID(ctx, sid); bound {
+		writeErr(w, 400, "draft staging is not available for project design sessions", "bad_request")
 		return
 	}
 	tgt, err := s.resolveDraftTarget(ctx, sid)
@@ -434,6 +483,16 @@ func (s *Server) assertChatSessionOwner(ctx context.Context, sid, uid uuid.UUID)
 	return nil
 }
 
+// sessionHasProjectID reports whether the chat session is bound to a game project (design thread).
+func (s *Server) sessionHasProjectID(ctx context.Context, sid uuid.UUID) (bool, error) {
+	var pid *uuid.UUID
+	err := s.pool.QueryRow(ctx, `SELECT project_id FROM chat_sessions WHERE id = $1`, sid).Scan(&pid)
+	if err != nil {
+		return false, err
+	}
+	return pid != nil, nil
+}
+
 var errSessionNotFound = errors.New("session not found")
 
 func (s *Server) patchSessionDraft(w http.ResponseWriter, r *http.Request) {
@@ -466,6 +525,10 @@ func (s *Server) patchSessionDraft(w http.ResponseWriter, r *http.Request) {
 		} else {
 			writeErr(w, 500, err.Error(), "internal")
 		}
+		return
+	}
+	if bound, _ := s.sessionHasProjectID(ctx, sid); bound {
+		writeErr(w, 400, "draft staging is not available for project design sessions", "bad_request")
 		return
 	}
 	tgt, err := s.resolveDraftTarget(ctx, sid)
@@ -530,6 +593,10 @@ func (s *Server) exportSessionDraftToLibrary(w http.ResponseWriter, r *http.Requ
 		} else {
 			writeErr(w, 500, err.Error(), "internal")
 		}
+		return
+	}
+	if bound, _ := s.sessionHasProjectID(ctx, sid); bound {
+		writeErr(w, 400, "draft staging is not available for project design sessions", "bad_request")
 		return
 	}
 	tgt, err := s.resolveDraftTarget(ctx, sid)
@@ -636,6 +703,10 @@ func (s *Server) deleteSessionDraft(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if bound, _ := s.sessionHasProjectID(ctx, sid); bound {
+		writeErr(w, 400, "draft staging is not available for project design sessions", "bad_request")
+		return
+	}
 	tgt, err := s.resolveDraftTarget(ctx, sid)
 	if err != nil {
 		writeErr(w, 500, err.Error(), "internal")
@@ -710,6 +781,12 @@ func (s *Server) patchChatSession(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if len(b.StagingGroupID) > 0 {
+		var proj *uuid.UUID
+		_ = s.pool.QueryRow(ctx, `SELECT project_id FROM chat_sessions WHERE id = $1`, sid).Scan(&proj)
+		if proj != nil {
+			writeErr(w, 400, "project design sessions cannot use staging groups", "bad_request")
+			return
+		}
 		raw := strings.TrimSpace(string(b.StagingGroupID))
 		if raw == "null" || raw == `""` {
 			_, err := s.pool.Exec(ctx, `UPDATE chat_sessions SET staging_group_id = NULL, updated_at = now() WHERE id = $1`, sid)

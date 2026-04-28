@@ -86,6 +86,10 @@ func (s *Server) Router() http.Handler {
 		r.Route("/projects", func(r chi.Router) {
 			r.With(s.requireUser).Get("/", s.listProjects)
 			r.With(s.requireUser).Post("/", s.createProject)
+			r.With(s.requireUser).Get("/{projectId}/sessions", s.listProjectSessions)
+			r.With(s.requireUser).Post("/{projectId}/sessions", s.createProjectSession)
+			r.With(s.requireUser).Post("/{projectId}/assets", s.postProjectAsset)
+			r.With(s.requireUser).Delete("/{projectId}/assets/{assetId}", s.deleteProjectAsset)
 			r.With(s.requireUser).Get("/{projectId}", s.getProject)
 			r.With(s.requireUser).Patch("/{projectId}", s.patchProject)
 		})

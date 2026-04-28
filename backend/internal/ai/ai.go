@@ -7,9 +7,19 @@ import (
 	"github.com/google/uuid"
 )
 
+// StreamChatParams carries everything needed to stream one assistant reply (session + optional project library context).
+type StreamChatParams struct {
+	SessionID   uuid.UUID
+	UserID      uuid.UUID
+	UserMessage string
+	DraftTempID string
+	// LinkedProjectAssets is human-readable name/description lines for assets linked to the project (game design context).
+	LinkedProjectAssets string
+}
+
 // ChatStreamer produces JSONL lines (without SSE prefix) for session chat; implementation writes SSE "data: ...\n\n" in handlers.
 type ChatStreamer interface {
-	StreamChat(ctx context.Context, w io.Writer, sessionID, userID uuid.UUID, userMessage, draftTempID string) error
+	StreamChat(ctx context.Context, w io.Writer, p StreamChatParams) error
 }
 
 // ImageGenerator returns mock image job result (extend later for real providers).

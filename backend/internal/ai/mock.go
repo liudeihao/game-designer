@@ -2,8 +2,10 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,15 +14,25 @@ import (
 // MockChat streams JSONL events matching front protocol (底層技術契約).
 type MockChat struct{}
 
-func (m *MockChat) StreamChat(ctx context.Context, w io.Writer, sessionID, userID uuid.UUID, userMessage, draftTempID string) error {
-	_ = sessionID
-	_ = userID
-	_ = userMessage
+func (m *MockChat) StreamChat(ctx context.Context, w io.Writer, p StreamChatParams) error {
+	_ = p.SessionID
+	_ = p.UserID
+	_ = p.UserMessage
 	// text-only: staging is user-driven via POST /drafts, not the stream
-	_ = draftTempID
+	_ = p.DraftTempID
+	ctxNote := ""
+	if trim := strings.TrimSpace(p.LinkedProjectAssets); trim != "" {
+		n := strings.Count(trim, "\n") + 1
+		ctxNote = fmt.Sprintf("（Mock：後端已組裝 %d 條引用素材條目供真實模型作 system 上下文。）", n)
+	}
+	line2 := "這條回覆由 Go MockChat 生成。"
+	if ctxNote != "" {
+		line2 += ctxNote
+	}
+	line2 += "素材向會話可在右側「暫存」手動填寫後導出到我的庫；項目設計會話無暫存欄。\n"
 	events := []string{
 		`{"type":"text","delta":"[mock] "}`,
-		`{"type":"text","delta":"這條回覆由 Go MockChat 生成。若你已有清晰的素材名稱與說明，可在右側「暫存」手動填寫後加入，再一鍵導出到我的庫。\n"}`,
+		string(mustJSONLine(map[string]string{"type": "text", "delta": line2})),
 	}
 	for _, line := range events {
 		select {
@@ -38,6 +50,14 @@ func (m *MockChat) StreamChat(ctx context.Context, w io.Writer, sessionID, userI
 		time.Sleep(25 * time.Millisecond)
 	}
 	return nil
+}
+
+func mustJSONLine(v any) []byte {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return []byte(`{"type":"text","delta":"[mock] json error"}`)
+	}
+	return b
 }
 
 type httpFlusher interface{ Flush() }

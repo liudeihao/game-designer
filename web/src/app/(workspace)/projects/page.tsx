@@ -50,7 +50,7 @@ export default async function ProjectsPage() {
         </Link>
       </div>
       <p className="text-ui-mono mb-4 max-w-2xl text-[12px] leading-relaxed text-text-muted">
-        在无限画布上拼贴「我的库」素材，搭建情绪板与概念布局；画布会自动保存到服务器。
+        在项目工作区与 AI 多会话讨论玩法与体验，引用「我的库」素材作为上下文；情绪板画布用于拼贴与布局，并自动保存。
       </p>
       <ul className="space-y-2">
         {list.map((p) => (
@@ -63,9 +63,15 @@ export default async function ProjectsPage() {
               <div className="flex shrink-0 flex-wrap gap-2">
                 <Link
                   className="rounded border border-border/80 px-3 py-1 text-[12px] text-accent hover:border-accent/40"
+                  href={`/projects/${p.id}/design`}
+                >
+                  进入项目
+                </Link>
+                <Link
+                  className="rounded border border-border/60 px-3 py-1 text-[12px] text-text-muted hover:border-accent/30 hover:text-text-primary"
                   href={`/projects/${p.id}/canvas`}
                 >
-                  打开画布
+                  情绪板
                 </Link>
                 <Link
                   className="rounded border border-border/60 px-3 py-1 text-[12px] text-text-muted hover:border-accent/30 hover:text-text-primary"

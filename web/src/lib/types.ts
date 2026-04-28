@@ -130,13 +130,26 @@ export type DraftAsset = {
 export type SessionDetail = SessionSummary & {
   messages: ChatMessage[];
   draftAssets: DraftAsset[];
+  /** Set when this chat is a project design thread (not shown in global session list). */
+  projectId?: string | null;
 };
 
 export type ProjectSummary = { id: string; name: string; updatedAt: string };
 
+export type ProjectLinkedAsset = {
+  id: string;
+  name: string;
+  description: string;
+  coverImageId: string | null;
+  coverImageUrl: string | null;
+};
+
 export type ProjectDetail = ProjectSummary & {
   canvasDocument: Record<string, unknown> | null;
+  linkedAssets: ProjectLinkedAsset[];
 };
+
+export type ProjectSessionSummary = { id: string; title: string; updatedAt: string };
 
 /** tldraw scene format is opaque JSON; we only persist light asset refs in metadata when needed. */
 export type StreamEvent =

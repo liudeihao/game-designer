@@ -37,6 +37,10 @@ frontend/.vite/
 frontend/vite.config.js
 frontend/vite.config.d.ts
 
+# ---------- Submission build artifacts ----------
+提交包/build/
+提交包/*.zip
+
 # ---------- Logs ----------
 *.log
 logs/

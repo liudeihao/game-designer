@@ -67,6 +67,8 @@ interface Props {
   onDismissSuggestMode: () => void;
   onResolveRuleProposal: RuleProposalHandlers["onResolve"];
   onOpenFile?: (path: string) => void;
+  projectId?: string | null;
+  docPaths?: string[];
 }
 
 const COMPOSER_MIN = 40;
@@ -135,6 +137,8 @@ export function ChatPanel({
   onDismissSuggestMode,
   onResolveRuleProposal,
   onOpenFile,
+  projectId,
+  docPaths,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -443,6 +447,8 @@ export function ChatPanel({
                       choiceHandlers={choiceHandlers}
                       ruleHandlers={ruleHandlers}
                       permissionHandlers={permissionHandlers}
+                      projectId={projectId}
+                      docPaths={docPaths}
                     />
                   );
                 }
@@ -454,6 +460,8 @@ export function ChatPanel({
                     choiceHandlers={choiceHandlers}
                     ruleHandlers={ruleHandlers}
                     permissionHandlers={permissionHandlers}
+                    projectId={projectId}
+                    docPaths={docPaths}
                   />
                 );
               })}
@@ -465,6 +473,8 @@ export function ChatPanel({
                   choiceHandlers={choiceHandlers}
                   ruleHandlers={ruleHandlers}
                   permissionHandlers={permissionHandlers}
+                  projectId={projectId}
+                  docPaths={docPaths}
                 />
               )}
             </div>

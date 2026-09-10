@@ -16,6 +16,13 @@ import type {
   WorkspaceSnapshot,
 } from "./types";
 import type { LLMConfigPublic } from "./types/llm";
+import type { ImageConfigPublic } from "./types/image";
+import type {
+  IllustrationCompileResult,
+  IllustrationHome,
+  IllustrationRecord,
+  IllustrationSettings,
+} from "./types/illustration";
 import { pushDebugEvent } from "./debug/log";
 import { unwrapStreamFrame } from "./studio/applyFrame";
 
@@ -161,7 +168,9 @@ async function j<T>(res: Response): Promise<T> {
 
 export const api = {
   health: () =>
-    apiFetch(`${API}/health`).then((r) => j<{ status: string; llm_configured: boolean }>(r)),
+    apiFetch(`${API}/health`).then((r) =>
+      j<{ status: string; llm_configured: boolean; image_configured: boolean }>(r),
+    ),
 
   listProjects: () =>
     apiFetch(`${API}/projects`).then((r) => j<{ projects: ProjectMeta[] }>(r)).then((d) => d.projects),
@@ -353,6 +362,8 @@ export const api = {
       j<{
         llm: LLMConfigPublic;
         llm_configured: boolean;
+        image: ImageConfigPublic;
+        image_configured: boolean;
       }>(r)
     ),
 
@@ -361,7 +372,71 @@ export const api = {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }).then((r) => j<{ llm: LLMConfigPublic; llm_configured: boolean }>(r)),
+    }).then((r) =>
+      j<{
+        llm: LLMConfigPublic;
+        llm_configured: boolean;
+        image: ImageConfigPublic;
+        image_configured: boolean;
+      }>(r)
+    ),
+
+  getIllustrationSettings: (projectId: string) =>
+    apiFetch(`${API}/projects/${projectId}/illustrations/settings`).then((r) =>
+      j<IllustrationSettings>(r),
+    ),
+
+  saveIllustrationSettings: (projectId: string, body: Partial<IllustrationSettings>) =>
+    apiFetch(`${API}/projects/${projectId}/illustrations/settings`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => j<IllustrationSettings>(r)),
+
+  compileIllustration: (
+    projectId: string,
+    body: { extras?: string; use_style?: boolean; linked_doc?: string | null },
+  ) =>
+    apiFetch(`${API}/projects/${projectId}/illustrations/compile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => j<IllustrationCompileResult>(r)),
+
+  listIllustrations: (projectId: string, linkedDoc?: string | null) => {
+    const q = linkedDoc ? `?linked_doc=${encodeURIComponent(linkedDoc)}` : "";
+    return apiFetch(`${API}/projects/${projectId}/illustrations${q}`).then((r) =>
+      j<{ illustrations: IllustrationRecord[] }>(r),
+    );
+  },
+
+  generateIllustration: (
+    projectId: string,
+    body: {
+      prompt?: string;
+      extras?: string;
+      use_style?: boolean;
+      home?: IllustrationHome;
+      linked_doc?: string | null;
+      conversation_id?: string | null;
+    },
+  ) =>
+    apiFetch(`${API}/projects/${projectId}/illustrations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => j<IllustrationRecord>(r)),
+
+  placeIllustration: (
+    projectId: string,
+    illustrationId: string,
+    body: { home: IllustrationHome; linked_doc?: string | null },
+  ) =>
+    apiFetch(`${API}/projects/${projectId}/illustrations/${illustrationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => j<IllustrationRecord>(r)),
 
   getUserRule: () => apiFetch(`${API}/rules/user`).then((r) => j<RuleSetPayload>(r)),
 

@@ -72,13 +72,14 @@ def register_builtin_tools(registry: ToolRegistry | None = None) -> ToolRegistry
     target = registry if registry is not None else default_registry
     if target._ready:
         return target
-    from app.agent.tools import mode, plan_panel, rule
+    from app.agent.tools import illustrations, mode, plan_panel, rule
     from app.agent.tools.docs import register as register_workspace
 
     register_workspace(target)
     plan_panel.register(target)
     mode.register(target)
     rule.register(target)
+    illustrations.register(target)
     target._ready = True
     return target
 

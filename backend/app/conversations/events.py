@@ -118,6 +118,36 @@ def rule_proposal_event(
     )
 
 
+def illustration_event(
+    *,
+    illustration_id: str,
+    prompt: str = "",
+    extras: str = "",
+    style_used: bool = False,
+    linked_doc: str | None = None,
+    linked_rev: int | None = None,
+    draft: bool = False,
+    home: str = "unbound",
+    stale: bool = False,
+    after_human: int | None = None,
+) -> dict[str, Any]:
+    return _stamp(
+        {
+            "type": "illustration",
+            "id": illustration_id,
+            "prompt": prompt,
+            "extras": extras,
+            "style_used": bool(style_used),
+            "linked_doc": linked_doc,
+            "linked_rev": linked_rev,
+            "draft": bool(draft),
+            "home": home,
+            "stale": bool(stale),
+        },
+        after_human,
+    )
+
+
 def events_from_state(values: dict[str, Any] | None) -> list[dict[str, Any]]:
     raw = (values or {}).get("events") or []
     return [dict(item) for item in raw if isinstance(item, dict)]

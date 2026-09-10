@@ -313,13 +313,123 @@ class LLMConfig(BaseModel):
         return self.resolve(utility=False) is not None
 
 
+class ImageModelSpec(BaseModel):
+    """One selectable image model. No token windows."""
+
+    id: str
+    label: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_bare_string(cls, value: Any):
+        if isinstance(value, str):
+            return {"id": value.strip()}
+        return value
+
+
+class ImageProvider(BaseModel):
+    """One OpenAI-compatible image endpoint."""
+
+    id: str = Field(default_factory=_new_provider_id)
+    label: str = ""
+    base_url: str = ""
+    api_key: str = ""
+    models: list[ImageModelSpec] = Field(default_factory=list)
+
+    def model_specs(self) -> list[ImageModelSpec]:
+        seen: set[str] = set()
+        out: list[ImageModelSpec] = []
+        for item in self.models:
+            spec = item if isinstance(item, ImageModelSpec) else ImageModelSpec.model_validate(item)
+            name = (spec.id or "").strip()
+            if name and name not in seen:
+                seen.add(name)
+                out.append(spec.model_copy(update={"id": name}))
+        return out
+
+    def cleaned_models(self) -> list[str]:
+        return [spec.id for spec in self.model_specs()]
+
+
+class ImageResolvedEndpoint(BaseModel):
+    provider_id: str = ""
+    label: str = ""
+    base_url: str = ""
+    api_key: str = ""
+    model: str = ""
+
+
+class ImageCatalogEntry(BaseModel):
+    key: str
+    provider_id: str
+    model: str
+    label: str
+
+
+class ImageConfig(BaseModel):
+    """Independent BYOK image-generation providers."""
+
+    providers: list[ImageProvider] = Field(default_factory=list)
+    active_provider_id: str = ""
+    model: str = ""
+
+    def catalog(self) -> list[ImageCatalogEntry]:
+        entries: list[ImageCatalogEntry] = []
+        for p in self.providers:
+            label = (p.label or "").strip() or _host_label(p.base_url) or p.id
+            for spec in p.model_specs():
+                entries.append(
+                    ImageCatalogEntry(
+                        key=f"{p.id}::{spec.id}",
+                        provider_id=p.id,
+                        model=spec.id,
+                        label=label,
+                    )
+                )
+        return entries
+
+    def find_provider(self, provider_id: str) -> Optional[ImageProvider]:
+        for p in self.providers:
+            if p.id == provider_id:
+                return p
+        return None
+
+    def resolve(self) -> Optional[ImageResolvedEndpoint]:
+        pid = (self.active_provider_id or "").strip()
+        mid = (self.model or "").strip()
+        prov = self.find_provider(pid) if pid else None
+        if prov is None and mid:
+            for p in self.providers:
+                if mid in p.cleaned_models():
+                    prov = p
+                    break
+        if not prov or not (prov.api_key or "").strip() or not mid:
+            return None
+        return ImageResolvedEndpoint(
+            provider_id=prov.id,
+            label=(prov.label or "").strip() or _host_label(prov.base_url),
+            base_url=prov.base_url,
+            api_key=prov.api_key,
+            model=mid,
+        )
+
+    @property
+    def is_configured(self) -> bool:
+        return self.resolve() is not None
+
+
 class AppConfig(BaseModel):
     llm: LLMConfig = Field(default_factory=LLMConfig)
+    image: ImageConfig = Field(default_factory=ImageConfig)
 
     @property
     def llm_configured(self) -> bool:
         """True when at least one usable LLM provider is configured."""
         return self.llm.is_configured
+
+    @property
+    def image_configured(self) -> bool:
+        return self.image.is_configured
 
 
 _config: AppConfig | None = None
@@ -504,4 +614,87 @@ def public_llm_config() -> dict[str, Any]:
         "base_url": "",
         "api_key_set": any(bool((p.api_key or "").strip()) for p in llm.providers),
         "available_models": [e.model for e in llm.catalog()],
+    }
+
+
+def _merge_image_providers(
+    existing: list[ImageProvider], incoming: list[Any]
+) -> list[ImageProvider]:
+    by_id = {p.id: p for p in existing}
+    result: list[ImageProvider] = []
+    for raw in incoming:
+        if isinstance(raw, ImageProvider):
+            data = raw.model_dump()
+        elif isinstance(raw, dict):
+            data = dict(raw)
+        else:
+            continue
+        pid = str(data.get("id") or "").strip() or _new_provider_id()
+        data["id"] = pid
+        old = by_id.get(pid)
+        key = data.get("api_key")
+        if (key is None or str(key).strip() == "") and old is not None:
+            data["api_key"] = old.api_key
+        else:
+            data["api_key"] = str(key or "")
+        data["label"] = str(data.get("label") or "").strip()
+        data["base_url"] = str(data.get("base_url") or "").strip()
+        models_raw = data.get("models") or []
+        if not isinstance(models_raw, list):
+            models_raw = []
+        prov = ImageProvider.model_validate({**data, "models": models_raw})
+        result.append(prov.model_copy(update={"models": prov.model_specs()}))
+    return result
+
+
+def update_image_config(**kwargs) -> AppConfig:
+    cfg = get_config()
+    updates = {k: v for k, v in kwargs.items() if v is not None}
+    if "providers" in updates:
+        updates["providers"] = _merge_image_providers(cfg.image.providers, updates["providers"])
+    image = cfg.image.model_copy(update=updates)
+    catalog = image.catalog()
+    keys = {e.key for e in catalog}
+    active_key = f"{image.active_provider_id}::{image.model}"
+    if image.active_provider_id or image.model:
+        if active_key not in keys:
+            match = next((e for e in catalog if e.model == image.model), None)
+            if match is not None:
+                image = image.model_copy(
+                    update={"active_provider_id": match.provider_id, "model": match.model}
+                )
+            else:
+                image = image.model_copy(update={"active_provider_id": "", "model": ""})
+    return save_config(cfg.model_copy(update={"image": image}))
+
+
+def public_image_config() -> dict[str, Any]:
+    cfg = get_config()
+    image = cfg.image
+    providers = []
+    for p in image.providers:
+        providers.append(
+            {
+                "id": p.id,
+                "label": p.label,
+                "base_url": p.base_url,
+                "api_key_set": bool((p.api_key or "").strip()),
+                "models": [{"id": spec.id, "label": spec.label} for spec in p.model_specs()],
+            }
+        )
+    catalog = [
+        {
+            "key": e.key,
+            "provider_id": e.provider_id,
+            "model": e.model,
+            "label": e.label,
+        }
+        for e in image.catalog()
+    ]
+    return {
+        "providers": providers,
+        "catalog": catalog,
+        "active_provider_id": image.active_provider_id,
+        "model": image.model,
+        "api_key_set": any(bool((p.api_key or "").strip()) for p in image.providers),
     }

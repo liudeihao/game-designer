@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Callable, Optional
 
@@ -18,12 +19,6 @@ from app.agent.helpers import (
 from app.agent.tools.catalog import catalog_miss_message, catalog_names
 from app.agent.tools.executor import execute_tool_calls
 from app.agent.tools.permission import result_outcome
-from app.conversations.events import (
-    human_count,
-    rule_proposal_event,
-    tool_call_event,
-    tool_result_event,
-)
 from app.llm import extract_answer_text, extract_reasoning_text
 from app.rules import (
     DUPLICATE_PROPOSAL,
@@ -35,6 +30,27 @@ from app.rules import (
 logger = logging.getLogger(__name__)
 
 _OBS_LIMIT = 8_000
+GENERATE_ILLUSTRATION_TOOL = "generate_illustration"
+
+
+def _events():
+    """Lazy import so plan_panel → loop does not load conversations.service."""
+    from app.conversations import events as ev
+
+    return ev
+
+
+def _illustration_payload(raw: Any) -> dict[str, Any] | None:
+    if isinstance(raw, dict) and raw.get("id"):
+        return raw
+    if isinstance(raw, str) and raw.strip():
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+        if isinstance(data, dict) and data.get("id"):
+            return data
+    return None
 
 __all__ = [
     "LAST_ROUND_NUDGE",
@@ -355,11 +371,11 @@ def _emit_bound_trace_start(
         kind=kind,
     )
     events.append(
-        tool_call_event(
+        _events().tool_call_event(
             call_id=call_id or tid,
             name=name,
             input=raw_args,
-            after_human=human_count(messages),
+            after_human=_events().human_count(messages),
         )
     )
     return tid
@@ -373,10 +389,11 @@ def _record_unbound_events(
     events: list[dict[str, Any]],
 ) -> None:
     """Catalog miss: persist the miss, skip live write traces and Permission."""
-    humans = human_count(messages)
+    ev = _events()
+    humans = ev.human_count(messages)
     call_id = _call_id(call) or result.get("call_id") or new_trace_id()
     events.append(
-        tool_call_event(
+        ev.tool_call_event(
             call_id=str(call_id),
             name=_call_name(call) or "tool",
             input=_call_args(call),
@@ -384,7 +401,7 @@ def _record_unbound_events(
         )
     )
     events.append(
-        tool_result_event(
+        ev.tool_result_event(
             call_id=str(call_id),
             outcome="error",
             content=str(result.get("error") or "tool failed"),
@@ -434,7 +451,8 @@ async def run_tool_batch(
             )
         )
 
-    humans = human_count(messages)
+    ev = _events()
+    humans = ev.human_count(messages)
 
     run_calls = [call for call, perm in zip(bound_calls, permissions) if perm.execute]
     if run_calls:
@@ -467,12 +485,29 @@ async def run_tool_batch(
                 payload["operation"] == "delete" or payload["details"]
             ):
                 events.append(
-                    rule_proposal_event(
+                    ev.rule_proposal_event(
                         proposal_id=tid,
                         scope=payload["scope"],
                         operation=payload["operation"],
                         name=payload["name"],
                         details=payload["details"],
+                        after_human=humans,
+                    )
+                )
+        if name == GENERATE_ILLUSTRATION_TOOL and result.get("ok"):
+            payload = _illustration_payload(result.get("result"))
+            if payload:
+                events.append(
+                    ev.illustration_event(
+                        illustration_id=str(payload.get("id") or tid),
+                        prompt=str(payload.get("prompt") or ""),
+                        extras=str(payload.get("extras") or ""),
+                        style_used=bool(payload.get("style_used")),
+                        linked_doc=payload.get("linked_doc"),
+                        linked_rev=payload.get("linked_rev"),
+                        draft=bool(payload.get("draft")),
+                        home=str(payload.get("home") or "unbound"),
+                        stale=bool(payload.get("stale")),
                         after_human=humans,
                     )
                 )
@@ -487,7 +522,7 @@ async def run_tool_batch(
         )
         call_id = _call_id(call) or result.get("call_id") or tid
         events.append(
-            tool_result_event(
+            ev.tool_result_event(
                 call_id=str(call_id),
                 outcome=outcome,  # type: ignore[arg-type]
                 content=str(

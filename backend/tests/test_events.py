@@ -6,6 +6,7 @@ from app.agent.tools.choice import (
 from app.agent.tools.deps import PLAN
 from app.agent.tools.mode import SUGGEST_MODE_TOOL
 from app.conversations.events import (
+    illustration_event,
     rule_proposal_event,
     tool_call_event,
     tool_permission_event,
@@ -22,6 +23,19 @@ def test_tool_result_outcomes_are_distinguishable() -> None:
     comment = tool_result_event(call_id="c1", outcome="comment", content="先改世界观")
     assert comment["outcome"] == "comment"
     assert comment["content"] == "先改世界观"
+
+
+def test_illustration_event_shape() -> None:
+    event = illustration_event(
+        illustration_id="ill_1",
+        prompt="a knight",
+        extras="fog",
+        home="unbound",
+    )
+    assert event["type"] == "illustration"
+    assert event["id"] == "ill_1"
+    assert event["prompt"] == "a knight"
+    assert event["home"] == "unbound"
 
 
 def test_rule_proposal_is_not_a_user_choice() -> None:

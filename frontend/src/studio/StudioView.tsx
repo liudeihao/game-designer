@@ -107,6 +107,7 @@ export function StudioView({ onLlmConfiguredChange }: Props) {
   const [liveTurn, setLiveTurn] = useState<LiveTurn | null>(null);
   const [selectedDocPath, setSelectedDocPath] = useState<string | null>(null);
   const [llmConfigured, setLlmConfigured] = useState(false);
+  const [imageConfigured, setImageConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [input, setInput] = useState("");
@@ -332,6 +333,7 @@ export function StudioView({ onLlmConfiguredChange }: Props) {
   useEffect(() => {
     api.health().then((h) => {
       setLlmConfigured(h.llm_configured);
+      setImageConfigured(!!h.image_configured);
       onLlmConfiguredChange?.(h.llm_configured);
     });
     refreshProjects();
@@ -1229,6 +1231,8 @@ export function StudioView({ onLlmConfiguredChange }: Props) {
               onDismissSuggestMode={dismissSuggestMode}
               onResolveRuleProposal={resolveRuleProposal}
               onOpenFile={openFileFromChat}
+              projectId={currentId}
+              docPaths={Object.keys(workspace.files)}
             />
           </ResizablePanel>
 
@@ -1266,6 +1270,7 @@ export function StudioView({ onLlmConfiguredChange }: Props) {
                     onSelectPath={setSelectedDocPath}
                     onWorkspace={setWorkspace}
                     onOpenPlan={openPlanFromExplorer}
+                    imageConfigured={imageConfigured}
                   />
                 )}
               </div>

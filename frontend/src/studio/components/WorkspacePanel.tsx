@@ -7,6 +7,7 @@ import {
   FileText,
   Folder,
   FolderOpen,
+  ImageIcon,
   Loader2,
   Save,
 } from "lucide-react";
@@ -27,6 +28,7 @@ import { Button } from "../../components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../../components/ui/resizable";
 import { Textarea } from "../../components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/tooltip";
+import { IllustrationGeneratePanel, IllustrationStrip, ProjectStyleEditor } from "./IllustrationDock";
 
 interface Props {
   workspace: WorkspaceSnapshot;
@@ -43,6 +45,7 @@ interface Props {
   onWorkspace: (workspace: WorkspaceSnapshot) => void;
   /** Open a conversation's plan in the Plan view (may switch conversation). */
   onOpenPlan?: (conversationId: string) => void;
+  imageConfigured?: boolean;
 }
 
 export function WorkspacePanel({
@@ -58,6 +61,7 @@ export function WorkspacePanel({
   onSelectPath,
   onWorkspace,
   onOpenPlan,
+  imageConfigured = false,
 }: Props) {
   const tree = useMemo(() => buildDocsTree(workspace.files), [workspace.files]);
   const [selectedDir, setSelectedDir] = useState<string | null>(null);
@@ -67,6 +71,7 @@ export function WorkspacePanel({
   const [loadingDoc, setLoadingDoc] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [generateOpen, setGenerateOpen] = useState(false);
   const { sourceMode, toggleSource } = useDocSourceMode(selectedPath ?? undefined);
   const projectRef = useRef(projectId);
 
@@ -270,6 +275,24 @@ export function WorkspacePanel({
                         <Button
                           type="button"
                           size="sm"
+                          variant={generateOpen ? "default" : "outline"}
+                          className="h-7 gap-1 px-2 text-[12px]"
+                          disabled={loadingDoc || !imageConfigured}
+                          onClick={() => setGenerateOpen((open) => !open)}
+                        >
+                          <ImageIcon className="size-3.5" />
+                          生成插画
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {imageConfigured ? "从本文档编译提示词并出概念图" : "先到设置配置图像模型"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          size="sm"
                           variant={dirty ? "default" : "outline"}
                           className="h-7 gap-1 px-2 text-[12px]"
                           disabled={!dirty || saving || loadingDoc}
@@ -293,6 +316,17 @@ export function WorkspacePanel({
                     </div>
                   )}
 
+                  {generateOpen && projectId && (
+                    <IllustrationGeneratePanel
+                      projectId={projectId}
+                      docPath={activePath}
+                      conversationId={currentConvId}
+                      docPaths={Object.keys(workspace.files)}
+                      imageConfigured={imageConfigured}
+                      onClose={() => setGenerateOpen(false)}
+                    />
+                  )}
+
                   <div className="min-h-0 flex-1 overflow-y-auto p-4 panel-fade-in">
                     {sourceMode ? (
                       <Textarea
@@ -308,6 +342,7 @@ export function WorkspacePanel({
                       </div>
                     )}
                   </div>
+                  {projectId && <IllustrationStrip projectId={projectId} docPath={activePath} />}
                 </DocPathAnchor>
               )}
             </div>
@@ -324,6 +359,7 @@ export function WorkspacePanel({
                 </span>
               </div>
 
+              {projectId && <ProjectStyleEditor projectId={projectId} />}
               <nav className="min-h-0 flex-1 overflow-y-auto px-1 py-1.5 font-mono">
                 {explorerEmpty ? (
                   <div className="flex h-full min-h-[160px] flex-col items-center justify-center px-3 text-center font-sans">

@@ -15,6 +15,7 @@ from app.agent.tools.plan_panel import (
     WRITE_PLAN_TOOL,
 )
 from app.agent.tools.mode import SUGGEST_MODE_TOOL
+from app.illustrations.service import GENERATE_ILLUSTRATION_TOOL, LIST_ILLUSTRATIONS_TOOL
 from app.rules import PROPOSE_RULE_TOOL
 from app.docs import load_workspace
 
@@ -68,6 +69,8 @@ def test_plan_profile_is_read_plus_plan_tools() -> None:
     assert UPDATE_PLAN_TOOL not in names
     assert SUGGEST_MODE_TOOL not in names
     assert PROPOSE_RULE_TOOL in names
+    assert LIST_ILLUSTRATIONS_TOOL in names
+    assert GENERATE_ILLUSTRATION_TOOL not in names
 
 
 def test_plan_profile_uses_update_when_plan_exists() -> None:
@@ -83,6 +86,8 @@ def test_agent_profile_is_read_write_plus_suggest_mode() -> None:
     assert "workspace_delete" in names
     assert SUGGEST_MODE_TOOL in names
     assert PROPOSE_RULE_TOOL in names
+    assert GENERATE_ILLUSTRATION_TOOL in names
+    assert LIST_ILLUSTRATIONS_TOOL in names
     assert WRITE_PLAN_TOOL not in names
     assert ASK_USER_TOOL in names
 
@@ -96,6 +101,8 @@ def test_ask_profile_is_read_only() -> None:
     assert WRITE_PLAN_TOOL not in names
     assert ASK_USER_TOOL not in names
     assert PROPOSE_RULE_TOOL in names
+    assert LIST_ILLUSTRATIONS_TOOL in names
+    assert GENERATE_ILLUSTRATION_TOOL not in names
 
 
 def test_execute_plan_omits_propose_rule_and_ask_user() -> None:
@@ -104,6 +111,8 @@ def test_execute_plan_omits_propose_rule_and_ask_user() -> None:
     assert ASK_USER_TOOL not in names
     assert SUGGEST_MODE_TOOL not in names
     assert "workspace_write" in names
+    assert GENERATE_ILLUSTRATION_TOOL not in names
+    assert LIST_ILLUSTRATIONS_TOOL in names
 
 
 def test_model_schema_hides_runtime_and_workspace_id() -> None:

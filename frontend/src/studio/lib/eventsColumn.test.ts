@@ -36,6 +36,22 @@ describe("cardsFromEvents", () => {
     );
   });
 
+  it("shows an illustration card and hides the generate tool trace", () => {
+    const cards = cardsFromEvents([
+      call("g1", "generate_illustration"),
+      ok("g1", "{\"id\":\"ill_1\"}"),
+      {
+        type: "illustration",
+        id: "ill_1",
+        prompt: "a knight",
+        home: "unbound",
+        after_human: 1,
+      },
+    ]);
+    expect(cards.map((c) => c.type)).toEqual(["illustration"]);
+    expect(cards[0]).toMatchObject({ type: "illustration", id: "ill_1", prompt: "a knight" });
+  });
+
   it("interleaves choice and rule cards where they happened", () => {
     const cards = cardsFromEvents([
       call("a", "workspace_read"),

@@ -94,6 +94,21 @@ export interface RuleProposalPart {
   status: RuleProposalStatus;
 }
 
+export type IllustrationHome = "doc" | "unbound" | "draft";
+
+export interface IllustrationPart {
+  type: "illustration";
+  id: string;
+  prompt: string;
+  extras?: string;
+  style_used?: boolean;
+  linked_doc?: string | null;
+  linked_rev?: number | null;
+  draft?: boolean;
+  home?: IllustrationHome;
+  stale?: boolean;
+}
+
 export type PermissionStatus = "pending" | "accepted" | "rejected" | "commented";
 
 export interface PermissionCall {
@@ -122,7 +137,8 @@ export type MessagePart =
   | FileRefsPart
   | UserChoicePart
   | RuleProposalPart
-  | PermissionPart;
+  | PermissionPart
+  | IllustrationPart;
 
 export interface AnswerItem {
   prompt: string;
@@ -150,7 +166,8 @@ export type LiveBlock =
   | { type: "trace"; id: string }
   | { type: "user_choice"; id: string }
   | { type: "rule_proposal"; id: string }
-  | { type: "tool_permission"; id: string };
+  | { type: "tool_permission"; id: string }
+  | { type: "illustration"; id: string };
 
 export interface LiveTurn {
   /** Server turn id. Identifies the chat bubble this turn folds into. */
@@ -311,12 +328,27 @@ export interface RuleProposalEvent {
   after_human?: number;
 }
 
+export interface IllustrationEvent {
+  type: "illustration";
+  id: string;
+  prompt: string;
+  extras?: string;
+  style_used?: boolean;
+  linked_doc?: string | null;
+  linked_rev?: number | null;
+  draft?: boolean;
+  home?: IllustrationHome;
+  stale?: boolean;
+  after_human?: number;
+}
+
 export type RuntimeEvent =
   | ToolCallEvent
   | ToolResultEvent
   | ToolPermissionEvent
   | RuntimeUserChoiceEvent
-  | RuleProposalEvent;
+  | RuleProposalEvent
+  | IllustrationEvent;
 
 export interface ProjectMeta {
   id: string;

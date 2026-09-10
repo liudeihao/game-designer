@@ -3,7 +3,8 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import type { LiveTurn, MessagePart, RuntimeEvent, TracePart } from "../../types";
+import type { IllustrationPart, LiveTurn, MessagePart, RuntimeEvent, TracePart } from "../../types";
+import type { IllustrationRecord } from "../../types/illustration";
 import { columnItemsFromEvents, orderLiveBlocksForDisplay } from "../lib/eventsColumn";
 import { describeLiveWorkingStatus, emptyLiveTurn } from "../streamUtils";
 import {
@@ -17,6 +18,24 @@ import { TraceCard } from "./TraceCard";
 import { RuleProposalCard, type RuleProposalHandlers } from "./RuleProposalCard";
 import { UserChoiceInline, type UserChoiceHandlers } from "./UserChoiceInline";
 import { PermissionPanel, type PermissionHandlers } from "./PermissionPanel";
+import { IllustrationCard } from "./IllustrationCard";
+
+function illustrationFromPart(part: IllustrationPart, fallback?: IllustrationRecord): IllustrationRecord {
+  return {
+    id: part.id,
+    prompt: part.prompt || fallback?.prompt || "",
+    extras: part.extras || fallback?.extras || "",
+    style_used: Boolean(part.style_used),
+    style_text: fallback?.style_text || "",
+    linked_doc: part.linked_doc ?? fallback?.linked_doc ?? null,
+    linked_rev: part.linked_rev ?? fallback?.linked_rev ?? null,
+    draft: Boolean(part.draft),
+    home: part.home || (part.draft ? "draft" : part.linked_doc ? "doc" : "unbound"),
+    stale: Boolean(part.stale),
+    created_at: fallback?.created_at || "",
+    conversation_id: fallback?.conversation_id,
+  };
+}
 
 function WorkingStatus({ label }: { label: string }) {
   return (
@@ -41,6 +60,8 @@ interface Props {
   choiceHandlers?: UserChoiceHandlers;
   ruleHandlers?: RuleProposalHandlers;
   permissionHandlers?: PermissionHandlers;
+  projectId?: string | null;
+  docPaths?: string[];
 }
 
 function MarkdownBlock({ content, streaming }: { content: string; streaming?: boolean }) {
@@ -109,6 +130,8 @@ export function MessageContent({
   choiceHandlers,
   ruleHandlers,
   permissionHandlers,
+  projectId,
+  docPaths = [],
 }: Props) {
   const showInternal = useShowInternalToolTraces();
   const showEvents = !!events?.length;
@@ -156,6 +179,18 @@ export function MessageContent({
               <div key={p.id || `perm-${i}`} className="my-2">
                 <PermissionPanel part={p} handlers={permissionHandlers} />
               </div>
+            );
+          }
+          if (p.type === "illustration") {
+            if (!projectId) return null;
+            return (
+              <IllustrationCard
+                key={p.id || `ill-${i}`}
+                projectId={projectId}
+                record={illustrationFromPart(p)}
+                docPaths={docPaths}
+                onOpenFile={onOpenFile}
+              />
             );
           }
           if (p.type === "trace") {
@@ -344,6 +379,18 @@ export function MessageContent({
               <div key={`perm-${card.id}`} className="my-2">
                 <PermissionPanel part={card} handlers={permissionHandlers} />
               </div>
+            );
+          }
+          if (card.type === "illustration") {
+            if (!projectId) return null;
+            return (
+              <IllustrationCard
+                key={`ill-${card.id}`}
+                projectId={projectId}
+                record={illustrationFromPart(card)}
+                docPaths={docPaths}
+                onOpenFile={onOpenFile}
+              />
             );
           }
           return (

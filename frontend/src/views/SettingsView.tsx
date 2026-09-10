@@ -11,6 +11,7 @@ interface Props {
 
 const SECTION_IDS: Record<SettingsSection, string> = {
   models: "settings-models",
+  "image-models": "settings-image-models",
   rules: "settings-rules",
   workspace: "settings-workspace",
 };

@@ -5,6 +5,7 @@ import type { RuleItem } from "../types";
 import type { LLMCatalogEntry, ModelSpec, ProviderDraft } from "../types/llm";
 import { asModelSpec, emptyModelSpec } from "../types/llm";
 import { savePanelFollowMode, type PanelFollowMode } from "../studio/panelFollow";
+import { ImageSettingsSection } from "./ImageSettingsSection";
 import {
   loadShowInternalToolTraces,
   saveShowInternalToolTraces,
@@ -785,6 +786,8 @@ export function SettingsPanel({
           onSave={saveDialog}
         />
       </section>
+
+      <ImageSettingsSection onSaved={onSaved} />
 
       <section id="settings-rules" className="scroll-mt-8 border-t border-border/40 pt-10">
         <header className="mb-4">

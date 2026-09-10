@@ -13,6 +13,8 @@ interface Props {
   choiceHandlers?: UserChoiceHandlers;
   ruleHandlers?: RuleProposalHandlers;
   permissionHandlers?: PermissionHandlers;
+  projectId?: string | null;
+  docPaths?: string[];
 }
 
 function parseAnswersFromContent(content: string): AnswerItem[] {
@@ -67,6 +69,8 @@ export function ChatMessageView({
   choiceHandlers,
   ruleHandlers,
   permissionHandlers,
+  projectId,
+  docPaths,
 }: Props) {
   const role = message?.role ?? "ai";
   const isHuman = role === "human";
@@ -133,6 +137,8 @@ export function ChatMessageView({
             choiceHandlers={choiceHandlers}
             ruleHandlers={ruleHandlers}
             permissionHandlers={permissionHandlers}
+            projectId={projectId}
+            docPaths={docPaths}
           />
         )}
       </div>

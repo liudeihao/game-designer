@@ -175,6 +175,8 @@ export function toolTitle(
   }
 
   if (name === "conversation_get_summary") return "读取了对话摘要";
+  if (name === "generate_illustration") return "生成了概念插画";
+  if (name === "list_illustrations") return "查阅了插画记录";
 
   if (name === "workspace_patch") {
     return path ? `编辑了 ${path}` : "编辑了文件";
@@ -220,6 +222,10 @@ export function toolWorkingStatus(name: string, args?: Record<string, unknown>):
       return "正在撰写 plan…";
     case "update_plan":
       return "正在修改 plan…";
+    case "generate_illustration":
+      return "正在生成概念插画…";
+    case "list_illustrations":
+      return "正在查阅插画记录…";
     default:
       return null;
   }
@@ -285,6 +291,14 @@ export function toolFriendlyDetails(
 
   if (name === "conversation_get_summary") {
     return { ...empty, lines: ["已读取对话摘要"] };
+  }
+
+  if (name === "generate_illustration") {
+    return { ...empty, lines: ["已生成概念插画"] };
+  }
+  if (name === "list_illustrations") {
+    const count = typeof rec?.count === "number" ? rec.count : 0;
+    return { ...empty, lines: [count > 0 ? `列出了 ${count} 张插画` : "没有插画记录"] };
   }
 
   const guessed: string[] = [];

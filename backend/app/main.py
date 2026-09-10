@@ -14,6 +14,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from .api.routes import (
     config_router,
     conversations_router,
+    illustrations_router,
     projects_router,
     rules_router,
     usage_router,
@@ -64,6 +65,7 @@ async def docs_write_conflict_handler(_request: Request, exc: Exception):
 
 app.include_router(config_router)
 app.include_router(projects_router)
+app.include_router(illustrations_router)
 app.include_router(conversations_router)
 app.include_router(rules_router)
 app.include_router(usage_router)

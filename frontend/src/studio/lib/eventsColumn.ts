@@ -3,6 +3,7 @@ import type {
   LiveBlock,
   PendingInterrupt,
   RuleOperation,
+  IllustrationPart,
   RuleProposalPart,
   RuleScope,
   RuntimeEvent,
@@ -259,16 +260,26 @@ function traceCard(
   };
 }
 
-export type EventCard = TracePart | UserChoicePart | RuleProposalPart | PermissionPart;
+export type EventCard = TracePart | UserChoicePart | RuleProposalPart | PermissionPart | IllustrationPart;
 
 export type EventColumnItem = EventCard | { type: "preamble" };
 
 function isUserFacingCard(card: EventCard): boolean {
-  return card.type === "user_choice" || card.type === "rule_proposal" || card.type === "tool_permission";
+  return (
+    card.type === "user_choice" ||
+    card.type === "rule_proposal" ||
+    card.type === "tool_permission" ||
+    card.type === "illustration"
+  );
 }
 
 function isLiveUserCard(block: LiveBlock): boolean {
-  return block.type === "user_choice" || block.type === "rule_proposal" || block.type === "tool_permission";
+  return (
+    block.type === "user_choice" ||
+    block.type === "rule_proposal" ||
+    block.type === "tool_permission" ||
+    block.type === "illustration"
+  );
 }
 
 /**
@@ -308,14 +319,36 @@ export function columnItemsFromEvents(
 export function cardsFromEvents(events: RuntimeEvent[]): EventCard[] {
   const results = new Map<string, ToolResultEvent>();
   const permissions = new Map<string, ToolPermissionEvent>();
+  const skipToolIds = new Set<string>();
   for (const event of events) {
     if (event.type === "tool_result") results.set(event.id, event);
     else if (event.type === "tool_permission") permissions.set(event.id, event);
+    else if (event.type === "tool_call" && event.name === "generate_illustration") {
+      skipToolIds.add(event.id);
+    }
   }
 
   // Map insertion order = first sighting; later events refresh in place.
   const cards = new Map<string, EventCard>();
   for (const event of events) {
+    if (event.type === "illustration") {
+      cards.set(`illustration:${event.id}`, {
+        type: "illustration",
+        id: event.id,
+        prompt: event.prompt || "",
+        extras: event.extras,
+        style_used: event.style_used,
+        linked_doc: event.linked_doc,
+        linked_rev: event.linked_rev,
+        draft: event.draft,
+        home: event.home,
+        stale: event.stale,
+      });
+      continue;
+    }
+    if ((event.type === "tool_call" || event.type === "tool_result") && skipToolIds.has(event.id)) {
+      continue;
+    }
     if (event.type === "tool_call" || event.type === "tool_result") {
       const key = `tool:${event.id}`;
       const call = event.type === "tool_call" ? event : undefined;

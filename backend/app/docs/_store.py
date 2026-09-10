@@ -4,9 +4,11 @@ Layout under ``{DATA_DIR}/projects/{project_id}/``::
 
     docs/                # user markdown (starts empty)
     .studio/
-      meta.json          # {"schema_version":1,"revs":{},"updated_at":"..."}
-      plans/             # archived plans, one file per Execute Plan
-      rules.json         # Project Rule items (not a design doc)
+      meta.json            # {"schema_version":1,"revs":{},"updated_at":"..."}
+      plans/               # archived plans, one file per Execute Plan
+      rules.json           # Project Rule items (not a design doc)
+      illustration.json    # project style for concept art
+      illustrations/       # immutable image+prompt records
 
 Editions live in ``.studio/meta.json`` ``revs``, not in the markdown files.
 """

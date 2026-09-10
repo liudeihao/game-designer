@@ -3,9 +3,11 @@
 Layout under ``{DATA_DIR}/projects/{project_id}/``::
 
     docs/                 # design markdown
-    .studio/meta.json     # file-level OCC revs
-    .studio/plans/        # execute plan snapshots
-    .studio/rules.json    # Project Rule items
+    .studio/meta.json           # file-level OCC revs
+    .studio/plans/              # execute plan snapshots
+    .studio/rules.json          # Project Rule items
+    .studio/illustration.json   # project style for concept art
+    .studio/illustrations/      # immutable image+prompt records
 """
 
 from __future__ import annotations

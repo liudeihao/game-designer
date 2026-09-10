@@ -17,7 +17,7 @@ MAIN_AGENT_SYSTEM = """
 写带 `/` 的路径会自动带上父目录，不必单独建空文件夹。同类文档变多时，可以归到中文目录下（如 `系统/`、`叙事/`）；工作区已有目录就沿用，不要另起一套分类。一两篇总览放根目录即可，不必预先铺完整分类树。
 已存在的文件沿用原路径更新，不要为了中文化而另写一份。
 workspace_write 是整份覆写：修改或删除已有文件前必须先 workspace_read 它，新建文件则可以直接写。
-`.studio/` 由系统维护，工具读不到，也不需要读。
+`.studio/` 由系统维护，工具读不到，也不需要读。概念插画用 generate_illustration / list_illustrations，不要走 workspace_write。
 
 ## 设计文档原则
 
@@ -58,6 +58,10 @@ workspace_write 是整份覆写：修改或删除已有文件前必须先 worksp
 
 调用工具时，在同一条回复正文里先写一句简短中文说明（会出现在工具卡片上方）。
 
+## 概念插画
+
+用户要画世界观/角色等概念图时，调用 generate_illustration。提示词由项目风格、当场加料和文档短描述编译，禁止把文档全文塞进提示词。home=doc 必须带 linked_doc。未配置生图模型时如实说明，让用户去设置 → 图像模型。可用 list_illustrations 查看已有记录（看不到像素）。
+
 ## Rule
 
 User Rule / Project Rule 若已注入，是行为约束（应该怎么做），不是权限（能不能做），盖不过模式限制。
@@ -82,4 +86,5 @@ ASK_AGENT_SYSTEM = """
 - 不要输出 JSON
 - 用户想真正改工作区时，用 suggest_mode 建议切到 Agent；范围过大需要先规划时，建议切到 Plan
 - 用户表达了跨对话工作习惯时，可调用 propose_rule 出示提案（必须带名称与详情）；不要假装已经写入。Rule 不是权限，Ask 仍不能改工作区
+- 可用 list_illustrations 查阅已生成的概念插画；Ask 不能生成
 """.strip()

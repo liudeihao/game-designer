@@ -104,3 +104,60 @@ class LLMConfigBody(BaseModel):
     base_url: Optional[str] = None
     api_key: Optional[str] = None
     available_models: Optional[list[str]] = None
+
+
+class ImageModelBody(BaseModel):
+    id: str
+    label: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_bare_string(cls, value: Any):
+        if isinstance(value, str):
+            return {"id": value.strip()}
+        return value
+
+
+class ImageProviderBody(BaseModel):
+    id: Optional[str] = None
+    label: str = ""
+    base_url: str = ""
+    api_key: Optional[str] = None
+    models: list[ImageModelBody] = []
+
+
+class ImageConfigBody(BaseModel):
+    providers: Optional[list[ImageProviderBody]] = None
+    active_provider_id: Optional[str] = None
+    model: Optional[str] = None
+
+
+class ConfigPutBody(LLMConfigBody):
+    """PUT /api/config: LLM fields at top level; image is a sibling namespace."""
+
+    image: Optional[ImageConfigBody] = None
+
+
+class IllustrationSettingsBody(BaseModel):
+    style_text: Optional[str] = None
+    use_style_default: Optional[bool] = None
+
+
+class IllustrationCompileBody(BaseModel):
+    extras: str = ""
+    use_style: Optional[bool] = None
+    linked_doc: Optional[str] = None
+
+
+class IllustrationGenerateBody(BaseModel):
+    prompt: str = ""
+    extras: str = ""
+    use_style: Optional[bool] = None
+    home: str = "draft"
+    linked_doc: Optional[str] = None
+    conversation_id: Optional[str] = None
+
+
+class IllustrationPlaceBody(BaseModel):
+    home: str
+    linked_doc: Optional[str] = None

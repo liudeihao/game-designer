@@ -121,6 +121,7 @@ class ImageModelBody(BaseModel):
 class ImageProviderBody(BaseModel):
     id: Optional[str] = None
     label: str = ""
+    adapter: str = ""
     base_url: str = ""
     api_key: Optional[str] = None
     models: list[ImageModelBody] = []

@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, Pencil, Plus, Trash2, X } from "lucide-react";
 import { api } from "../api";
-import type { ImageCatalogEntry, ImageModelSpec, ImageProviderDraft } from "../types/image";
-import { asImageModel, emptyImageModel } from "../types/image";
+import type { ImageAdapterInfo, ImageCatalogEntry, ImageModelSpec, ImageProviderDraft } from "../types/image";
+import {
+  AUTO_ADAPTER,
+  FALLBACK_ADAPTERS,
+  adapterLabel,
+  asImageModel,
+  emptyImageModel,
+  hintsForAdapter,
+} from "../types/image";
 import { cn } from "@/lib/utils";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -25,6 +32,7 @@ function newDraft(): ImageProviderDraft {
   return {
     id: `prov_${Math.random().toString(36).slice(2, 12)}`,
     label: "",
+    adapter: AUTO_ADAPTER,
     base_url: "",
     api_key: "",
     api_key_set: false,
@@ -32,15 +40,36 @@ function newDraft(): ImageProviderDraft {
   };
 }
 
+function toDraft(p: {
+  id: string;
+  label: string;
+  adapter?: string;
+  base_url: string;
+  api_key_set: boolean;
+  models?: Array<string | ImageModelSpec | null | undefined>;
+}): ImageProviderDraft {
+  return {
+    id: p.id,
+    label: p.label,
+    adapter: p.adapter || AUTO_ADAPTER,
+    base_url: p.base_url,
+    api_key: "",
+    api_key_set: p.api_key_set,
+    models: (p.models ?? []).map(asImageModel).filter((m): m is ImageModelSpec => m != null),
+  };
+}
+
 function ImageProviderDialog({
   open,
   draft,
+  adapters,
   onClose,
   onSave,
   saving,
 }: {
   open: boolean;
   draft: ImageProviderDraft | null;
+  adapters: ImageAdapterInfo[];
   onClose: () => void;
   onSave: (draft: ImageProviderDraft) => Promise<void>;
   saving: boolean;
@@ -50,13 +79,18 @@ function ImageProviderDialog({
 
   useEffect(() => {
     if (open && draft) {
-      setForm({ ...draft, models: draft.models.map((m) => ({ ...m })) });
+      setForm({
+        ...draft,
+        adapter: draft.adapter || AUTO_ADAPTER,
+        models: draft.models.map((m) => ({ ...m })),
+      });
       setCustomModel("");
     }
   }, [open, draft]);
 
   if (!form) return null;
 
+  const hints = hintsForAdapter(form.adapter, form.base_url, adapters);
   const patch = (partial: Partial<ImageProviderDraft>) =>
     setForm((prev) => (prev ? { ...prev, ...partial } : prev));
 
@@ -70,7 +104,17 @@ function ImageProviderDialog({
     patch({ models: form.models.filter((m) => m.id !== id) });
   };
 
-  const canSave = form.base_url.trim().length > 0 && (form.api_key_set || form.api_key.trim().length > 0);
+  const selectAdapter = (adapter: string) => {
+    const nextHints = hintsForAdapter(adapter, form.base_url, adapters);
+    const filled =
+      form.base_url.trim() ||
+      (adapter !== AUTO_ADAPTER ? nextHints?.base_url_hint || "" : form.base_url);
+    patch({ adapter, base_url: filled });
+  };
+
+  const urlOptional = form.adapter === "fal";
+  const canSave =
+    (urlOptional || form.base_url.trim().length > 0) && (form.api_key_set || form.api_key.trim().length > 0);
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -84,6 +128,24 @@ function ImageProviderDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
+            <label className="block text-[14px] font-medium text-muted-foreground">适配器</label>
+            <select
+              className="box-border flex h-10 w-full rounded-md border border-solid border-input/70 bg-muted/30 px-3 text-[15px] leading-5 text-foreground"
+              value={form.adapter || AUTO_ADAPTER}
+              onChange={(e) => selectAdapter(e.target.value)}
+            >
+              <option value={AUTO_ADAPTER}>自动识别（按 Base URL）</option>
+              {adapters.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-[13px] text-muted-foreground">
+              协议不同的服务商走不同适配器。新增厂商只需后端注册，不必改插画流程。
+            </p>
+          </div>
+          <div className="space-y-1.5">
             <label className="block text-[14px] font-medium text-muted-foreground">备注名</label>
             <Input value={form.label} placeholder="可选" onChange={(e) => patch({ label: e.target.value })} />
           </div>
@@ -91,7 +153,7 @@ function ImageProviderDialog({
             <label className="block text-[14px] font-medium text-muted-foreground">Base URL</label>
             <Input
               value={form.base_url}
-              placeholder="https://api.openai.com/v1"
+              placeholder={hints?.base_url_hint || "https://api.openai.com/v1"}
               onChange={(e) => patch({ base_url: e.target.value })}
             />
           </div>
@@ -107,14 +169,18 @@ function ImageProviderDialog({
             <Input
               type="password"
               value={form.api_key}
-              placeholder={form.api_key_set ? "留空则保持原 Key" : "sk-..."}
+              placeholder={form.api_key_set ? "留空则保持原 Key" : hints?.auth_hint || "sk-..."}
               onChange={(e) => patch({ api_key: e.target.value })}
               autoComplete="off"
             />
           </div>
           <div className="space-y-1.5">
             <label className="block text-[14px] font-medium text-muted-foreground">模型</label>
-            <p className="text-[13px] text-muted-foreground">填写生图模型 ID，例如 gpt-image-1、dall-e-3。</p>
+            <p className="text-[13px] text-muted-foreground">
+              {hints?.id === "fal"
+                ? `填写 fal 模型 ID，例如 ${hints.model_hint}。`
+                : `填写生图模型 ID，例如 ${hints?.model_hint || "gpt-image-1"}。`}
+            </p>
             {form.models.length > 0 && (
               <div className="space-y-1.5">
                 {form.models.map((spec) => (
@@ -135,7 +201,7 @@ function ImageProviderDialog({
             <div className={cn("flex gap-2", form.models.length > 0 && "mt-2")}>
               <Input
                 value={customModel}
-                placeholder="模型 ID"
+                placeholder={hints?.model_hint || "模型 ID"}
                 onChange={(e) => setCustomModel(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -174,6 +240,7 @@ function ImageProviderDialog({
 
 export function ImageSettingsSection({ onSaved }: { onSaved?: () => void }) {
   const [providers, setProviders] = useState<ImageProviderDraft[]>([]);
+  const [adapters, setAdapters] = useState<ImageAdapterInfo[]>(FALLBACK_ADAPTERS);
   const [activeProviderId, setActiveProviderId] = useState("");
   const [model, setModel] = useState("");
   const [saving, setSaving] = useState(false);
@@ -184,16 +251,8 @@ export function ImageSettingsSection({ onSaved }: { onSaved?: () => void }) {
     api.getConfig().then((c) => {
       const image = c.image;
       if (!image) return;
-      setProviders(
-        (image.providers ?? []).map((p) => ({
-          id: p.id,
-          label: p.label,
-          base_url: p.base_url,
-          api_key: "",
-          api_key_set: p.api_key_set,
-          models: (p.models ?? []).map(asImageModel).filter((m): m is ImageModelSpec => m != null),
-        })),
-      );
+      if (image.adapters?.length) setAdapters(image.adapters);
+      setProviders((image.providers ?? []).map(toDraft));
       setActiveProviderId(image.active_provider_id || "");
       setModel(image.model || "");
     });
@@ -230,7 +289,9 @@ export function ImageSettingsSection({ onSaved }: { onSaved?: () => void }) {
           providers: nextProviders.map((p) => ({
             id: p.id,
             label: p.label.trim(),
-            base_url: p.base_url.trim(),
+            adapter: p.adapter === AUTO_ADAPTER ? "" : p.adapter,
+            base_url:
+              p.base_url.trim() || (p.adapter === "fal" ? "https://fal.run" : ""),
             api_key: p.api_key || undefined,
             models: p.models.map((m) => ({ id: m.id, label: m.label })),
           })),
@@ -238,19 +299,17 @@ export function ImageSettingsSection({ onSaved }: { onSaved?: () => void }) {
           model: nextModel,
         },
       });
-      const returned = (saved.image?.providers ?? []).map((p) => ({
-        id: p.id,
-        label: p.label,
-        base_url: p.base_url,
-        api_key: "",
-        api_key_set: p.api_key_set,
-        models: (p.models ?? []).map(asImageModel).filter((m): m is ImageModelSpec => m != null),
-      }));
-      setProviders(returned.length > 0 ? returned : nextProviders.map((p) => ({
-        ...p,
-        api_key: "",
-        api_key_set: p.api_key_set || !!p.api_key,
-      })));
+      const returned = (saved.image?.providers ?? []).map(toDraft);
+      setProviders(
+        returned.length > 0
+          ? returned
+          : nextProviders.map((p) => ({
+              ...p,
+              api_key: "",
+              api_key_set: p.api_key_set || !!p.api_key,
+            })),
+      );
+      if (saved.image?.adapters?.length) setAdapters(saved.image.adapters);
       setActiveProviderId(nextActiveId);
       setModel(nextModel);
       onSaved?.();
@@ -319,7 +378,7 @@ export function ImageSettingsSection({ onSaved }: { onSaved?: () => void }) {
       <div className="mb-5 space-y-2">
         {providers.length === 0 && (
           <div className="rounded-lg border border-dashed border-border/60 bg-muted/30 px-4 py-8 text-center text-[14px] text-muted-foreground">
-            尚未配置生图服务商。需要兼容 OpenAI Images 的接口。
+            尚未配置生图服务商。可添加 OpenAI 兼容接口或 fal.ai。
           </div>
         )}
         {providers.map((p) => (
@@ -327,6 +386,7 @@ export function ImageSettingsSection({ onSaved }: { onSaved?: () => void }) {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-[15px] font-semibold">{p.label.trim() || "未命名服务商"}</span>
+                <Badge variant="secondary">{adapterLabel(p.adapter, adapters)}</Badge>
                 <Badge variant={p.api_key_set ? "success" : "warning"}>
                   {p.api_key_set ? "Key 已配置" : "缺少 Key"}
                 </Badge>
@@ -420,7 +480,7 @@ export function ImageSettingsSection({ onSaved }: { onSaved?: () => void }) {
           </DropdownMenuContent>
         </DropdownMenu>
         <p className="text-[14px] text-muted-foreground">
-          使用兼容 OpenAI `/v1/images/generations` 的接口。
+          按服务商适配器发请求；未指定时按 Base URL 识别，否则走 OpenAI Images。
           {saving ? " · 正在保存…" : ""}
         </p>
       </div>
@@ -428,6 +488,7 @@ export function ImageSettingsSection({ onSaved }: { onSaved?: () => void }) {
       <ImageProviderDialog
         open={dialogOpen}
         draft={editDraft}
+        adapters={adapters}
         saving={saving}
         onClose={() => {
           setDialogOpen(false);

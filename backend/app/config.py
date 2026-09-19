@@ -328,10 +328,11 @@ class ImageModelSpec(BaseModel):
 
 
 class ImageProvider(BaseModel):
-    """One OpenAI-compatible image endpoint."""
+    """One BYOK image endpoint. ``adapter`` selects the HTTP protocol."""
 
     id: str = Field(default_factory=_new_provider_id)
     label: str = ""
+    adapter: str = ""
     base_url: str = ""
     api_key: str = ""
     models: list[ImageModelSpec] = Field(default_factory=list)
@@ -354,6 +355,7 @@ class ImageProvider(BaseModel):
 class ImageResolvedEndpoint(BaseModel):
     provider_id: str = ""
     label: str = ""
+    adapter: str = ""
     base_url: str = ""
     api_key: str = ""
     model: str = ""
@@ -408,6 +410,7 @@ class ImageConfig(BaseModel):
         return ImageResolvedEndpoint(
             provider_id=prov.id,
             label=(prov.label or "").strip() or _host_label(prov.base_url),
+            adapter=(prov.adapter or "").strip(),
             base_url=prov.base_url,
             api_key=prov.api_key,
             model=mid,
@@ -639,6 +642,8 @@ def _merge_image_providers(
             data["api_key"] = str(key or "")
         data["label"] = str(data.get("label") or "").strip()
         data["base_url"] = str(data.get("base_url") or "").strip()
+        adapter = str(data.get("adapter") or "").strip().lower()
+        data["adapter"] = "" if adapter in {"", "auto"} else adapter
         models_raw = data.get("models") or []
         if not isinstance(models_raw, list):
             models_raw = []
@@ -669,6 +674,8 @@ def update_image_config(**kwargs) -> AppConfig:
 
 
 def public_image_config() -> dict[str, Any]:
+    from app.image.adapters import list_adapter_infos
+
     cfg = get_config()
     image = cfg.image
     providers = []
@@ -677,6 +684,7 @@ def public_image_config() -> dict[str, Any]:
             {
                 "id": p.id,
                 "label": p.label,
+                "adapter": (p.adapter or "").strip(),
                 "base_url": p.base_url,
                 "api_key_set": bool((p.api_key or "").strip()),
                 "models": [{"id": spec.id, "label": spec.label} for spec in p.model_specs()],
@@ -694,6 +702,7 @@ def public_image_config() -> dict[str, Any]:
     return {
         "providers": providers,
         "catalog": catalog,
+        "adapters": list_adapter_infos(),
         "active_provider_id": image.active_provider_id,
         "model": image.model,
         "api_key_set": any(bool((p.api_key or "").strip()) for p in image.providers),

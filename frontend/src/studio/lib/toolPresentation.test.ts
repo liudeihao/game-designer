@@ -81,10 +81,18 @@ describe("workspace_write presentation", () => {
 describe("other tools", () => {
   it("titles illustration tools", () => {
     expect(toolTitle("generate_illustration", {}, "success")).toBe("生成了概念插画");
+    expect(toolTitle("generate_illustration", {}, "error")).toBe("生成概念插画失败");
     expect(toolWorkingStatus("generate_illustration")).toBe("正在生成概念插画…");
     expect(toolFriendlyDetails("list_illustrations", {}, JSON.stringify({ count: 2 })).lines).toEqual([
       "列出了 2 张插画",
     ]);
+    expect(
+      toolFriendlyDetails(
+        "generate_illustration",
+        {},
+        "Error: ValueError('缺少项目上下文。')\n Please fix your mistakes.",
+      ).lines,
+    ).toEqual(["缺少项目上下文。"]);
   });
 
   it("falls back to 调用了 {name} for unknown tools", () => {

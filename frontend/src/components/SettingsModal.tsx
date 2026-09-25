@@ -6,6 +6,7 @@ import type { LLMCatalogEntry, ModelSpec, ProviderDraft } from "../types/llm";
 import { asModelSpec, emptyModelSpec } from "../types/llm";
 import { savePanelFollowMode, type PanelFollowMode } from "../studio/panelFollow";
 import { ImageSettingsSection } from "./ImageSettingsSection";
+import { ProjectStyleEditor } from "../studio/components/IllustrationDock";
 import {
   loadShowInternalToolTraces,
   saveShowInternalToolTraces,
@@ -154,7 +155,7 @@ export function WorkspaceSettingsSection({
   );
 }
 
-/** Studio top-bar settings: workspace options + Project Rule. */
+/** Studio top-bar settings: Project Rule, concept-art style, workspace options. */
 export function WorkspaceSettingsDialog({
   open,
   onOpenChange,
@@ -227,32 +228,37 @@ export function WorkspaceSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>工作区设置</DialogTitle>
           <DialogDescription>
-            本项目的 Project Rule，以及右侧面板与工具过程展示。
+            本项目的 Project Rule 与概念插画风格，以及右侧面板与工具过程展示。
           </DialogDescription>
         </DialogHeader>
         {projectId ? (
-          <div className="border-b border-border/40 pb-5">
-            <h3 className="mb-1 text-[15px] font-semibold">Project Rule</h3>
-            <p className="mb-3 text-[13px] text-muted-foreground">
-              只对本项目生效。每条有名称与详情，不是设计文档；删项目会一起清掉。
-            </p>
-            <RuleListEditor
-              rules={projectRules}
-              warn={projectRuleWarn}
-              saving={savingRule}
-              error={ruleError}
-              onChange={(next) => {
-                setProjectRules(next);
-                setProjectRuleWarn(false);
-                setRuleError("");
-              }}
-              onSave={() => void saveProjectRule()}
-            />
-          </div>
+          <>
+            <div className="border-b border-border/40 pb-5">
+              <h3 className="mb-1 text-[15px] font-semibold">Project Rule</h3>
+              <p className="mb-3 text-[13px] text-muted-foreground">
+                只对本项目生效。每条有名称与详情，不是设计文档；删项目会一起清掉。
+              </p>
+              <RuleListEditor
+                rules={projectRules}
+                warn={projectRuleWarn}
+                saving={savingRule}
+                error={ruleError}
+                onChange={(next) => {
+                  setProjectRules(next);
+                  setProjectRuleWarn(false);
+                  setRuleError("");
+                }}
+                onSave={() => void saveProjectRule()}
+              />
+            </div>
+            <div className="border-b border-border/40 pb-5">
+              <ProjectStyleEditor projectId={projectId} active={open} />
+            </div>
+          </>
         ) : null}
         <WorkspaceSettingsSection
           showHeader={false}

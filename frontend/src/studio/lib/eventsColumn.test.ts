@@ -52,6 +52,26 @@ describe("cardsFromEvents", () => {
     expect(cards[0]).toMatchObject({ type: "illustration", id: "ill_1", prompt: "a knight" });
   });
 
+  it("keeps a failed generate_illustration in the chat", () => {
+    const cards = cardsFromEvents([
+      call("g1", "generate_illustration"),
+      {
+        type: "tool_result",
+        id: "g1",
+        outcome: "error",
+        content: "Error: ValueError('缺少项目上下文。')\n Please fix your mistakes.",
+        after_human: 1,
+      },
+    ]);
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({
+      type: "trace",
+      name: "generate_illustration",
+      status: "error",
+      error: "Error: ValueError('缺少项目上下文。')\n Please fix your mistakes.",
+    });
+  });
+
   it("interleaves choice and rule cards where they happened", () => {
     const cards = cardsFromEvents([
       call("a", "workspace_read"),

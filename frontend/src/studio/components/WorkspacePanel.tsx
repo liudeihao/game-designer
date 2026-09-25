@@ -28,7 +28,7 @@ import { Button } from "../../components/ui/button";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../../components/ui/resizable";
 import { Textarea } from "../../components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../components/ui/tooltip";
-import { IllustrationGeneratePanel, IllustrationStrip, ProjectStyleEditor } from "./IllustrationDock";
+import { IllustrationGeneratePanel, IllustrationStrip } from "./IllustrationDock";
 
 interface Props {
   workspace: WorkspaceSnapshot;
@@ -359,7 +359,6 @@ export function WorkspacePanel({
                 </span>
               </div>
 
-              {projectId && <ProjectStyleEditor projectId={projectId} />}
               <nav className="min-h-0 flex-1 overflow-y-auto px-1 py-1.5 font-mono">
                 {explorerEmpty ? (
                   <div className="flex h-full min-h-[160px] flex-col items-center justify-center px-3 text-center font-sans">

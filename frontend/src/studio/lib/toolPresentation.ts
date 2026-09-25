@@ -34,6 +34,15 @@ export function formatToolJson(value: unknown): string {
   }
 }
 
+/** Unwrap LangGraph ``Error: ValueError('…') Please fix your mistakes.`` for chat. */
+export function formatToolError(raw?: string): string {
+  const text = (raw || "").trim();
+  if (!text) return "";
+  const cleaned = text.replace(/\s*Please fix your mistakes\.?\s*$/i, "").trim();
+  const match = cleaned.match(/^Error:\s*[A-Za-z_]+(?:Error)?\((['"])([\s\S]*)\1\)\s*$/);
+  return match ? match[2] : cleaned;
+}
+
 function pathArg(args?: Record<string, unknown>): string {
   if (!args) return "";
   for (const key of ["path", "ref"]) {
@@ -175,8 +184,12 @@ export function toolTitle(
   }
 
   if (name === "conversation_get_summary") return "读取了对话摘要";
-  if (name === "generate_illustration") return "生成了概念插画";
-  if (name === "list_illustrations") return "查阅了插画记录";
+  if (name === "generate_illustration") {
+    return status === "error" ? "生成概念插画失败" : "生成了概念插画";
+  }
+  if (name === "list_illustrations") {
+    return status === "error" ? "查阅插画记录失败" : "查阅了插画记录";
+  }
 
   if (name === "workspace_patch") {
     return path ? `编辑了 ${path}` : "编辑了文件";
@@ -294,7 +307,9 @@ export function toolFriendlyDetails(
   }
 
   if (name === "generate_illustration") {
-    return { ...empty, lines: ["已生成概念插画"] };
+    if (asRecord(parsed)) return { ...empty, lines: ["已生成概念插画"] };
+    const err = formatToolError(typeof parsed === "string" ? parsed : result);
+    return { ...empty, lines: err ? [err] : [] };
   }
   if (name === "list_illustrations") {
     const count = typeof rec?.count === "number" ? rec.count : 0;

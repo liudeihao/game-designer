@@ -7,10 +7,11 @@ from typing import TYPE_CHECKING, Literal
 
 from langchain_core.tools import tool
 from langgraph.prebuilt import ToolRuntime
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from app.agent.tools.deps import ASK, NORMAL, PLAN
 from app.agent.tools.inject import runtime_workspace_id
+from app.agent.tools.schemas import WithInjectedRuntime
 from app.illustrations.service import (
     GENERATE_ILLUSTRATION_TOOL,
     LIST_ILLUSTRATIONS_TOOL,
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     from app.agent.tools.registry import ToolRegistry
 
 
-class GenerateIllustrationArgs(BaseModel):
+class GenerateIllustrationArgs(WithInjectedRuntime):
     extras: str = Field(default="", description="用户当场加的视觉料，可空")
     use_style: bool | None = Field(
         default=None,
@@ -43,7 +44,7 @@ class GenerateIllustrationArgs(BaseModel):
     )
 
 
-class ListIllustrationsArgs(BaseModel):
+class ListIllustrationsArgs(WithInjectedRuntime):
     linked_doc: str = Field(
         default="",
         description="只列出挂在这篇文档上的图；空则列出项目全部",

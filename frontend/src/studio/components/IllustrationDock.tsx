@@ -8,7 +8,14 @@ import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
 import { IllustrationHomeSelect } from "./IllustrationHomeSelect";
 
-export function ProjectStyleEditor({ projectId }: { projectId: string }) {
+export function ProjectStyleEditor({
+  projectId,
+  active = true,
+}: {
+  projectId: string;
+  /** 弹层打开时再拉一次，避免关着窗口时改过的值过期 */
+  active?: boolean;
+}) {
   const [settings, setSettings] = useState<IllustrationSettings>({
     style_text: "",
     use_style_default: true,
@@ -17,6 +24,7 @@ export function ProjectStyleEditor({ projectId }: { projectId: string }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!active) return;
     let cancelled = false;
     api
       .getIllustrationSettings(projectId)
@@ -29,7 +37,7 @@ export function ProjectStyleEditor({ projectId }: { projectId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [projectId]);
+  }, [projectId, active]);
 
   const save = async (next: IllustrationSettings) => {
     setSettings(next);
@@ -45,16 +53,19 @@ export function ProjectStyleEditor({ projectId }: { projectId: string }) {
   };
 
   return (
-    <div className="border-b border-border/40 px-2 py-2">
-      <p className="mb-1 text-[11px] font-medium text-muted-foreground">项目风格</p>
+    <div>
+      <h3 className="mb-1 text-[15px] font-semibold">项目风格</h3>
+      <p className="mb-3 text-[13px] text-muted-foreground">
+        生概念插画时默认带上的媒介、色彩、线面和禁止项。只对本项目生效，删项目会一起清掉。
+      </p>
       <Textarea
         value={settings.style_text}
         onChange={(e) => setSettings({ ...settings, style_text: e.target.value })}
         onBlur={() => void save(settings)}
         placeholder="可选。媒介、色彩、线面、禁止项…"
-        className="min-h-[4.5rem] resize-y text-[12px] leading-relaxed"
+        className="min-h-[5.5rem] resize-y text-[13px] leading-relaxed"
       />
-      <label className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+      <label className="mt-2 flex items-center gap-1.5 text-[13px] text-muted-foreground">
         <input
           type="checkbox"
           checked={settings.use_style_default}
@@ -62,8 +73,8 @@ export function ProjectStyleEditor({ projectId }: { projectId: string }) {
         />
         默认带上这段风格
       </label>
-      {saving ? <p className="mt-1 text-[11px] text-muted-foreground">保存中…</p> : null}
-      {error ? <p className="mt-1 text-[11px] text-destructive">{error}</p> : null}
+      {saving ? <p className="mt-1.5 text-[13px] text-muted-foreground">保存中…</p> : null}
+      {error ? <p className="mt-1.5 text-[13px] text-destructive">{error}</p> : null}
     </div>
   );
 }

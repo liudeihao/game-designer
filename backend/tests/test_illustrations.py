@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from app.docs import ensure_seeded, write_files
@@ -151,3 +153,49 @@ async def test_generate_writes_immutable_record(project_id, monkeypatch):
     placed = place_illustration(project_id, rec["id"], home="unbound")
     assert placed["prompt"] == "final prompt text"
     assert placed["linked_doc"] is None
+
+
+@pytest.mark.asyncio
+async def test_list_illustrations_tool_gets_project_from_runtime(project_id):
+    from app.agent.tools.illustrations import list_illustrations_tool
+    from app.agent.tools.node import run_tool_node
+
+    _messages, _extra, results = await run_tool_node(
+        {"project_id": project_id, "mode": "plan"},
+        [list_illustrations_tool],
+        [
+            {
+                "id": "c_list",
+                "name": "list_illustrations",
+                "args": {},
+                "type": "tool_call",
+            }
+        ],
+    )
+    assert results[0]["ok"] is True
+    payload = json.loads(results[0]["result"])
+    assert payload["ok"] is True
+    assert payload["count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_generate_illustration_tool_sees_project_context(project_id):
+    from app.agent.tools.illustrations import generate_illustration_tool
+    from app.agent.tools.node import run_tool_node
+
+    _messages, _extra, results = await run_tool_node(
+        {"project_id": project_id, "mode": ""},
+        [generate_illustration_tool],
+        [
+            {
+                "id": "c_gen",
+                "name": "generate_illustration",
+                "args": {"prompt": "a knight", "home": "unbound"},
+                "type": "tool_call",
+            }
+        ],
+    )
+    err = str(results[0].get("error") or results[0].get("result") or "")
+    assert "缺少项目上下文" not in err
+    if not results[0]["ok"]:
+        assert "无法连接生图" in err or "未配置生图" in err or "图像模型" in err

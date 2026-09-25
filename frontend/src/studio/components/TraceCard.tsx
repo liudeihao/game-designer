@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { TracePart, TraceStep } from "../../types";
 import {
+  formatToolError,
   formatToolJson,
   hasFriendlyBody,
   parseToolJson,
@@ -45,7 +46,9 @@ function isToolCard(trace: TracePart): boolean {
     trace.name.startsWith("workspace_") ||
     trace.name === "write_plan" ||
     trace.name === "update_plan" ||
-    trace.name === "conversation_get_summary"
+    trace.name === "conversation_get_summary" ||
+    trace.name === "generate_illustration" ||
+    trace.name === "list_illustrations"
   );
 }
 
@@ -241,7 +244,7 @@ function HandoffCard({ trace, forceOpen }: { trace: TracePart; forceOpen?: boole
           {reply && <Section title="回复">{reply}</Section>}
           {trace.error && (
             <Section title="错误">
-              <span className="text-destructive">{trace.error}</span>
+              <span className="text-destructive">{formatToolError(trace.error)}</span>
             </Section>
           )}
         </div>
@@ -433,7 +436,7 @@ export function TraceCard({ trace, depth = 0, forceOpen, onOpenFile }: Props) {
           {!isTool && hasResult && trace.result && <Section title="结果">{trace.result}</Section>}
           {trace.error && (
             <Section title="错误">
-              <span className="text-destructive">{trace.error}</span>
+              <span className="text-destructive">{formatToolError(trace.error)}</span>
             </Section>
           )}
         </div>

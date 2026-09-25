@@ -29,7 +29,10 @@ log() { printf '\n==> %s\n' "$1"; }
 ok() { printf '    %s\n' "$1"; }
 
 port_open() {
-  python3 - "$1" <<'PY' 2>/dev/null || python - "$1" <<'PY' 2>/dev/null || return 1
+  local py
+  for py in python3 python; do
+    command -v "$py" >/dev/null 2>&1 || continue
+    "$py" - "$1" <<'PY'
 import socket, sys
 s = socket.socket()
 s.settimeout(0.2)
@@ -40,6 +43,9 @@ except OSError:
 finally:
     s.close()
 PY
+    return $?
+  done
+  return 1
 }
 
 wait_http() {
@@ -66,7 +72,7 @@ trap cleanup EXIT INT TERM
 
 resolve_python() {
   local cmd
-  for cmd in python3 python; do
+  for cmd in python3.12 py3; do
     if command -v "$cmd" >/dev/null 2>&1 && "$cmd" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)'; then
       echo "$cmd"
       return 0

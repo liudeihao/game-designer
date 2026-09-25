@@ -323,9 +323,11 @@ export function cardsFromEvents(events: RuntimeEvent[]): EventCard[] {
   for (const event of events) {
     if (event.type === "tool_result") results.set(event.id, event);
     else if (event.type === "tool_permission") permissions.set(event.id, event);
-    else if (event.type === "tool_call" && event.name === "generate_illustration") {
-      skipToolIds.add(event.id);
-    }
+  }
+  for (const event of events) {
+    if (event.type !== "tool_call" || event.name !== "generate_illustration") continue;
+    // Success is replaced by the illustration card. Failures stay in the chat.
+    if (results.get(event.id)?.outcome !== "error") skipToolIds.add(event.id);
   }
 
   // Map insertion order = first sighting; later events refresh in place.
